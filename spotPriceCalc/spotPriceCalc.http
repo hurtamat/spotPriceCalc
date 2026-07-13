@@ -1,0 +1,6 @@
+@spotPriceCalc_HostAddress = http://localhost:5262
+
+GET {{spotPriceCalc_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

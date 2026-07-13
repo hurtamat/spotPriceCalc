@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "spotPriceCalc", "spotPriceCalc\spotPriceCalc.csproj", "{43C5EB12-4672-46E2-87EA-12F0B12F34FF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{43C5EB12-4672-46E2-87EA-12F0B12F34FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43C5EB12-4672-46E2-87EA-12F0B12F34FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43C5EB12-4672-46E2-87EA-12F0B12F34FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43C5EB12-4672-46E2-87EA-12F0B12F34FF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
