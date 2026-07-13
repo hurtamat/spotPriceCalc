@@ -1,4 +1,4 @@
-# Energy Optimization Site — Architecture Summary
+# Energy Optimization Site
  
 **Scope for now:** Build the web app and the price-aggregation / calculation engine. Physical switch integration is a later enhancement.
 
@@ -61,9 +61,15 @@ The Vite dev server proxies `/api` calls to the .NET API on port **5262** — se
  
 EPEX SPOT's own feed is typically licensed / paid for retail use. Free alternatives for bidding-zone day-ahead prices:
  
-- **ENTSO-E Transparency Platform** (token required)
+- **ENTSO-E Transparency Platform** (token required) - whole eu prefferably
+    - https://transparency.entsoe.eu/
 - **OTE** (CZ) domestic publication
+    - https://www.ote-cr.cz/en/short-term-markets/electricity/day-ahead-market
 - **OKTE** (SK) domestic publication
+    - https://www.okte.sk/sk/kratkodoby-trh/zverejnenie-udajov-dt/celkove-vysledky-dt/
+- **OPEN-METEO** weather api
+    - https://open-meteo.com/
+
 Verify current terms before building the fetcher.
  
 ## Algorithm note

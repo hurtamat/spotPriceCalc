@@ -17,4 +17,13 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Controllers\" />
+      <Folder Include="Domain\" />
+      <Folder Include="dtos\" />
+      <Folder Include="Infrastructure\ExternalClients\" />
+      <Folder Include="Infrastructure\Persistence\" />
+      <Folder Include="Services\" />
+    </ItemGroup>
+
 </Project>
