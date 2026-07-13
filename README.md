@@ -1,6 +1,44 @@
 # Energy Optimization Site — Architecture Summary
  
 **Scope for now:** Build the web app and the price-aggregation / calculation engine. Physical switch integration is a later enhancement.
+
+## Running locally
+
+Three services run at the same time, one terminal each. Start them in any order.
+
+| Service      | Directory      | Command                          | URL                     |
+| ------------ | -------------- | -------------------------------- | ----------------------- |
+| .NET API     | `spotPriceCalc/` | `dotnet run`                   | http://localhost:5262   |
+| Calc service | `calc-service/`  | `source .venv/bin/activate` then `fastapi dev main.py` | http://localhost:8000 (docs at `/docs`) |
+| Frontend     | `frontend/`      | `npm run dev`                  | http://localhost:5173   |
+
+**.NET API** (or just hit Run in Rider):
+```bash
+cd spotPriceCalc
+dotnet run
+```
+
+**Calc service** (Python / FastAPI — activate the venv first, only in this terminal):
+```bash
+cd calc-service
+source .venv/bin/activate      # prompt shows (.venv); `deactivate` to exit
+fastapi dev main.py
+```
+First-time setup (only if `.venv` is missing, e.g. fresh clone):
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Frontend** (React / Vite):
+```bash
+cd frontend
+npm install                    # first time / after a fresh clone only
+npm run dev
+```
+
+The Vite dev server proxies `/api` calls to the .NET API on port **5262** — set that in `frontend/vite.config.ts`.
  
 ## Stack
  

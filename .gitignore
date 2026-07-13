@@ -1,5 +1,20 @@
+# .NET
 bin/
 obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+# Python (calc-service)
+.venv/
+__pycache__/
+*.pyc
+
+# Node / React (frontend)
+node_modules/
+dist/
+.vite/
+
+# IDE
+.idea/
+.claude/
