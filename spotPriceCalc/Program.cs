@@ -1,4 +1,11 @@
+using spotPriceCalc.Infrastructure.ExternalClients;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+builder.Services.AddHttpClient<ISpotPriceProvider, EntsoeSpotPriceClient>(c =>
+    c.BaseAddress = new Uri(builder.Configuration["Entsoe:BaseUrl"]));
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
