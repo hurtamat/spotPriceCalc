@@ -5,7 +5,7 @@ namespace spotPriceCalc.Services;
 
 public interface ISpotPriceService
 {
-    Task<IReadOnlyList<SpotPrice>> GetPricesAsync(DateOnly date, CancellationToken ct);
+    Task<ZoneSpotPrices> GetPricesAsync(DateOnly date, CancellationToken ct);
 }
 
 public class SpotPriceService : ISpotPriceService
@@ -19,6 +19,8 @@ public class SpotPriceService : ISpotPriceService
         Name = "Slovakia",
         Code = "10YSK-SEPS-----K",
         TimeZoneId = "Europe/Bratislava",
+        Latitude = 48.15,   // ~Bratislava
+        Longitude = 17.11,
     };
 
     public SpotPriceService(ISpotPriceProvider provider)
@@ -26,6 +28,6 @@ public class SpotPriceService : ISpotPriceService
         _provider = provider;
     }
 
-    public Task<IReadOnlyList<SpotPrice>> GetPricesAsync(DateOnly date, CancellationToken ct) =>
+    public Task<ZoneSpotPrices> GetPricesAsync(DateOnly date, CancellationToken ct) =>
         _provider.GetSpotPricesAsync(Zone, date, ct);
 }

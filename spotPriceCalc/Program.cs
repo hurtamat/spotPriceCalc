@@ -1,4 +1,5 @@
 using spotPriceCalc.Infrastructure.ExternalClients;
+using spotPriceCalc.Infrastructure.ExternalClients.OpenMeteo;
 using spotPriceCalc.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +8,9 @@ builder.Services.AddControllers();
 
 builder.Services.AddHttpClient<ISpotPriceProvider, EntsoeSpotPriceClient>(c =>
     c.BaseAddress = new Uri(builder.Configuration["Entsoe:BaseUrl"]));
+
+builder.Services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherClient>(c =>
+    c.BaseAddress = new Uri(builder.Configuration["OpenMeteo:BaseUrl"]));
 
 builder.Services.AddScoped<ISpotPriceService, SpotPriceService>();
 

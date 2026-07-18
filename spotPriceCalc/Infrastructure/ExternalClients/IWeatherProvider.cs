@@ -1,6 +1,8 @@
+using spotPriceCalc.Domain;
+
 namespace spotPriceCalc.Infrastructure.ExternalClients;
 
 public interface IWeatherProvider
 {
-    Task<IReadOnlyList<Weather>> GetWeatherPerPlace(CancellationToken ct); 
+    Task<ZoneTemperatures> GetTemperaturesAsync(BiddingZone zone, CancellationToken ct);
 }

@@ -16,7 +16,7 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
                          ?? throw new InvalidOperationException("Entsoe:SecurityToken is not configured.");
     }
 
-    public async Task<IReadOnlyList<SpotPrice>> GetSpotPricesAsync(BiddingZone zone, DateOnly date, CancellationToken ct)
+    public async Task<ZoneSpotPrices> GetSpotPricesAsync(BiddingZone zone, DateOnly date, CancellationToken ct)
     {
         var start = date.ToDateTime(TimeOnly.MinValue);
         var end = start.AddDays(1);
@@ -45,9 +45,13 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
                      ?? throw new InvalidOperationException(
                          $"No day-ahead (A01) series in ENTSO-E response for zone {zone.Code} on {date:yyyy-MM-dd}.");
         
-        return chosen.Periods
-            .SelectMany(p => p.ToSpotPrices(zone.Id))
+        // Map raw points -> PricePoints (date math + carry-forward live in the mapper),
+        // then wrap into the aggregate, stamping the zone id once.
+        var points = chosen.Periods
+            .SelectMany(p => p.ToPricePoints())
             .ToList();
+
+        return new ZoneSpotPrices { BiddingZoneId = zone.Id, Points = points };
     }
 }
 

@@ -4,5 +4,5 @@ namespace spotPriceCalc.Infrastructure.ExternalClients;
 
 public interface ISpotPriceProvider
 {
-    Task<IReadOnlyList<SpotPrice>> GetSpotPricesAsync(BiddingZone zone, DateOnly date, CancellationToken ct);
+    Task<ZoneSpotPrices> GetSpotPricesAsync(BiddingZone zone, DateOnly date, CancellationToken ct);
 }

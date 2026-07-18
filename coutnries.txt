@@ -1,0 +1,50 @@
+
+
+| Code | Zone / Country |
+|------|------|
+| `10YAT-APG------L` | Austria |
+| `10YBE----------2` | Belgium |
+| `10YCA-BULGARIA-R` | Bulgaria |
+| `10YCH-SWISSGRIDZ` | Switzerland |
+| `10YCZ-CEPS-----N` | **Czech Republic** |
+| `10YSK-SEPS-----K` | **Slovakia** |
+| `10Y1001A1001A82H` | Germany–Luxembourg (DE-LU) |
+| `10Y1001A1001A39I` | Estonia |
+| `10YES-REE------0` | Spain |
+| `10YFI-1--------U` | Finland |
+| `10YFR-RTE------C` | France |
+| `10YGR-HTSO-----Y` | Greece |
+| `10YHR-HEP------M` | Croatia |
+| `10YHU-MAVIR----U` | Hungary |
+| `10YLT-1001A0008Q` | Lithuania |
+| `10YLV-1001A00074` | Latvia |
+| `10YNL----------L` | Netherlands |
+| `10YPL-AREA-----S` | Poland |
+| `10YPT-REN------W` | Portugal |
+| `10YRO-TEL------P` | Romania |
+| `10YSI-ELES-----O` | Slovenia |
+
+| Code | Zone |
+|------|------|
+| `10Y1001A1001A44P` | Sweden SE1 |
+| `10Y1001A1001A45N` | Sweden SE2 |
+| `10Y1001A1001A46L` | Sweden SE3 |
+| `10Y1001A1001A47J` | Sweden SE4 |
+| `10YNO-1--------2` | Norway NO1 |
+| `10YNO-2--------T` | Norway NO2 |
+| `10YNO-3--------J` | Norway NO3 |
+| `10YNO-4--------9` | Norway NO4 |
+| `10Y1001A1001A48H` | Norway NO5 |
+| `10YDK-1--------W` | Denmark DK1 |
+| `10YDK-2--------M` | Denmark DK2 |
+| `10Y1001A1001A73I` | Italy North |
+| `10Y1001A1001A70O` | Italy Centre-North |
+| `10Y1001A1001A71M` | Italy Centre-South |
+| `10Y1001A1001A788` | Italy South |
+| `10Y1001A1001A74G` | Italy Sardinia |
+| `10Y1001A1001A75E` | Italy Sicily |
+| `10Y1001A1001A699` | Italy Brindisi |
+| `10Y1001A1001A72K` | Italy Foggia |
+| `10Y1001C--00096J` | Italy Calabria |
+| `10Y1001A1001A76C` | Italy Priolo |
+| `10Y1001A1001A77A` | Italy Rossano |

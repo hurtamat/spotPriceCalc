@@ -11,4 +11,8 @@ public class BiddingZone
     /// <summary>IANA timezone, e.g. "Europe/Vienna". Used to map the delivery day to a UTC query window
     /// and to convert price slots to local time.</summary>
     public required string TimeZoneId { get; set; }
+
+    /// <summary>Approximate centre of the zone — used to fetch weather (Open-Meteo).</summary>
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
 }

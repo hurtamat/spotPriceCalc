@@ -20,6 +20,6 @@ public class SpotPricesController : ControllerBase
     public async Task<IActionResult> GetPrices([FromQuery] DateOnly date, CancellationToken ct)
     {
         var prices = await _service.GetPricesAsync(date, ct);
-        return Ok(prices.Select(SpotPriceDto.From));
+        return Ok(ZoneSpotPricesDto.From(prices));
     }
 }
