@@ -1,10 +1,15 @@
+using Microsoft.EntityFrameworkCore;
 using spotPriceCalc.Infrastructure.ExternalClients;
 using spotPriceCalc.Infrastructure.ExternalClients.OpenMeteo;
+using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
 builder.Services.AddHttpClient<ISpotPriceProvider, EntsoeSpotPriceClient>(c =>
     c.BaseAddress = new Uri(builder.Configuration["Entsoe:BaseUrl"]));
@@ -19,6 +24,9 @@ builder.Services.AddScoped<ISpotPriceService, SpotPriceService>();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Apply migrations + seed bidding zones on startup.
+await DbInitializer.InitializeAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

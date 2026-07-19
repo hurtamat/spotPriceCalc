@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: spotprice-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spotprice
+      POSTGRES_USER: spotprice
+      POSTGRES_PASSWORD: spotprice123!
+    ports:
+      # Host 5433 -> container 5432, so a local/native Postgres can keep 5432 without colliding.
+      - "5433:5432"
+    volumes:
+      - spotprice-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spotprice -d spotprice"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: spotPriceCalc/Dockerfile
+    container_name: spotprice-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Overrides ConnectionStrings:Postgres from appsettings — talks to the db container over the
+      # compose network (service name "postgres", internal port 5432), NOT the host mapping.
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=spotprice;Username=spotprice;Password=spotprice"
+    ports:
+      - "8080:8080"
+
+volumes:
+  spotprice-pgdata:
