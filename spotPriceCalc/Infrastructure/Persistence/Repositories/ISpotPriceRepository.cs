@@ -8,5 +8,9 @@ public interface ISpotPriceRepository
 {
     Task<ZoneSpotPrices> GetAsync(int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct);
 
+    /// <summary>True if at least one price slot is stored for the zone on that day. Used to skip a zone
+    /// that's already populated — we assume one slot means the whole day is present.</summary>
+    Task<bool> HasAnyForDayAsync(int biddingZoneId, DateOnly date, CancellationToken ct);
+
     Task SaveAsync(ZoneSpotPrices prices, CancellationToken ct);
 }

@@ -1,33 +1,90 @@
 using spotPriceCalc.Domain;
 using spotPriceCalc.Infrastructure.ExternalClients;
+using spotPriceCalc.Infrastructure.Persistence;
+using spotPriceCalc.Infrastructure.Persistence.Repositories;
 
 namespace spotPriceCalc.Services;
-
-public interface ISpotPriceService
-{
-    Task<ZoneSpotPrices> GetPricesAsync(DateOnly date, CancellationToken ct);
-}
 
 public class SpotPriceService : ISpotPriceService
 {
     private readonly ISpotPriceProvider _provider;
+    private readonly ISpotPriceRepository _repository;
+    private readonly ILogger<SpotPriceService> _logger;
 
-    // Hardcoded for now — no persistence yet. Just enough to test the flow end to end.
-    private static readonly BiddingZone Zone = new()
-    {
-        Id = 1,
-        Name = "Slovakia",
-        Code = "10YSK-SEPS-----K",
-        TimeZoneId = "Europe/Bratislava",
-        Latitude = 48.15m,
-        Longitude = 17.11m,
-    };
+    // Throttle the sequential ENTSO-E calls so we don't trip their rate limits / gateway timeouts.
+    private static readonly TimeSpan RequestDelay = TimeSpan.FromMilliseconds(100);
 
-    public SpotPriceService(ISpotPriceProvider provider)
+    public SpotPriceService(
+        ISpotPriceProvider provider,
+        ISpotPriceRepository repository,
+        ILogger<SpotPriceService> logger)
     {
         _provider = provider;
+        _repository = repository;
+        _logger = logger;
     }
 
-    public Task<ZoneSpotPrices> GetPricesAsync(DateOnly date, CancellationToken ct) =>
-        _provider.GetSpotPricesAsync(Zone, date, ct);
+    public Task<ZoneSpotPrices> GetPricesAsync(int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct) =>
+        _repository.GetAsync(biddingZoneId, from, to, ct);
+
+    public async Task<PopulateResult> PopulateAsync(PriceDay day, CancellationToken ct)
+    {
+        var date = ResolveDate(day);
+        var zones = BiddingZoneSeedData.Zones;
+
+        _logger.LogInformation("Populate started for {Date}: {ZoneCount} zones", date, zones.Count);
+
+        var succeeded = 0;
+        var skipped = 0;
+        var pointsSaved = 0;
+        var failures = new List<string>();
+
+        foreach (var zone in zones)
+        {
+            try
+            {
+                // Already have this day for the zone? Assume the whole day is present and skip the fetch,
+                // so re-running populate only fills in the zones that failed/timed out last time.
+                if (await _repository.HasAnyForDayAsync(zone.Id, date, ct))
+                {
+                    skipped++;
+                    _logger.LogInformation("Skipped zone {ZoneId} ({Name}) for {Date}: already populated",
+                        zone.Id, zone.Name, date);
+                    continue;
+                }
+
+                var prices = await _provider.GetSpotPricesAsync(zone, date, ct);
+                await _repository.SaveAsync(prices, ct);
+
+                succeeded++;
+                pointsSaved += prices.Points.Count;
+
+                _logger.LogInformation("Populated zone {ZoneId} ({Name}) for {Date}: {Points} points",
+                    zone.Id, zone.Name, date, prices.Points.Count);
+            }
+            catch (Exception ex)
+            {
+                // Keep going — a single zone with no data yet shouldn't sink the whole run.
+                _logger.LogWarning(ex, "Populate failed for zone {ZoneId} ({Code}) on {Date}",
+                    zone.Id, zone.Code, date);
+                failures.Add($"{zone.Name} ({zone.Code}): {ex.Message}");
+            }
+
+            // Throttle between actual ENTSO-E calls (skipped zones use `continue` and never reach here).
+            await Task.Delay(RequestDelay, ct);
+        }
+
+        _logger.LogInformation(
+            "Populate finished for {Date}: {Succeeded} fetched, {Skipped} skipped, {Failed} failed, {Points} points",
+            date, succeeded, skipped, failures.Count, pointsSaved);
+
+        return new PopulateResult(date, zones.Count, succeeded, skipped, failures.Count, pointsSaved, failures);
+    }
+
+    // "Today"/"Tomorrow" relative to UTC — the provider treats the date as a UTC window.
+    private static DateOnly ResolveDate(PriceDay day)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        return day == PriceDay.Tomorrow ? today.AddDays(1) : today;
+    }
 }

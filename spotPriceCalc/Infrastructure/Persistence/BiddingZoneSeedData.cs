@@ -52,10 +52,12 @@ public static class BiddingZoneSeedData
         new() { Id = 36, Name = "Italy South",        Code = "10Y1001A1001A788", TimeZoneId = "Europe/Rome",       Latitude = 40.85m, Longitude = 14.27m },
         new() { Id = 37, Name = "Italy Sardinia",     Code = "10Y1001A1001A74G", TimeZoneId = "Europe/Rome",       Latitude = 39.22m, Longitude = 9.12m },
         new() { Id = 38, Name = "Italy Sicily",       Code = "10Y1001A1001A75E", TimeZoneId = "Europe/Rome",       Latitude = 38.12m, Longitude = 13.36m },
-        new() { Id = 39, Name = "Italy Brindisi",     Code = "10Y1001A1001A699", TimeZoneId = "Europe/Rome",       Latitude = 40.63m, Longitude = 17.94m },
-        new() { Id = 40, Name = "Italy Foggia",       Code = "10Y1001A1001A72K", TimeZoneId = "Europe/Rome",       Latitude = 41.46m, Longitude = 15.55m },
         new() { Id = 41, Name = "Italy Calabria",     Code = "10Y1001C--00096J", TimeZoneId = "Europe/Rome",       Latitude = 38.91m, Longitude = 16.59m },
-        new() { Id = 42, Name = "Italy Priolo",       Code = "10Y1001A1001A76C", TimeZoneId = "Europe/Rome",       Latitude = 37.16m, Longitude = 15.18m },
-        new() { Id = 43, Name = "Italy Rossano",      Code = "10Y1001A1001A77A", TimeZoneId = "Europe/Rome",       Latitude = 39.57m, Longitude = 16.63m },
+        // Ids 39/40/42/43 (Brindisi, Foggia, Priolo, Rossano) were legacy Italian zones deprecated in the
+        // Jan 2021 bidding-zone reform — removed. Ids left as gaps on purpose; never renumber existing ids.
     };
+
+    /// <summary>Zones keyed by Id — for resolving/validating a zone id without a DB round-trip.</summary>
+    public static readonly IReadOnlyDictionary<int, BiddingZone> ById =
+        Zones.ToDictionary(z => z.Id);
 }

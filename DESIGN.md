@@ -1,126 +1,186 @@
-# Design — Loads, Parameters & Implementation Choices
+# Design — .NET API current state (handoff doc)
 
-Companion to the architecture summary in [README.md](./README.md). This doc covers **what the user
-configures**, **how different load types relate**, and the reasoning behind the scoping decisions.
+This document describes **how the `spotPriceCalc` .NET API actually works today**, for the next
+developer/AI picking it up. For the broader product vision (pool-heating scheduler, Python calc engine,
+weather+COP optimization) see [README.md](./README.md) — that part is **not built yet**.
 
-## Scope: design generic, ship narrow
+> **Status in one line:** the .NET API fetches ENTSO-E day-ahead electricity prices per bidding zone,
+> stores them in Postgres, and serves them back over a date range. Weather (Open-Meteo) is scaffolded but
+> not yet exposed or populated. No scheduler, no calc-service integration, no auth.
 
-We do **not** philosophically commit to "only pools," but we also do **not** build five load types up
-front. The move:
+---
 
-- **Model a generic deferrable load** in the calc engine — something that needs a known amount of energy
-  delivered by a deadline, draws a known power, and has scheduling constraints.
-- **Ship *pool* as the first (flagship) concrete implementation** of that interface.
-- Keep the interface clean enough that adding EV/heat-pump later is a few days, not a rewrite. **Do not
-  hardcode pool assumptions into the core scheduler.**
+## Where this fits in the bigger system
 
-Why this works: pool, EV, water heater, and home heat pump are all the **same scheduling problem**
-underneath — *fit N units of runtime into the cheapest price windows subject to constraints*. What
-differs between them is only **how you compute the energy needed.**
+Three services are planned (see README). Only the first is meaningfully built:
 
-### Why pool first (and the honest tradeoff)
+| Service | Dir | State |
+| --- | --- | --- |
+| **.NET API** | `spotPriceCalc/` | **This doc.** Price ingestion + read API. Working. |
+| Calc service (Python/FastAPI) | `calc-service/` | Scaffolded only. The scheduling/thermal engine. |
+| Frontend (React/Vite) | `frontend/` | Scaffolded only. Will pick a bidding zone from a map. |
 
-Pool is one of the *harder* loads, because energy-needed depends on a thermal model (weather, evaporation,
-losses). That thermal sophistication is exactly what differentiates us from rigid off-the-shelf software —
-so it's a defensible flagship. But note the tradeoff:
+---
 
-- **Fastest path to an impressive demo = EV charging** — simpler math, and a *year-round* market instead
-  of a seasonal, minority-of-homes one.
-- We're choosing pool because it's the differentiator and we have the domain interest — but the generic
-  interface keeps EV a cheap follow-up.
+## Architecture / layers
 
-## The shared interface
-
-Every load type reduces to the same abstraction. Conceptually:
+Clean-ish layered architecture. Folder = layer, dependencies point inward toward `Domain`.
 
 ```
-DeferrableLoad
-  ├─ EnergyNeeded()      → how much energy must be delivered   (THE part that differs per load)
-  ├─ Power (kW)          → draw when running
-  └─ Constraints         → deadline, available hours, min runtime, block structure
+spotPriceCalc/
+├─ Controllers/           HTTP endpoints (thin)
+├─ Services/              orchestration (ISpotPriceService, PriceDay logic, populate loop)
+├─ Dtos/                  API response shapes (adds computed fields)
+├─ Domain/               aggregates + core entity, persistence-ignorant
+│   ├─ BiddingZone.cs         the one core entity (also EF-persisted + seeded)
+│   ├─ ZoneSpotPrices.cs      aggregate: zone id once + List<PricePoint>
+│   ├─ ZoneTemperatures.cs    aggregate: zone id once + List<TemperaturePoint>
+│   ├─ PopulateResult.cs      populate-run summary (namespace is .Services)
+│   └─ Enums/PriceDay.cs      Today | Tomorrow (namespace is .Services)
+└─ Infrastructure/
+    ├─ ExternalClients/       upstream HTTP (ENTSO-E, Open-Meteo)
+    │   ├─ Entsoe/            XML DTOs + deserializer + mapper
+    │   └─ OpenMeteo/         JSON DTOs + mapper
+    └─ Persistence/           EF Core
+        ├─ AppDbContext.cs
+        ├─ BiddingZoneSeedData.cs   SOURCE OF TRUTH for zones (code)
+        ├─ DbInitializer.cs         MigrateAsync() on startup
+        ├─ Configurations/          IEntityTypeConfiguration per entity
+        ├─ Entities/                flat EF rows
+        └─ Repositories/            read/write, aggregate<->rows mapping
 ```
 
-The **scheduler** consumes only this interface. It never knows whether it's scheduling a pool or a car.
-The two families differ purely in `EnergyNeeded()`:
+**Aggregate vs entity split (important):**
+- **Domain aggregates** (`ZoneSpotPrices`, `ZoneTemperatures`) hold the `BiddingZoneId` **once** + a list of
+  points. This is what services, providers, repositories, and DTOs pass around.
+- **Persistence entities** (`SpotPriceEntity`, `TemperatureReadingEntity`) are **flat rows** with the zone id
+  on *every* row. Repositories map: read = group rows → aggregate; write = flatten aggregate → rows.
 
-| Family | Examples | `EnergyNeeded()` | Weather? |
-| ------ | -------- | ---------------- | -------- |
-| **Fixed / known** | EV charger, water heater | Basically fixed and known ("40 kWh by 7am", "reheat tank to 55°C") | No |
-| **Thermal / modeled** | **Pool**, home heat pump | Computed from a thermal model (heat loss to ambient, evaporation, weather-dependent) | Yes |
+---
 
-The fixed family is the **pure form** of the scheduling algorithm. The thermal family wraps it with a
-weather-driven energy estimate — and that's where the Python scientific stack earns its place.
+## Data model / DB (Postgres via EF Core)
 
-## Parameters — Pool (flagship)
+Three tables (snake_case names set in the configurations):
 
-The earlier draft parameter set (pool size, target temp, available hours, block preference) **cannot
-actually produce a schedule** — you can't convert "energy needed" into "runtime hours" without knowing
-the heater. Full set:
+| Table | Entity | Key columns |
+| --- | --- | --- |
+| `bidding_zones` | `BiddingZone` | `Id` (PK, **not** auto-generated — assigned from seed), `Code` (unique EIC), `Name`, `TimeZoneId` (IANA), `Latitude`/`Longitude` (`numeric(9,6)`) |
+| `spot_prices` | `SpotPriceEntity` | `Id` PK, `From`/`To` (timestamptz UTC), `Price` (`numeric(10,4)`, EUR/MWh), `BiddingZoneId` FK. Unique `(BiddingZoneId, From)` |
+| `temperature_readings` | `TemperatureReadingEntity` | `Id` PK, `TimeUtc`, `TemperatureC` (`numeric(6,2)`), `BiddingZoneId` FK. Unique `(BiddingZoneId, TimeUtc)` |
 
-### Required (schedule is impossible without these)
+- **Migrations** live in `spotPriceCalc/Migrations/` and **are committed** (they're source). `DbInitializer.InitializeAsync`
+  runs `db.Database.MigrateAsync()` on startup — idempotent create + seed.
+- **Zone seeding = EF `HasData`** fed from `BiddingZoneSeedData.Zones` (option A: list in code is source of truth,
+  DB is a seeded copy the frontend reads). Changing the list → **needs a new migration**.
+- **`lat/lng` are `decimal`**, not `double`, on purpose — `double` stored `48.15` as `48.149999…`. Seed literals
+  carry the `m` suffix so they're exact base-10.
 
-| Parameter | Why it's required |
-| --------- | ----------------- |
-| **Volume** (or dimensions) | Base of the energy calculation. Dimensions preferred — they give *surface area*, which drives loss (a wide shallow pool loses far more than a deep narrow one of equal volume). |
-| **Current water temperature** | You need the **delta** to target, not just the target. "Heat to 28°C" is meaningless without knowing it's 18 vs 26 now. |
-| **Target temperature** | The goal state. |
-| **Heater power (kW)** | Non-negotiable — this is what turns *energy-needed* into *runtime-hours*. A 3 kW resistive element and a 12 kW heat pump heating the same pool need wildly different schedules. |
-| **Heater type** (resistive / heat pump) | Not cosmetic. A heat pump has COP ~4–5 (delivers 4–5× the heat per kWh), and its COP **drops as it gets colder outside** — which changes the optimal schedule (see below). |
-| **Location** | Needed to fetch weather for the thermal model. |
+### The 39 bidding zones
+`BiddingZoneSeedData.Zones` has 39 zones with **fixed ids** and a `ById` lookup dictionary.
+- **Ids are a stable contract** (the frontend will send them). **NEVER renumber or reuse an id.** Appending is fine.
+- Ids **39/40/42/43 are intentional gaps** — legacy Italian zones (Brindisi/Foggia/Priolo/Rossano) deprecated in
+  the Jan-2021 Italian bidding-zone reform were removed. Italy is now the correct 7 zones.
+- The list is **bidding zones**, not ENTSO-E "scheduling areas" (which represent Germany as TSO control areas, etc.).
+- Some codes (CH, DE-LU virtual/aggregate zones) should be verified with a live A44 call.
 
-### Nice-to-have (rough priority order)
+---
 
-| Parameter | Effect |
-| --------- | ------ |
-| **Cover** (y/n) | Biggest single lever after heater power — a cover cuts heat loss dramatically. |
-| **Pool dimensions** (vs just volume) | Derives surface area for a better loss model. |
-| **Indoor / outdoor** | Changes exposure and loss profile. |
+## External data sources
 
-## Scheduling modes
+### ENTSO-E Transparency Platform (`EntsoeSpotPriceClient`)
+- **XML** response (not JSON) → parsed with `System.Xml.Serialization.XmlSerializer` into DTOs
+  (`Entsoe/EntsoeDocument.cs`), namespace `urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:3`.
+- Query: `documentType=A44` (day-ahead prices), `in_Domain=out_Domain=zone.Code`, `periodStart/End` as
+  `yyyyMMddHHmm`. **The date is treated as a UTC window** (`00:00`→next `00:00`).
+- Series selection: keep `IsDayAhead` (`contract_MarketAgreement.type == A01`, drops A07 intraday), then
+  **prefer the series WITHOUT `classificationSequence`** (SDAC over EXAA).
+- **All date math + the `curveType A03` carry-forward** (sparse positions repeat the last price) live in
+  `EntsoeSpotPriceMapper.ToPricePoints()` — nowhere else. Resolution from `XmlConvert.ToTimeSpan` (PT15M ⇒ 96
+  slots/day, PT60M ⇒ 24). Prices are **EUR/MWh**.
+- Security token read from config `Entsoe:SecurityToken`. **Currently hardcoded in
+  `appsettings.Development.json` — move it out before committing/prod.**
 
-We were implicitly conflating two different jobs. Make it an **explicit mode toggle** early — different
-UX and different scheduling logic:
+### Open-Meteo (`OpenMeteoWeatherClient`)
+- **JSON** response, parsed with `System.Text.Json`. Query uses `zone.Latitude/Longitude`,
+  `hourly=temperature_2m`. **Still `forecast_days=1` — NOT yet from/to (a known TODO).**
+- Provider + `IWeatherRepository` are registered in DI but **nothing calls them yet** (no endpoint, not in populate).
 
-- **Heat-up by deadline** — "pool is cold, I want it at 28°C by Saturday 2pm." One big energy chunk; all
-  runtime must finish before the deadline.
-- **Maintenance** — "keep it at 28°C." Small daily top-ups to replace losses, spread into each day's
-  cheapest windows.
+---
 
-Most real users over a season want **maintenance** with occasional **heat-up**.
+## Endpoints (`SpotPricesController`, route `api/spotprices`)
 
-## Block structure & anti-cycling
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/spotprices?biddingZoneId=6&from=2026-07-18&to=2026-07-18` | **Read** stored prices for one zone over an inclusive date range. Validates zone id (404) and `to >= from` (400). Returns `ZoneSpotPricesDto`. |
+| `POST` | `/api/spotprices/populate?day=today` | **Write**: fetch + store prices for ALL zones for `today` (default) or `tomorrow`. Returns `PopulateResult`. |
 
-Including a single-block vs multi-block preference is a good call:
+- Read returns **only what's in the DB** — there is **no fetch-if-missing / caching** yet. Populate first, then read.
+- `ZoneSpotPricesDto` adds a computed **`CtPerKwh = EurPerMwh / 10`** (consumer unit) on top of the raw EUR/MWh.
 
-- **Single continuous block** — operationally gentle, simple, but pays more (can't cherry-pick scattered
-  cheap hours).
-- **Multiple blocks** — grabs all the cheapest scattered slots, saves more, but cycles the equipment more.
+---
 
-Make it a user preference — **but also enforce a minimum-runtime / anti-cycling constraint**, because heat
-pumps genuinely dislike short cycling and some have a hard minimum. So it's not purely user taste; the
-**equipment imposes limits the scheduler must respect.**
+## Key flows
 
-## The payoff — why weather modeling matters
+### Populate (`SpotPriceService.PopulateAsync`)
+```
+resolve date from PriceDay (Today/Tomorrow, relative to UTC)
+for each of the 39 seeded zones:
+    if repo.HasAnyForDayAsync(zone, date)  → skip (assume whole day present)
+    else: provider.GetSpotPrices → repo.SaveAsync
+    wait RequestDelay (100ms) between real ENTSO-E calls
+return PopulateResult { date, zonesTotal, succeeded, skipped, failed, pointsSaved, failures[] }
+```
+- **Idempotent & re-runnable**: `HasAnyForDayAsync` (a cheap `AnyAsync`) skips zones already populated, so a
+  re-run only fills zones that failed/timed out. Assumes **one stored slot ⇒ the whole day is present** (holds
+  because `SaveAsync` writes a day atomically in one `SaveChangesAsync`).
+- **Resilient**: each zone is try/catch'd; one failure (e.g. ENTSO-E gateway `ReadTimeoutException`, which comes
+  from *their* Netty server, not us) is logged and collected in `failures[]`, the loop continues.
+- **Throttled**: `RequestDelay` (currently 100ms) between calls.
 
-This is the insight that beats the cheap competition:
+### Read (`SpotPriceService.GetPricesAsync` → `SpotPriceRepository.GetAsync`)
+- Repository converts the `from`/`to` **dates** into a UTC **timestamp window** `[from 00:00Z, (to+1) 00:00Z)`
+  (`ToUtcWindow` helper) and filters rows with `>= fromUtc && < toUtcExclusive` (half-open interval, inclusive `to`).
+- Idempotent `SaveAsync` skips slots already stored (checks the unique index first) — no duplicate-key crashes.
 
-> **For a heat pump, the cheapest hour by *electricity price* is not always the cheapest hour by
-> *cost-to-heat*.**
+---
 
-Running the pump at 3am when it's −5°C (low COP → sips more electricity per unit of heat) can cost **more**
-than running it at 2pm when it's +8°C and cheaper to move the same heat — even if the 3am spot price is
-lower. A naive "rank hours by price" scheduler gets this wrong. Ours, factoring **weather + COP**, gets it
-right. That's the demo that sells the product, and it's why the Python thermal model earns its place.
+## Conventions & decisions (the "why")
 
-## Summary — the pool parameter set
+- **Bidding-zone ids are a stable public contract** — seeded with fixed ids, never renumbered. Frontend sends ids.
+- **Everything is UTC** — columns are `timestamptz`, providers stamp `DateTimeKind.Utc`, date ranges use UTC bounds.
+- **`decimal`/`numeric` for exact quantities** (prices, temps, lat/lng), never `double`.
+- **Repositories are pure persistence** — no HTTP, no fetch-if-missing. Orchestration lives in the service.
+- **DTO adds ct/kWh** and decouples the wire format from the domain (`ZoneSpotPricesDto`).
+- **The user runs all `dotnet`/EF/package/build commands themselves in Rider** — hand them commands, don't run them.
 
-**Required:** volume (or dimensions), current temp, target temp, heater power (kW), heater type, location.
-**Nice-to-have:** cover y/n, dimensions, indoor/outdoor.
-**Scheduling prefs:** mode (heat-up / maintenance), block structure (single / multi), available hours (if
-manual), minimum runtime.
+---
 
-## Open next step
+## Running locally
 
-Turn this into the concrete **.NET → FastAPI request contract** — a typed schema with these fields,
-sensible defaults, and required-vs-optional marking. (See the data-flow section in the README for where
-that call sits.)
+Full instructions in README. DB specifics:
+
+- **Local dev DB** (what the Rider-run app connects to): `scripts/local-db.sh` starts a Postgres container on
+  **host 5432** with user/db `spotprice`. `appsettings.json` → `ConnectionStrings:Postgres` points at `localhost:5432`.
+- **`docker-compose.yml`** runs the full stack: a Postgres on **host 5433** (so it never collides with the local
+  5432 one) + the `app` container, which overrides the connection string via env var `ConnectionStrings__Postgres`
+  to reach the db internally as `postgres:5432`. `docker compose up -d --build` brings up both.
+- App listens on `http://localhost:5262` (see `Properties/launchSettings.json`). Test calls in `spotPriceCalc.http`.
+
+---
+
+## Known gaps / TODOs / gotchas for the next AI
+
+1. **Weather is scaffolded but inert** — no endpoint, not in populate, and Open-Meteo is still `forecast_days=1`.
+   Next: add from/to support to `OpenMeteoWeatherClient`, a weather populate loop, and a read endpoint (symmetric
+   to prices — the repository already supports the range).
+2. **No caching / fetch-if-missing** — the read endpoint returns only stored data. Deliberate; add later.
+3. **Populate is a manual `POST`** — intended to become an **Azure Function** running daily (~after the day-ahead
+   auction, ~13:00 CET, populate `tomorrow`).
+4. **Date is treated as a UTC day**, not the zone's local delivery day. ENTSO-E's day-ahead "delivery day" is
+   local (CET/CEST); we query a UTC-midnight window. **Known simplification — may be off by the UTC offset at the
+   day edges.** Revisit using `BiddingZone.TimeZoneId` to build a proper local→UTC window.
+5. **Security token hardcoded** in `appsettings.Development.json` — move to user-secrets / env before commit.
+6. **Pending migration** — after removing the 4 legacy Italian zones, a new migration
+   (`dotnet ef migrations add RemoveLegacyItalianZones`) is needed so `HasData` drops those rows.
+7. **Minor layering leak** — `SpotPricesController` references `Infrastructure.Persistence.BiddingZoneSeedData`
+   for id validation. Fine for now; move the zone catalog into a service if you want controllers off Infrastructure.

@@ -25,7 +25,6 @@
 
     <ItemGroup>
       <Folder Include="Controllers\" />
-      <Folder Include="Domain\Enums\" />
       <Folder Include="Dtos\" />
       <Folder Include="Services\" />
     </ItemGroup>

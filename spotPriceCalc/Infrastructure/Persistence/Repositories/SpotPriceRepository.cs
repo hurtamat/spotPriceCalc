@@ -23,6 +23,14 @@ public class SpotPriceRepository : ISpotPriceRepository
         return new ZoneSpotPrices { BiddingZoneId = biddingZoneId, Points = points };
     }
 
+    public Task<bool> HasAnyForDayAsync(int biddingZoneId, DateOnly date, CancellationToken ct)
+    {
+        var (fromUtc, toUtcExclusive) = ToUtcWindow(date, date);
+
+        return _db.SpotPrices.AnyAsync(
+            p => p.BiddingZoneId == biddingZoneId && p.From >= fromUtc && p.From < toUtcExclusive, ct);
+    }
+
     public async Task SaveAsync(ZoneSpotPrices prices, CancellationToken ct)
     {
         if (prices.Points.Count == 0)

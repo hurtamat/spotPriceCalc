@@ -11,10 +11,20 @@
 GET {{entsoeHost}}?securityToken={{token}}&documentType={{documentType}}&businessType={{businessType}}&contract_MarketAgreement.Type={{contractType}}&out_Domain={{domain}}&in_Domain={{domain}}&periodStart={{periodStart}}&periodEnd={{periodEnd}}
 Accept: application/xml
 
-### Our API — day-ahead prices for the hardcoded zone (Slovakia)
+### Our API
 @spotPriceCalc_HostAddress = http://localhost:5262
+@biddingZoneId = 6
 
-GET {{spotPriceCalc_HostAddress}}/api/spotprices?date=2026-07-18
+### Populate ALL zones for today (writes to the DB) — run this first
+POST {{spotPriceCalc_HostAddress}}/api/spotprices/populate?day=today
+Accept: application/json
+
+### Populate ALL zones for tomorrow (after the day-ahead auction, ~13:00 CET)
+POST {{spotPriceCalc_HostAddress}}/api/spotprices/populate?day=tomorrow
+Accept: application/json
+
+### Read stored prices for one zone over a date range (Slovakia = id 6)
+GET {{spotPriceCalc_HostAddress}}/api/spotprices?biddingZoneId={{biddingZoneId}}&from=2026-07-18&to=2026-07-18
 Accept: application/json
 
 ###
