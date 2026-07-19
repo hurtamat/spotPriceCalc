@@ -19,8 +19,8 @@ public class SpotPriceService : ISpotPriceService
         Name = "Slovakia",
         Code = "10YSK-SEPS-----K",
         TimeZoneId = "Europe/Bratislava",
-        Latitude = 48.15,   // ~Bratislava
-        Longitude = 17.11,
+        Latitude = 48.15m,
+        Longitude = 17.11m,
     };
 
     public SpotPriceService(ISpotPriceProvider provider)

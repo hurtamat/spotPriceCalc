@@ -32,11 +32,11 @@ namespace spotPriceCalc.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
-                    b.Property<double>("Latitude")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("Latitude")
+                        .HasColumnType("numeric(9,6)");
 
-                    b.Property<double>("Longitude")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("Longitude")
+                        .HasColumnType("numeric(9,6)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -60,8 +60,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 1,
                             Code = "10YAT-APG------L",
-                            Latitude = 48.210000000000001,
-                            Longitude = 16.370000000000001,
+                            Latitude = 48.21m,
+                            Longitude = 16.37m,
                             Name = "Austria",
                             TimeZoneId = "Europe/Vienna"
                         },
@@ -69,8 +69,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 2,
                             Code = "10YBE----------2",
-                            Latitude = 50.850000000000001,
-                            Longitude = 4.3499999999999996,
+                            Latitude = 50.85m,
+                            Longitude = 4.35m,
                             Name = "Belgium",
                             TimeZoneId = "Europe/Brussels"
                         },
@@ -78,8 +78,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 3,
                             Code = "10YCA-BULGARIA-R",
-                            Latitude = 42.700000000000003,
-                            Longitude = 23.32,
+                            Latitude = 42.70m,
+                            Longitude = 23.32m,
                             Name = "Bulgaria",
                             TimeZoneId = "Europe/Sofia"
                         },
@@ -87,8 +87,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 4,
                             Code = "10YCH-SWISSGRIDZ",
-                            Latitude = 46.950000000000003,
-                            Longitude = 7.4500000000000002,
+                            Latitude = 46.95m,
+                            Longitude = 7.45m,
                             Name = "Switzerland",
                             TimeZoneId = "Europe/Zurich"
                         },
@@ -96,8 +96,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 5,
                             Code = "10YCZ-CEPS-----N",
-                            Latitude = 50.079999999999998,
-                            Longitude = 14.44,
+                            Latitude = 50.08m,
+                            Longitude = 14.44m,
                             Name = "Czech Republic",
                             TimeZoneId = "Europe/Prague"
                         },
@@ -105,8 +105,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 6,
                             Code = "10YSK-SEPS-----K",
-                            Latitude = 48.149999999999999,
-                            Longitude = 17.109999999999999,
+                            Latitude = 48.15m,
+                            Longitude = 17.11m,
                             Name = "Slovakia",
                             TimeZoneId = "Europe/Bratislava"
                         },
@@ -114,8 +114,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 7,
                             Code = "10Y1001A1001A82H",
-                            Latitude = 52.520000000000003,
-                            Longitude = 13.41,
+                            Latitude = 52.52m,
+                            Longitude = 13.41m,
                             Name = "Germany-Luxembourg",
                             TimeZoneId = "Europe/Berlin"
                         },
@@ -123,8 +123,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 8,
                             Code = "10Y1001A1001A39I",
-                            Latitude = 59.439999999999998,
-                            Longitude = 24.75,
+                            Latitude = 59.44m,
+                            Longitude = 24.75m,
                             Name = "Estonia",
                             TimeZoneId = "Europe/Tallinn"
                         },
@@ -132,8 +132,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 9,
                             Code = "10YES-REE------0",
-                            Latitude = 40.420000000000002,
-                            Longitude = -3.7000000000000002,
+                            Latitude = 40.42m,
+                            Longitude = -3.70m,
                             Name = "Spain",
                             TimeZoneId = "Europe/Madrid"
                         },
@@ -141,8 +141,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 10,
                             Code = "10YFI-1--------U",
-                            Latitude = 60.170000000000002,
-                            Longitude = 24.940000000000001,
+                            Latitude = 60.17m,
+                            Longitude = 24.94m,
                             Name = "Finland",
                             TimeZoneId = "Europe/Helsinki"
                         },
@@ -150,8 +150,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 11,
                             Code = "10YFR-RTE------C",
-                            Latitude = 48.850000000000001,
-                            Longitude = 2.3500000000000001,
+                            Latitude = 48.85m,
+                            Longitude = 2.35m,
                             Name = "France",
                             TimeZoneId = "Europe/Paris"
                         },
@@ -159,8 +159,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 12,
                             Code = "10YGR-HTSO-----Y",
-                            Latitude = 37.979999999999997,
-                            Longitude = 23.73,
+                            Latitude = 37.98m,
+                            Longitude = 23.73m,
                             Name = "Greece",
                             TimeZoneId = "Europe/Athens"
                         },
@@ -168,8 +168,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 13,
                             Code = "10YHR-HEP------M",
-                            Latitude = 45.810000000000002,
-                            Longitude = 15.98,
+                            Latitude = 45.81m,
+                            Longitude = 15.98m,
                             Name = "Croatia",
                             TimeZoneId = "Europe/Zagreb"
                         },
@@ -177,8 +177,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 14,
                             Code = "10YHU-MAVIR----U",
-                            Latitude = 47.5,
-                            Longitude = 19.039999999999999,
+                            Latitude = 47.50m,
+                            Longitude = 19.04m,
                             Name = "Hungary",
                             TimeZoneId = "Europe/Budapest"
                         },
@@ -186,8 +186,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 15,
                             Code = "10YLT-1001A0008Q",
-                            Latitude = 54.689999999999998,
-                            Longitude = 25.280000000000001,
+                            Latitude = 54.69m,
+                            Longitude = 25.28m,
                             Name = "Lithuania",
                             TimeZoneId = "Europe/Vilnius"
                         },
@@ -195,8 +195,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 16,
                             Code = "10YLV-1001A00074",
-                            Latitude = 56.950000000000003,
-                            Longitude = 24.109999999999999,
+                            Latitude = 56.95m,
+                            Longitude = 24.11m,
                             Name = "Latvia",
                             TimeZoneId = "Europe/Riga"
                         },
@@ -204,8 +204,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 17,
                             Code = "10YNL----------L",
-                            Latitude = 52.369999999999997,
-                            Longitude = 4.9000000000000004,
+                            Latitude = 52.37m,
+                            Longitude = 4.90m,
                             Name = "Netherlands",
                             TimeZoneId = "Europe/Amsterdam"
                         },
@@ -213,8 +213,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 18,
                             Code = "10YPL-AREA-----S",
-                            Latitude = 52.229999999999997,
-                            Longitude = 21.010000000000002,
+                            Latitude = 52.23m,
+                            Longitude = 21.01m,
                             Name = "Poland",
                             TimeZoneId = "Europe/Warsaw"
                         },
@@ -222,8 +222,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 19,
                             Code = "10YPT-REN------W",
-                            Latitude = 38.719999999999999,
-                            Longitude = -9.1400000000000006,
+                            Latitude = 38.72m,
+                            Longitude = -9.14m,
                             Name = "Portugal",
                             TimeZoneId = "Europe/Lisbon"
                         },
@@ -231,8 +231,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 20,
                             Code = "10YRO-TEL------P",
-                            Latitude = 44.43,
-                            Longitude = 26.100000000000001,
+                            Latitude = 44.43m,
+                            Longitude = 26.10m,
                             Name = "Romania",
                             TimeZoneId = "Europe/Bucharest"
                         },
@@ -240,8 +240,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 21,
                             Code = "10YSI-ELES-----O",
-                            Latitude = 46.049999999999997,
-                            Longitude = 14.51,
+                            Latitude = 46.05m,
+                            Longitude = 14.51m,
                             Name = "Slovenia",
                             TimeZoneId = "Europe/Ljubljana"
                         },
@@ -249,8 +249,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 22,
                             Code = "10Y1001A1001A44P",
-                            Latitude = 65.579999999999998,
-                            Longitude = 22.149999999999999,
+                            Latitude = 65.58m,
+                            Longitude = 22.15m,
                             Name = "Sweden SE1",
                             TimeZoneId = "Europe/Stockholm"
                         },
@@ -258,8 +258,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 23,
                             Code = "10Y1001A1001A45N",
-                            Latitude = 62.390000000000001,
-                            Longitude = 17.309999999999999,
+                            Latitude = 62.39m,
+                            Longitude = 17.31m,
                             Name = "Sweden SE2",
                             TimeZoneId = "Europe/Stockholm"
                         },
@@ -267,8 +267,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 24,
                             Code = "10Y1001A1001A46L",
-                            Latitude = 59.329999999999998,
-                            Longitude = 18.07,
+                            Latitude = 59.33m,
+                            Longitude = 18.07m,
                             Name = "Sweden SE3",
                             TimeZoneId = "Europe/Stockholm"
                         },
@@ -276,8 +276,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 25,
                             Code = "10Y1001A1001A47J",
-                            Latitude = 55.600000000000001,
-                            Longitude = 13.0,
+                            Latitude = 55.60m,
+                            Longitude = 13.00m,
                             Name = "Sweden SE4",
                             TimeZoneId = "Europe/Stockholm"
                         },
@@ -285,8 +285,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 26,
                             Code = "10YNO-1--------2",
-                            Latitude = 59.909999999999997,
-                            Longitude = 10.75,
+                            Latitude = 59.91m,
+                            Longitude = 10.75m,
                             Name = "Norway NO1",
                             TimeZoneId = "Europe/Oslo"
                         },
@@ -294,8 +294,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 27,
                             Code = "10YNO-2--------T",
-                            Latitude = 58.149999999999999,
-                            Longitude = 8.0,
+                            Latitude = 58.15m,
+                            Longitude = 8.00m,
                             Name = "Norway NO2",
                             TimeZoneId = "Europe/Oslo"
                         },
@@ -303,8 +303,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 28,
                             Code = "10YNO-3--------J",
-                            Latitude = 63.43,
-                            Longitude = 10.390000000000001,
+                            Latitude = 63.43m,
+                            Longitude = 10.39m,
                             Name = "Norway NO3",
                             TimeZoneId = "Europe/Oslo"
                         },
@@ -312,8 +312,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 29,
                             Code = "10YNO-4--------9",
-                            Latitude = 69.650000000000006,
-                            Longitude = 18.960000000000001,
+                            Latitude = 69.65m,
+                            Longitude = 18.96m,
                             Name = "Norway NO4",
                             TimeZoneId = "Europe/Oslo"
                         },
@@ -321,8 +321,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 30,
                             Code = "10Y1001A1001A48H",
-                            Latitude = 60.390000000000001,
-                            Longitude = 5.3200000000000003,
+                            Latitude = 60.39m,
+                            Longitude = 5.32m,
                             Name = "Norway NO5",
                             TimeZoneId = "Europe/Oslo"
                         },
@@ -330,8 +330,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 31,
                             Code = "10YDK-1--------W",
-                            Latitude = 56.159999999999997,
-                            Longitude = 10.199999999999999,
+                            Latitude = 56.16m,
+                            Longitude = 10.20m,
                             Name = "Denmark DK1",
                             TimeZoneId = "Europe/Copenhagen"
                         },
@@ -339,8 +339,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 32,
                             Code = "10YDK-2--------M",
-                            Latitude = 55.68,
-                            Longitude = 12.57,
+                            Latitude = 55.68m,
+                            Longitude = 12.57m,
                             Name = "Denmark DK2",
                             TimeZoneId = "Europe/Copenhagen"
                         },
@@ -348,8 +348,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 33,
                             Code = "10Y1001A1001A73I",
-                            Latitude = 45.460000000000001,
-                            Longitude = 9.1899999999999995,
+                            Latitude = 45.46m,
+                            Longitude = 9.19m,
                             Name = "Italy North",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -357,8 +357,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 34,
                             Code = "10Y1001A1001A70O",
-                            Latitude = 43.770000000000003,
-                            Longitude = 11.26,
+                            Latitude = 43.77m,
+                            Longitude = 11.26m,
                             Name = "Italy Centre-North",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -366,8 +366,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 35,
                             Code = "10Y1001A1001A71M",
-                            Latitude = 41.899999999999999,
-                            Longitude = 12.5,
+                            Latitude = 41.90m,
+                            Longitude = 12.50m,
                             Name = "Italy Centre-South",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -375,8 +375,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 36,
                             Code = "10Y1001A1001A788",
-                            Latitude = 40.850000000000001,
-                            Longitude = 14.27,
+                            Latitude = 40.85m,
+                            Longitude = 14.27m,
                             Name = "Italy South",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -384,8 +384,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 37,
                             Code = "10Y1001A1001A74G",
-                            Latitude = 39.219999999999999,
-                            Longitude = 9.1199999999999992,
+                            Latitude = 39.22m,
+                            Longitude = 9.12m,
                             Name = "Italy Sardinia",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -393,8 +393,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 38,
                             Code = "10Y1001A1001A75E",
-                            Latitude = 38.119999999999997,
-                            Longitude = 13.359999999999999,
+                            Latitude = 38.12m,
+                            Longitude = 13.36m,
                             Name = "Italy Sicily",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -402,8 +402,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 39,
                             Code = "10Y1001A1001A699",
-                            Latitude = 40.630000000000003,
-                            Longitude = 17.940000000000001,
+                            Latitude = 40.63m,
+                            Longitude = 17.94m,
                             Name = "Italy Brindisi",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -411,8 +411,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 40,
                             Code = "10Y1001A1001A72K",
-                            Latitude = 41.460000000000001,
-                            Longitude = 15.550000000000001,
+                            Latitude = 41.46m,
+                            Longitude = 15.55m,
                             Name = "Italy Foggia",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -420,8 +420,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 41,
                             Code = "10Y1001C--00096J",
-                            Latitude = 38.909999999999997,
-                            Longitude = 16.59,
+                            Latitude = 38.91m,
+                            Longitude = 16.59m,
                             Name = "Italy Calabria",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -429,8 +429,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 42,
                             Code = "10Y1001A1001A76C",
-                            Latitude = 37.159999999999997,
-                            Longitude = 15.18,
+                            Latitude = 37.16m,
+                            Longitude = 15.18m,
                             Name = "Italy Priolo",
                             TimeZoneId = "Europe/Rome"
                         },
@@ -438,8 +438,8 @@ namespace spotPriceCalc.Migrations
                         {
                             Id = 43,
                             Code = "10Y1001A1001A77A",
-                            Latitude = 39.57,
-                            Longitude = 16.629999999999999,
+                            Latitude = 39.57m,
+                            Longitude = 16.63m,
                             Name = "Italy Rossano",
                             TimeZoneId = "Europe/Rome"
                         });

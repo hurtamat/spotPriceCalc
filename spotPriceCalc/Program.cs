@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using spotPriceCalc.Infrastructure.ExternalClients;
 using spotPriceCalc.Infrastructure.ExternalClients.OpenMeteo;
 using spotPriceCalc.Infrastructure.Persistence;
+using spotPriceCalc.Infrastructure.Persistence.Repositories;
 using spotPriceCalc.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,9 @@ builder.Services.AddHttpClient<ISpotPriceProvider, EntsoeSpotPriceClient>(c =>
 
 builder.Services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherClient>(c =>
     c.BaseAddress = new Uri(builder.Configuration["OpenMeteo:BaseUrl"]));
+
+builder.Services.AddScoped<ISpotPriceRepository, SpotPriceRepository>();
+builder.Services.AddScoped<IWeatherRepository, WeatherRepository>();
 
 builder.Services.AddScoped<ISpotPriceService, SpotPriceService>();
 

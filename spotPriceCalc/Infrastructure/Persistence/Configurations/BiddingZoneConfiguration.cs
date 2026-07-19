@@ -21,8 +21,9 @@ public class BiddingZoneConfiguration : IEntityTypeConfiguration<BiddingZone>
         builder.Property(z => z.Name).HasMaxLength(100).IsRequired();
         builder.Property(z => z.Code).HasMaxLength(16).IsRequired();
         builder.Property(z => z.TimeZoneId).HasMaxLength(64).IsRequired();
-        builder.Property(z => z.Latitude);
-        builder.Property(z => z.Longitude);
+        // numeric(9,6): up to ±180.000000, plenty for lat/lng and stored exactly.
+        builder.Property(z => z.Latitude).HasColumnType("numeric(9,6)");
+        builder.Property(z => z.Longitude).HasColumnType("numeric(9,6)");
 
         builder.HasIndex(z => z.Code).IsUnique();
 

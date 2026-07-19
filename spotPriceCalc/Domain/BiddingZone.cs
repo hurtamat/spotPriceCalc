@@ -12,7 +12,8 @@ public class BiddingZone
     /// and to convert price slots to local time.</summary>
     public required string TimeZoneId { get; set; }
 
-    /// <summary>Approximate centre of the zone — used to fetch weather (Open-Meteo).</summary>
-    public double Latitude { get; set; }
-    public double Longitude { get; set; }
+    /// <summary>Approximate centre of the zone — used to fetch weather (Open-Meteo). Stored as decimal
+    /// (numeric(9,6)) so values persist exactly, without binary floating-point noise.</summary>
+    public decimal Latitude { get; set; }
+    public decimal Longitude { get; set; }
 }
