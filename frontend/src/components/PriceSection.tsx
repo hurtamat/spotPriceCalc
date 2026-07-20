@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   DAY_LABELS,
   DAY_ORDER,
@@ -31,9 +31,15 @@ export function PriceSection() {
   const [day, setDay] = useState<DayKey>('today');
   // Cache each day's fetch so switching tabs back is instant.
   const [cache, setCache] = useState<Partial<Record<DayKey, LoadState>>>({});
+  // Read the cache without making it an effect dependency (which would re-run
+  // the effect — and abort the in-flight request — every time we set loading).
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
 
   useEffect(() => {
-    if (cache[day]) return;
+    // Already have a finished result for this day? Show it, don't refetch.
+    if (cacheRef.current[day]?.status === 'ready') return;
+
     const controller = new AbortController();
     setCache((c) => ({ ...c, [day]: { status: 'loading' } }));
     fetchSpotPrices(SLOVAKIA.id, dateForDay(day), controller.signal)
@@ -44,7 +50,7 @@ export function PriceSection() {
         setCache((c) => ({ ...c, [day]: { status: 'error', message } }));
       });
     return () => controller.abort();
-  }, [day, cache]);
+  }, [day]);
 
   const state = cache[day];
 

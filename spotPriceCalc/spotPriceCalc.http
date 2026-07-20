@@ -24,7 +24,7 @@ POST {{spotPriceCalc_HostAddress}}/api/spotprices/populate?day=tomorrow
 Accept: application/json
 
 ### Read stored prices for one zone over a date range (Slovakia = id 6)
-GET {{spotPriceCalc_HostAddress}}/api/spotprices?biddingZoneId={{biddingZoneId}}&from=2026-07-18&to=2026-07-18
+GET {{spotPriceCalc_HostAddress}}/api/spotprices?biddingZoneId={{biddingZoneId}}&from=2026-07-20&to=2026-07-20
 Accept: application/json
 
 ###
