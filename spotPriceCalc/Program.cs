@@ -7,6 +7,16 @@ using spotPriceCalc.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string FrontendCors = "frontend-dev";
+builder.Services.AddCors(options =>
+    options.AddPolicy(FrontendCors, policy => policy
+        // Vite dev server (npm run dev) and preview (npm run preview).
+        .WithOrigins(
+            "http://localhost:5173", "http://127.0.0.1:5173",
+            "http://localhost:4173", "http://127.0.0.1:4173")
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
+
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -39,6 +49,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(FrontendCors);
 
 app.MapControllers();
 

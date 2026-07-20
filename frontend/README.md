@@ -1,32 +1,48 @@
-# React + TypeScript + Vite
+# SpotBuddy — frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + TypeScript + Vite landing page for SpotBuddy, ported from the Claude Design
+"SpotBuddy v2" export.
 
-Currently, two official plugins are available:
+## What's wired up
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Price chart** — the only live-data part. It calls the .NET API
+  `GET /api/spotprices?biddingZoneId=6&from=…&to=…` for **Slovakia (bidding zone id 6)** and shows
+  the day-ahead curve for **yesterday / today / tomorrow** (tabs). Zone is hardcoded for now.
+- **Savings estimator, waitlist forms, FAQ** — static / local-only. The waitlist buttons and the
+  email inputs are placeholders to be wired up later.
+- **Map** — a decorative faded background image behind the price section. To be replaced with a real
+  interactive component later.
 
-## React Compiler
+## Run it
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev      # http://localhost:5173
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+The chart needs the backend running. Start the .NET API on its **`http` profile** so the browser can
+reach it over plain HTTP (`http://localhost:5262`):
+
+- CORS for `localhost:5173` is already allowed in `Program.cs`.
+- If nothing shows in the chart, the DB probably isn't populated yet —
+  `POST http://localhost:5262/api/spotprices/populate?day=today` (and `?day=tomorrow`).
+
+Override the API URL by copying `.env.example` to `.env` and setting `VITE_API_BASE_URL`.
+
+## ⚠️ Two image assets still needed
+
+`logo-tuya.png` and `europe-zones.png` (the map) are larger than the design-import tool's per-file
+limit, so they couldn't be pulled automatically. **Export those two from the Claude Design project and
+drop them into `public/assets/`** (the recolored `assets/` versions, not the raw `uploads/`). The three
+other logos (Shelly, Aqara, Home Assistant) are already in place. The code already references the two
+missing paths, so they'll appear as soon as the files land.
+
+## Structure
+
+```
+src/
+├─ api/spotPrices.ts        API client + date helpers (Slovakia = zone 6)
+├─ styles/spotbuddy.css     design tokens + all component styles
+├─ components/              one file per section (Nav, Hero, PriceSection, …)
+└─ App.tsx                  page composition
+```
