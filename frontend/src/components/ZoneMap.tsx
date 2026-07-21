@@ -1,13 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ZONE_BY_MAPKEY, type Zone } from '../api/zones';
 
-// Interactive bidding-zone map. Loads the trimmed Europe GeoJSON from /public/assets,
-// projects it with a small hand-rolled Web-Mercator (no map library needed — matches the
-// hand-rolled SVG chart), and renders one clickable <path> per zone. Zones present in
-// ZONE_BY_MAPKEY are selectable and drive the price chart; the rest render as faint,
-// non-interactive context (Balkans, British Isles, …).
+// Interactive bidding-zone map. The map is assembled at BUILD TIME from one GeoJSON file
+// per zone in src/map/zones/*.geojson (Vite glob-imports them — no runtime fetch, no extra
+// HTTP requests). Add or remove a zone by dropping/deleting a file in that folder.
+// Geometry is projected with a small hand-rolled Web-Mercator (no map library) and rendered
+// as one clickable <path> per zone. Zones present in ZONE_BY_MAPKEY are selectable and drive
+// the price chart; the rest render as faint, non-interactive context (Balkans, British Isles…).
 
-const GEOJSON_URL = '/assets/europe-zones.geojson';
+// Vite bundles every zone file as a raw string at build time; we JSON.parse once below.
+const ZONE_FILES = import.meta.glob('../map/zones/*.geojson', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
 
 // SVG canvas the projected map is fitted into.
 const W = 560;
@@ -19,9 +25,9 @@ interface Feature {
   properties: { zoneName: string };
   geometry: { type: 'Polygon' | 'MultiPolygon'; coordinates: number[][][] | number[][][][] };
 }
-interface FeatureCollection {
-  features: Feature[];
-}
+
+// Parse the per-zone files into features once, at module load.
+const FEATURES: Feature[] = Object.values(ZONE_FILES).map((raw) => JSON.parse(raw) as Feature);
 
 /** Raw Web-Mercator (unscaled). Input [lon, lat] in degrees. */
 function mercator(lon: number, lat: number): [number, number] {
@@ -54,28 +60,13 @@ export function ZoneMap({
   selectedZoneId: number;
   onSelect: (zoneId: number) => void;
 }) {
-  const [fc, setFc] = useState<FeatureCollection | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(GEOJSON_URL)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((data: FeatureCollection) => !cancelled && setFc(data))
-      .catch((e: unknown) => !cancelled && setError(e instanceof Error ? e.message : 'load failed'));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Project once per load: fit the mercator bounds of all features into the viewBox.
+  // Project once: fit the mercator bounds of all zone features into the viewBox.
   const shapes = useMemo<Shape[]>(() => {
-    if (!fc) return [];
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
-    const projected = fc.features.map((f) => {
+    const projected = FEATURES.map((f) => {
       const rings = ringsOf(f).map((ring) =>
         ring.map(([lon, lat]) => {
           const [x, y] = mercator(lon, lat);
@@ -106,14 +97,7 @@ export function ZoneMap({
         .join(' ');
       return { zoneName, zone: ZONE_BY_MAPKEY[zoneName], d };
     });
-  }, [fc]);
-
-  if (error) {
-    return <div className="sb-map-state">Couldn&apos;t load the zone map ({error}).</div>;
-  }
-  if (!fc) {
-    return <div className="sb-map-state">Loading map…</div>;
-  }
+  }, []);
 
   return (
     <svg className="sb-zonemap" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Bidding zone map">
