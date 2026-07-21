@@ -534,19 +534,76 @@ a:hover {
   font-size: 12.5px;
 }
 
-/* decorative faded map behind the price section */
-.sb-map-bg {
-  position: absolute;
-  top: 120px;
-  left: -400px;
-  width: 1070px;
-  height: 851px;
-  background: url('/assets/europe-zones.png') no-repeat right center;
-  background-size: cover;
-  opacity: 0.5;
-  -webkit-mask-image: linear-gradient(to right, #000 40%, transparent 86%);
-  mask-image: linear-gradient(to right, #000 40%, transparent 86%);
+/* interactive bidding-zone map + price layout */
+.sb-price-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 460px) 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .sb-price-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sb-map-card {
+  padding: 18px;
+}
+
+.sb-map-head h3 {
+  margin: 0 0 2px;
+  font-size: 16px;
+}
+
+.sb-map-head p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--color-neutral-600);
+}
+
+.sb-zonemap {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.sb-map-state {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--color-neutral-600);
+  font-size: 14px;
+}
+
+.sb-zone {
+  stroke: var(--color-surface);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+
+/* non-selectable context countries (Balkans, British Isles, …) */
+.sb-zone-context {
+  fill: var(--color-divider);
+  opacity: 0.55;
   pointer-events: none;
+}
+
+/* selectable bidding zones */
+.sb-zone-pick {
+  fill: var(--color-accent-200);
+  cursor: pointer;
+  transition: fill 0.12s ease;
+  outline: none;
+}
+
+.sb-zone-pick:hover,
+.sb-zone-pick:focus-visible {
+  fill: var(--color-accent-300);
+}
+
+.sb-zone-pick[data-selected='true'] {
+  fill: var(--color-accent);
 }
 
 /* ── how it works / spot prices ────────────────────────────────── */
