@@ -53,8 +53,15 @@ public static class BiddingZoneSeedData
         new() { Id = 37, Name = "Italy Sardinia",     Code = "10Y1001A1001A74G", TimeZoneId = "Europe/Rome",       Latitude = 39.22m, Longitude = 9.12m },
         new() { Id = 38, Name = "Italy Sicily",       Code = "10Y1001A1001A75E", TimeZoneId = "Europe/Rome",       Latitude = 38.12m, Longitude = 13.36m },
         new() { Id = 41, Name = "Italy Calabria",     Code = "10Y1001C--00096J", TimeZoneId = "Europe/Rome",       Latitude = 38.91m, Longitude = 16.59m },
-        // Ids 39/40/42/43 (Brindisi, Foggia, Priolo, Rossano) were legacy Italian zones deprecated in the
         // Jan 2021 bidding-zone reform — removed. Ids left as gaps on purpose; never renumber existing ids.
+
+        // Western Balkans + all-island Ireland (SEM) — support extended beyond the core 39.
+        new() { Id = 44, Name = "Albania",            Code = "10YAL-KESH-----5", TimeZoneId = "Europe/Tirane",     Latitude = 41.33m, Longitude = 19.82m },
+        new() { Id = 45, Name = "Montenegro",         Code = "10YCS-CG-TSO---S", TimeZoneId = "Europe/Podgorica",  Latitude = 42.44m, Longitude = 19.26m },
+        new() { Id = 46, Name = "Kosovo",             Code = "10Y1001C--00100H", TimeZoneId = "Europe/Belgrade",   Latitude = 42.66m, Longitude = 21.17m },
+        new() { Id = 47, Name = "North Macedonia",    Code = "10YMK-MEPSO----8", TimeZoneId = "Europe/Skopje",     Latitude = 41.99m, Longitude = 21.43m },
+        new() { Id = 48, Name = "Serbia",             Code = "10YCS-SERBIATSOV", TimeZoneId = "Europe/Belgrade",   Latitude = 44.79m, Longitude = 20.45m },
+        new() { Id = 49, Name = "Ireland (SEM)",      Code = "10Y1001A1001A59C", TimeZoneId = "Europe/Dublin",     Latitude = 53.35m, Longitude = -6.26m },
     };
 
     /// <summary>Zones keyed by Id — for resolving/validating a zone id without a DB round-trip.</summary>

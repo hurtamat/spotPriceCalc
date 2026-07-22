@@ -20,6 +20,14 @@ const W = 560;
 const H = 620;
 const PAD = 12;
 
+// Fixed geographic viewport (degrees lon/lat). Framing stays put no matter which
+// context countries are present — anything outside this window just clips at the SVG
+// edge. Covers Ireland (west) to the Caucasus (east), Mediterranean to northern Norway.
+const LON0 = -13;
+const LON1 = 47;
+const LAT0 = 34;
+const LAT1 = 71;
+
 type Ring = [number, number][];
 interface Feature {
   properties: { zoneName: string };
@@ -60,42 +68,31 @@ export function ZoneMap({
   selectedZoneId: number;
   onSelect: (zoneId: number) => void;
 }) {
-  // Project once: fit the mercator bounds of all zone features into the viewBox.
+  // Project once into the FIXED viewport (mercator, uniform scale so shapes stay correct).
   const shapes = useMemo<Shape[]>(() => {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    const projected = FEATURES.map((f) => {
-      const rings = ringsOf(f).map((ring) =>
-        ring.map(([lon, lat]) => {
-          const [x, y] = mercator(lon, lat);
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-          return [x, y] as [number, number];
-        }),
-      );
-      return { zoneName: f.properties.zoneName, rings };
-    });
+    const [wx0, wy0] = mercator(LON0, LAT0);
+    const [wx1, wy1] = mercator(LON1, LAT1);
+    const bw = wx1 - wx0;
+    const bh = wy1 - wy0;
+    const scale = Math.min((W - PAD * 2) / bw, (H - PAD * 2) / bh);
+    const offX = PAD + (W - PAD * 2 - bw * scale) / 2;
+    const offY = PAD + (H - PAD * 2 - bh * scale) / 2;
+    const tx = (x: number) => (x - wx0) * scale + offX;
+    const ty = (y: number) => (wy1 - y) * scale + offY; // flip: mercator y grows north
 
-    const scale = Math.min((W - PAD * 2) / (maxX - minX), (H - PAD * 2) / (maxY - minY));
-    const offX = PAD + (W - PAD * 2 - (maxX - minX) * scale) / 2;
-    const offY = PAD + (H - PAD * 2 - (maxY - minY) * scale) / 2;
-    const tx = (x: number) => (x - minX) * scale + offX;
-    const ty = (y: number) => (maxY - y) * scale + offY; // flip: mercator y grows north
+    const project = (ring: Ring) =>
+      'M' +
+      ring
+        .map(([lon, lat]) => {
+          const [mx, my] = mercator(lon, lat);
+          return `${tx(mx).toFixed(1)} ${ty(my).toFixed(1)}`;
+        })
+        .join('L') +
+      'Z';
 
-    return projected.map(({ zoneName, rings }) => {
-      const d = rings
-        .map(
-          (ring) =>
-            'M' +
-            ring.map(([x, y]) => `${tx(x).toFixed(1)} ${ty(y).toFixed(1)}`).join('L') +
-            'Z',
-        )
-        .join(' ');
-      return { zoneName, zone: ZONE_BY_MAPKEY[zoneName], d };
+    return FEATURES.map((f) => {
+      const d = ringsOf(f).map(project).join(' ');
+      return { zoneName: f.properties.zoneName, zone: ZONE_BY_MAPKEY[f.properties.zoneName], d };
     });
   }, []);
 

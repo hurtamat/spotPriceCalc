@@ -55,6 +55,14 @@ export const ZONE_BY_MAPKEY: Record<string, Zone> = {
   'IT-SO': { id: 36, name: 'Italy South' },
   'IT-SAR': { id: 37, name: 'Italy Sardinia' },
   'IT-SIC': { id: 38, name: 'Italy Sicily' },
+  // Western Balkans + all-island Ireland (SEM), added when support was extended.
+  AL: { id: 44, name: 'Albania' },
+  ME: { id: 45, name: 'Montenegro' },
+  XK: { id: 46, name: 'Kosovo' },
+  MK: { id: 47, name: 'North Macedonia' },
+  RS: { id: 48, name: 'Serbia' },
+  IE: { id: 49, name: 'Ireland (SEM)' },
+  'GB-NIR': { id: 49, name: 'Ireland (SEM)' }, // Northern Ireland is part of the all-island SEM
 };
 
 /** Reverse lookup: zone id → zone. */

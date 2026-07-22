@@ -67,28 +67,24 @@ export function PriceSection() {
 
   return (
     <section id="prices" className="sb-price-section">
+      {/* Large map as a background layer — bleeds off the right edge (Russia), zones stay
+          clickable and blue. The chart card floats over it on the left. */}
+      <div className="sb-zonemap-bleed">
+        <ZoneMap selectedZoneId={zoneId} onSelect={setZoneId} />
+      </div>
+
       <div className="sb-price-inner">
-        <div className="sb-price-layout">
-          <div className="sb-card sb-map-card">
-            <div className="sb-map-head">
-              <h3>Pick a bidding zone</h3>
-              <p>Click a zone to see its day-ahead prices.</p>
-            </div>
-            <ZoneMap selectedZoneId={zoneId} onSelect={setZoneId} />
+        <div className="sb-price-col">
+          <div className="sb-price-head">
+            <h2>Today&apos;s price curve</h2>
+            <p>
+              Pick a zone on the map — live day-ahead spot prices for {zoneName}. The graph shows
+              the price through the day; SpotBuddy runs your devices in the dips.
+            </p>
           </div>
 
-          <div className="sb-price-col">
-            <div className="sb-price-head">
-              <h2>Today&apos;s price curve</h2>
-              <p>
-                Live day-ahead spot prices for {zoneName}. The graph shows the price through the
-                day — SpotBuddy runs your devices in the dips.
-              </p>
-            </div>
-
-            <div className="sb-card sb-chart-card">
-              <Chart state={state} day={day} onPickDay={setDay} zoneName={zoneName} />
-            </div>
+          <div className="sb-card sb-chart-card">
+            <Chart state={state} day={day} onPickDay={setDay} zoneName={zoneName} />
           </div>
         </div>
       </div>

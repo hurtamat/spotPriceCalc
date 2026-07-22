@@ -534,33 +534,57 @@ a:hover {
   font-size: 12.5px;
 }
 
-/* interactive bidding-zone map + price layout */
-.sb-price-layout {
-  display: grid;
-  grid-template-columns: minmax(320px, 460px) 1fr;
-  gap: 28px;
-  align-items: start;
+/* interactive bidding-zone map as a full-bleed background layer */
+.sb-price-section {
+  position: relative;
+  /* full-bleed: break out of the shell so the map can reach the window edge */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  overflow: hidden; /* clips the map at the viewport edge, not the shell edge */
+  min-height: 920px; /* room for the taller map so it isn't cropped top/bottom */
+  display: flex;
+  align-items: center;
+  justify-content: center; /* re-center the shell-width content inside 100vw */
+}
+
+.sb-zonemap-bleed {
+  position: absolute;
+  top: 50%;
+  /* Anchor to the CENTERED content, not the viewport. 50% = content centre; the
+     content's left edge is at (50% - 580px) for the 1160px shell. Starting ~80px
+     further left gives a modest bleed that stays tied to the layout on wide screens. */
+  left: calc(50% - 660px);
+  transform: translateY(-50%);
+  width: min(800px, 58vw);
+  z-index: 0;
+  pointer-events: none; /* ocean/empty passes through; zones re-enable below */
+  /* aggressive fade on the right edge, out to nothing (into the chart / background) */
+  -webkit-mask-image: linear-gradient(to right, #000 68%, transparent 94%);
+  mask-image: linear-gradient(to right, #000 68%, transparent 94%);
 }
 
 @media (max-width: 900px) {
-  .sb-price-layout {
-    grid-template-columns: 1fr;
+  .sb-zonemap-bleed {
+    opacity: 0.35; /* on narrow screens it sits purely behind the card */
+    left: -20%;
+    width: 120%;
   }
 }
 
-.sb-map-card {
-  padding: 18px;
+.sb-price-inner {
+  position: relative;
+  z-index: 1; /* chart card floats above the map */
+  flex: 1; /* fill the flex section so justify-content:flex-end keeps the card right */
+  width: 100%;
+  max-width: 1160px; /* match the shell so the chart stays where it was */
+  padding: 0 clamp(16px, 4vw, 40px); /* match shell horizontal padding */
+  box-sizing: border-box;
+  pointer-events: none; /* its empty left half must not block map clicks... */
 }
 
-.sb-map-head h3 {
-  margin: 0 0 2px;
-  font-size: 16px;
-}
-
-.sb-map-head p {
-  margin: 0 0 10px;
-  font-size: 13px;
-  color: var(--color-neutral-600);
+.sb-price-col {
+  max-width: 560px; /* chart card on the right; map stays exposed on the left */
+  pointer-events: auto; /* ...but the card itself stays interactive */
 }
 
 .sb-zonemap {
@@ -569,23 +593,16 @@ a:hover {
   display: block;
 }
 
-.sb-map-state {
-  padding: 40px 16px;
-  text-align: center;
-  color: var(--color-neutral-600);
-  font-size: 14px;
-}
-
 .sb-zone {
   stroke: var(--color-surface);
   stroke-width: 0.6;
   stroke-linejoin: round;
 }
 
-/* non-selectable context countries (Balkans, British Isles, …) */
+/* non-selectable context countries (Balkans, Russia, Turkey, …) — greyed background */
 .sb-zone-context {
-  fill: var(--color-divider);
-  opacity: 0.55;
+  fill: var(--color-neutral-400);
+  opacity: 0.62;
   pointer-events: none;
 }
 
@@ -595,6 +612,7 @@ a:hover {
   cursor: pointer;
   transition: fill 0.12s ease;
   outline: none;
+  pointer-events: auto; /* re-enable clicks (parent layer is pointer-events:none) */
 }
 
 .sb-zone-pick:hover,
