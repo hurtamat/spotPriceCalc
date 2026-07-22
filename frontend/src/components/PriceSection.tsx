@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react';
 import {
   Area,
   AreaChart,
@@ -21,8 +21,13 @@ import {
 import { ZoneMap } from './ZoneMap';
 import { ZONE_BY_ID } from '../api/zones';
 
-// Default selection until the user picks a zone on the map (Slovakia = id 6).
-const DEFAULT_ZONE_ID = 6;
+// Default selection until the user picks a zone on the map (Germany-Luxembourg = id 7).
+const DEFAULT_ZONE_ID = 7;
+
+// Mobile breakpoint — must match the `@media (max-width: 900px)` rules in spotbuddy.css.
+const MOBILE_QUERY = '(max-width: 900px)';
+const isMobileNow = () =>
+  typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches;
 
 type LoadState =
   | { status: 'loading' }
@@ -36,7 +41,11 @@ function hourLabel(iso: string): string {
 
 export function PriceSection() {
   const [day, setDay] = useState<DayKey>('today');
-  const [zoneId, setZoneId] = useState<number>(DEFAULT_ZONE_ID);
+  // On mobile we start with NOTHING selected — the user is nudged to tap the map first.
+  // On desktop the map + chart sit side by side, so we keep the usual default selection.
+  const [zoneId, setZoneId] = useState<number | null>(() => (isMobileNow() ? null : DEFAULT_ZONE_ID));
+  // Mobile only: whether the chart panel has slid over the map. Ignored by the desktop CSS.
+  const [panelOpen, setPanelOpen] = useState(false);
   // Cache each (zone, day) fetch so switching back is instant.
   const [cache, setCache] = useState<Record<string, LoadState>>({});
   // Read the cache without making it an effect dependency (which would re-run
@@ -44,10 +53,58 @@ export function PriceSection() {
   const cacheRef = useRef(cache);
   cacheRef.current = cache;
 
-  const zoneName = ZONE_BY_ID[zoneId]?.name ?? 'this zone';
+  // If the viewport grows to desktop while nothing is picked, fall back to the default
+  // zone so the (now always-visible) desktop chart isn't left empty.
+  useEffect(() => {
+    const mql = window.matchMedia(MOBILE_QUERY);
+    const sync = () => {
+      if (!mql.matches) setZoneId((z) => (z == null ? DEFAULT_ZONE_ID : z));
+    };
+    mql.addEventListener('change', sync);
+    return () => mql.removeEventListener('change', sync);
+  }, []);
+
+  // Picking a zone on the map: on mobile this slides the track over to the chart, after a
+  // short beat so the tapped zone's highlight is visible before the slide.
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSelect = (id: number) => {
+    setZoneId(id);
+    if (openTimer.current) clearTimeout(openTimer.current);
+    openTimer.current = setTimeout(() => setPanelOpen(true), 260);
+  };
+  useEffect(() => () => {
+    if (openTimer.current) clearTimeout(openTimer.current);
+  }, []);
+
+  // Finger-swipe between the two mobile stages. A tap (near-zero movement) or a mostly
+  // vertical drag (scrolling the chart) is ignored, so this never fights zone taps.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: ReactTouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: ReactTouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy)) return; // not a horizontal swipe
+    // Chart is the left stage, map the right stage. Swipe right reveals the chart on the
+    // left; swipe left reveals the map on the right.
+    if (dx > 0) {
+      if (zoneId != null) setPanelOpen(true); // swipe right → chart (only if a zone is picked)
+    } else {
+      setPanelOpen(false); // swipe left → back to map
+    }
+  };
+
+  const zoneName = zoneId != null ? (ZONE_BY_ID[zoneId]?.name ?? 'this zone') : 'this zone';
   const key = `${zoneId}:${day}`;
 
   useEffect(() => {
+    if (zoneId == null) return; // nothing picked yet (mobile) — no fetch
     // Already have a finished result for this zone+day? Show it, don't refetch.
     if (cacheRef.current[key]?.status === 'ready') return;
 
@@ -63,17 +120,41 @@ export function PriceSection() {
     return () => controller.abort();
   }, [key, zoneId, day]);
 
-  const state = cache[key];
+  const state = zoneId != null ? cache[key] : undefined;
 
   return (
-    <section id="prices" className="sb-price-section">
+    <section
+      id="prices"
+      className="sb-price-section"
+      data-panel-open={panelOpen}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       {/* Large map as a background layer — bleeds off the right edge (Russia), zones stay
           clickable and blue. The chart card floats over it on the left. */}
       <div className="sb-zonemap-bleed">
-        <ZoneMap selectedZoneId={zoneId} onSelect={setZoneId} />
+        <ZoneMap selectedZoneId={zoneId} onSelect={handleSelect} />
+      </div>
+
+      {/* Mobile-only nudge inviting the first tap. Hidden on desktop and once the panel opens. */}
+      <div className="sb-map-nudge" aria-hidden="true">
+        <span className="sb-map-nudge-tap" />
+        Tap your zone to see prices
       </div>
 
       <div className="sb-price-inner">
+        {/* Mobile-only handle pinned to the chart stage's right edge (the map is to the
+            right): slides the track back to the map to re-pick. Sits on the stage (not
+            inside the scrolling column) so it stays put while the chart scrolls. */}
+        <button
+          type="button"
+          className="sb-chart-handle"
+          onClick={() => setPanelOpen(false)}
+          aria-label="Back to map — change zone"
+        >
+          <span aria-hidden="true">›</span>
+        </button>
+
         <div className="sb-price-col">
           <div className="sb-price-head">
             <h2>Today&apos;s price curve</h2>
@@ -261,25 +342,7 @@ function Chart({
           </div>
 
           <div className="sb-legend">
-            <span className="sb-legend-item">
-              <span className="sb-dot" style={{ background: 'var(--color-accent)' }} /> Cheapest —{' '}
-              {fmt(derived.min)} c at {derived.minPt.time}
-            </span>
-            <span className="sb-legend-item">
-              <span className="sb-dot" style={{ background: 'var(--color-pop)' }} /> Peak —{' '}
-              {fmt(derived.max)} c at {derived.maxPt.time}
-            </span>
-            <span className="sb-legend-item">
-              <span
-                style={{
-                  width: 15,
-                  borderTop: '1px dashed var(--color-neutral-400)',
-                  display: 'inline-block',
-                }}
-              />{' '}
-              Avg {fmt(derived.avg)} c
-            </span>
-            <span style={{ marginLeft: 'auto' }}>
+            <span>
               {zoneName} · {DAY_LABELS[day]} · c/kWh
             </span>
           </div>

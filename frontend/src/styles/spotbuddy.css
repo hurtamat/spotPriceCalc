@@ -563,14 +563,6 @@ a:hover {
   mask-image: linear-gradient(to right, #000 68%, transparent 94%);
 }
 
-@media (max-width: 900px) {
-  .sb-zonemap-bleed {
-    opacity: 0.35; /* on narrow screens it sits purely behind the card */
-    left: -20%;
-    width: 120%;
-  }
-}
-
 .sb-price-inner {
   position: relative;
   z-index: 1; /* chart card floats above the map */
@@ -587,10 +579,218 @@ a:hover {
   pointer-events: auto; /* ...but the card itself stays interactive */
 }
 
+/* The nudge pill and the slide-away handle are mobile-only affordances (see the
+   max-width: 900px block). On desktop the map + chart are always side by side, so
+   neither is needed. */
+.sb-map-nudge,
+.sb-chart-handle {
+  display: none;
+}
+
 .sb-zonemap {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* ── mobile: two-panel slider (map ⇄ chart) ────────────────────── */
+@media (max-width: 900px) {
+  /* TWO-PANEL SLIDER. The section is a horizontal track holding two full-width stages
+     side by side: the CHART (left) and the MAP (right). Nothing is preselected, so the
+     track starts parked on the MAP and the user is nudged to tap a zone — that slides the
+     track to the CHART (React sets data-panel-open="true"). The handle / a swipe slides it
+     back to re-pick. Each stage is its own full-screen panel, so exactly one is visible at
+     a time — never a split — and the heading is never stranded behind the map. */
+  .sb-price-section {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start; /* CRITICAL: anchor the 200vw track left (desktop rule
+                                    sets center, which would show half of each stage) */
+    padding: 0;
+    position: relative;
+    overflow: hidden; /* the off-screen stage is clipped here */
+    height: min(80vh, 620px);
+    min-height: 460px;
+    touch-action: pan-y; /* let vertical scroll through; we handle horizontal swipes */
+  }
+
+  /* Both stages are exactly one viewport wide and slide together as one track.
+     order: chart (price-inner) left, map (zonemap-bleed) right. */
+  .sb-zonemap-bleed,
+  .sb-price-inner {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    /* Default = parked on the MAP (the right stage), so the track is shifted one viewport
+       left. Opening the chart brings it back to 0. */
+    transform: translateX(var(--sb-slide, -100%));
+    transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .sb-price-inner {
+    order: 0;
+  }
+  .sb-zonemap-bleed {
+    order: 1;
+  }
+  .sb-price-section[data-panel-open='true'] .sb-zonemap-bleed,
+  .sb-price-section[data-panel-open='true'] .sb-price-inner {
+    --sb-slide: 0; /* slide the track right → show the chart (left stage) */
+  }
+
+  /* MAP stage: bright, interactive, ZOOMED to fill its panel; the right edge (Russia/
+     Turkey) fades with the exact same mask as the desktop view. */
+  .sb-zonemap-bleed {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin: 0;
+    opacity: 1;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 99%);
+    mask-image: linear-gradient(to right, #000 85%, transparent 99%);
+  }
+
+  .sb-zonemap {
+    width: min(120%, 720px); /* zoom: bleed past the panel so zones are big & tappable */
+    height: auto;
+    max-width: none;
+    flex: none;
+    /* Shift the map RIGHT so the faded eastern edge (Russia) slides off-screen and more
+       of western/central Europe is centered. Higher = further right / less Russia. */
+    transform: translateX(9%);
+  }
+
+  /* Nudge pill floating over the map stage, inviting the first tap. */
+  .sb-map-nudge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    padding: 9px 15px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: #fff;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    box-shadow: 0 8px 22px rgba(43, 108, 246, 0.4);
+    pointer-events: none;
+    transition: opacity 0.3s;
+    animation: sb-nudge-bob 1.8s ease-in-out infinite;
+  }
+
+  .sb-map-nudge-tap {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+    animation: sb-nudge-ping 1.8s ease-out infinite;
+  }
+
+  .sb-price-section[data-panel-open='true'] .sb-map-nudge {
+    opacity: 0;
+  }
+
+  /* CHART stage — a fixed-size box that pins the handle; the column scrolls inside it. */
+  .sb-price-inner {
+    position: relative;
+    z-index: 2;
+    max-width: none;
+    padding: 0;
+    display: block;
+    overflow: hidden;
+    pointer-events: auto;
+    background: var(--color-bg);
+  }
+
+  .sb-price-col {
+    position: static;
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: clamp(18px, 5vw, 26px) clamp(26px, 7vw, 40px) clamp(18px, 5vw, 26px)
+      clamp(16px, 4vw, 22px); /* extra right padding clears the handle tab */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    overflow-y: auto; /* scroll the chart within the stage if it's taller */
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .sb-price-head {
+    display: none; /* on mobile the map already provides the context; save the space */
+  }
+
+  /* Handle on the chart stage's RIGHT edge — the map lives to the right, so a › chevron
+     points back to it. Tap (or swipe left) to slide the track back to the map. */
+  .sb-chart-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 26px;
+    height: 72px;
+    padding: 0;
+    border: none;
+    border-radius: 16px 0 0 16px;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: -3px 4px 14px rgba(43, 108, 246, 0.32);
+  }
+}
+
+@keyframes sb-nudge-bob {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+@keyframes sb-nudge-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-map-nudge,
+  .sb-map-nudge-tap {
+    animation: none;
+  }
+  .sb-zonemap-bleed,
+  .sb-price-inner {
+    transition: none;
+  }
 }
 
 .sb-zone {

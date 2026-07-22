@@ -65,7 +65,7 @@ export function ZoneMap({
   selectedZoneId,
   onSelect,
 }: {
-  selectedZoneId: number;
+  selectedZoneId: number | null;
   onSelect: (zoneId: number) => void;
 }) {
   // Project once into the FIXED viewport (mercator, uniform scale so shapes stay correct).
