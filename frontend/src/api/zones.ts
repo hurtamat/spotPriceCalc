@@ -55,6 +55,7 @@ export const ZONE_BY_MAPKEY: Record<string, Zone> = {
   'IT-SO': { id: 36, name: 'Italy South' },
   'IT-SAR': { id: 37, name: 'Italy Sardinia' },
   'IT-SIC': { id: 38, name: 'Italy Sicily' },
+  'IT-CAL': { id: 41, name: 'Italy Calabria' },
   // Western Balkans + all-island Ireland (SEM), added when support was extended.
   AL: { id: 44, name: 'Albania' },
   ME: { id: 45, name: 'Montenegro' },
