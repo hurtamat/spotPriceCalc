@@ -18,7 +18,7 @@ Three services are planned (see README). Only the first is meaningfully built:
 | --- | --- | --- |
 | **.NET API** | `spotPriceCalc/` | **This doc.** Price ingestion + read API. Working. |
 | Calc service (Python/FastAPI) | `calc-service/` | Scaffolded only. The scheduling/thermal engine. |
-| Frontend (React/Vite) | `frontend/` | Scaffolded only. Will pick a bidding zone from a map. |
+| Frontend (React/Vite) | `frontend/` | Landing page + **working interactive zone map** driving a live price chart. |
 
 ---
 

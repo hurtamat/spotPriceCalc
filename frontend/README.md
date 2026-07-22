@@ -5,13 +5,15 @@ React + TypeScript + Vite landing page for SpotBuddy, ported from the Claude Des
 
 ## What's wired up
 
-- **Price chart** — the only live-data part. It calls the .NET API
-  `GET /api/spotprices?biddingZoneId=6&from=…&to=…` for **Slovakia (bidding zone id 6)** and shows
-  the day-ahead curve for **yesterday / today / tomorrow** (tabs). Zone is hardcoded for now.
-- **Savings estimator, waitlist forms, FAQ** — static / local-only. The waitlist buttons and the
-  email inputs are placeholders to be wired up later.
-- **Map** — a decorative faded background image behind the price section. To be replaced with a real
-  interactive component later.
+- **Interactive zone map** — an SVG map of European bidding zones, built at build time from one
+  GeoJSON file per zone in `src/map/zones/` (no map library). Clicking a zone drives the price chart.
+  `src/api/zones.ts` maps each GeoJSON zone → our backend bidding-zone id.
+- **Price chart** — calls `GET /api/spotprices?biddingZoneId=…&from=…&to=…` and shows the day-ahead
+  curve for **yesterday / today / tomorrow** (tabs). Zone comes from the map (desktop defaults to
+  Germany-Luxembourg, id 7); results are cached per zone+day.
+- **Mobile** — the price section is a two-panel slider (chart ⇄ map): nothing preselected, tap a zone
+  to slide to the graph, use the handle / swipe to slide back.
+- **Savings estimator, waitlist forms, FAQ** — static / local-only. Placeholders to be wired up later.
 
 ## Run it
 
@@ -29,20 +31,21 @@ reach it over plain HTTP (`http://localhost:5262`):
 
 Override the API URL by copying `.env.example` to `.env` and setting `VITE_API_BASE_URL`.
 
-## ⚠️ Two image assets still needed
+## ⚠️ One image asset still needed
 
-`logo-tuya.png` and `europe-zones.png` (the map) are larger than the design-import tool's per-file
-limit, so they couldn't be pulled automatically. **Export those two from the Claude Design project and
-drop them into `public/assets/`** (the recolored `assets/` versions, not the raw `uploads/`). The three
-other logos (Shelly, Aqara, Home Assistant) are already in place. The code already references the two
-missing paths, so they'll appear as soon as the files land.
+`logo-tuya.png` is larger than the design-import tool's per-file limit, so it couldn't be pulled
+automatically. **Export it from the Claude Design project and drop it into `public/assets/`** (the
+recolored `assets/` version). The three other logos (Shelly, Aqara, Home Assistant) are already in
+place. (The old `europe-zones.png` map image is no longer needed — the map is now a live SVG component.)
 
 ## Structure
 
 ```
 src/
-├─ api/spotPrices.ts        API client + date helpers (Slovakia = zone 6)
+├─ api/spotPrices.ts        price API client + date helpers
+├─ api/zones.ts             GeoJSON zone name → backend bidding-zone id
+├─ map/zones/*.geojson      one shape per zone (glob-imported into ZoneMap)
 ├─ styles/spotbuddy.css     design tokens + all component styles
-├─ components/              one file per section (Nav, Hero, PriceSection, …)
+├─ components/              one file per section (Nav, Hero, PriceSection, ZoneMap, …)
 └─ App.tsx                  page composition
 ```
