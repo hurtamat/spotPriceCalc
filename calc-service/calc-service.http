@@ -1,0 +1,36 @@
+### Calc service (FastAPI) — run `fastapi dev main.py`, listens on 8000. Docs at /docs
+@host = http://localhost:8000
+
+### Health check
+GET {{host}}/
+Accept: application/json
+
+### Schedule — REAL Slovakia data, 2026-07-24 (full 15-min day). Payload from the DB.
+POST {{host}}/schedule
+Content-Type: application/json
+Accept: application/json
+
+< ./sample-request-sk-2026-07-24.json
+
+### Schedule — REAL Germany-Luxembourg data, 2026-07-24 (full 15-min day). Payload from the DB.
+POST {{host}}/schedule
+Content-Type: application/json
+Accept: application/json
+
+< ./sample-request-de-2026-07-24.json
+
+### Schedule — REAL Spain data, 2026-07-24 (full 15-min day). Payload from the DB.
+POST {{host}}/schedule
+Content-Type: application/json
+Accept: application/json
+
+< ./sample-request-es-2026-07-24.json
+
+### Schedule — REAL Italy North data, 2026-07-24 (full 15-min day). Payload from the DB.
+POST {{host}}/schedule
+Content-Type: application/json
+Accept: application/json
+
+< ./sample-request-it-north-2026-07-24.json
+
+###

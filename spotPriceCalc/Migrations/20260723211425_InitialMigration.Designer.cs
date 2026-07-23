@@ -12,8 +12,8 @@ using spotPriceCalc.Infrastructure.Persistence;
 namespace spotPriceCalc.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260719170515_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260723211425_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -403,24 +403,6 @@ namespace spotPriceCalc.Migrations
                         },
                         new
                         {
-                            Id = 39,
-                            Code = "10Y1001A1001A699",
-                            Latitude = 40.63m,
-                            Longitude = 17.94m,
-                            Name = "Italy Brindisi",
-                            TimeZoneId = "Europe/Rome"
-                        },
-                        new
-                        {
-                            Id = 40,
-                            Code = "10Y1001A1001A72K",
-                            Latitude = 41.46m,
-                            Longitude = 15.55m,
-                            Name = "Italy Foggia",
-                            TimeZoneId = "Europe/Rome"
-                        },
-                        new
-                        {
                             Id = 41,
                             Code = "10Y1001C--00096J",
                             Latitude = 38.91m,
@@ -430,21 +412,57 @@ namespace spotPriceCalc.Migrations
                         },
                         new
                         {
-                            Id = 42,
-                            Code = "10Y1001A1001A76C",
-                            Latitude = 37.16m,
-                            Longitude = 15.18m,
-                            Name = "Italy Priolo",
-                            TimeZoneId = "Europe/Rome"
+                            Id = 44,
+                            Code = "10YAL-KESH-----5",
+                            Latitude = 41.33m,
+                            Longitude = 19.82m,
+                            Name = "Albania",
+                            TimeZoneId = "Europe/Tirane"
                         },
                         new
                         {
-                            Id = 43,
-                            Code = "10Y1001A1001A77A",
-                            Latitude = 39.57m,
-                            Longitude = 16.63m,
-                            Name = "Italy Rossano",
-                            TimeZoneId = "Europe/Rome"
+                            Id = 45,
+                            Code = "10YCS-CG-TSO---S",
+                            Latitude = 42.44m,
+                            Longitude = 19.26m,
+                            Name = "Montenegro",
+                            TimeZoneId = "Europe/Podgorica"
+                        },
+                        new
+                        {
+                            Id = 46,
+                            Code = "10Y1001C--00100H",
+                            Latitude = 42.66m,
+                            Longitude = 21.17m,
+                            Name = "Kosovo",
+                            TimeZoneId = "Europe/Belgrade"
+                        },
+                        new
+                        {
+                            Id = 47,
+                            Code = "10YMK-MEPSO----8",
+                            Latitude = 41.99m,
+                            Longitude = 21.43m,
+                            Name = "North Macedonia",
+                            TimeZoneId = "Europe/Skopje"
+                        },
+                        new
+                        {
+                            Id = 48,
+                            Code = "10YCS-SERBIATSOV",
+                            Latitude = 44.79m,
+                            Longitude = 20.45m,
+                            Name = "Serbia",
+                            TimeZoneId = "Europe/Belgrade"
+                        },
+                        new
+                        {
+                            Id = 49,
+                            Code = "10Y1001A1001A59C",
+                            Latitude = 53.35m,
+                            Longitude = -6.26m,
+                            Name = "Ireland (SEM)",
+                            TimeZoneId = "Europe/Dublin"
                         });
                 });
 

@@ -9,7 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace spotPriceCalc.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -116,11 +116,13 @@ namespace spotPriceCalc.Migrations
                     { 36, "10Y1001A1001A788", 40.85m, 14.27m, "Italy South", "Europe/Rome" },
                     { 37, "10Y1001A1001A74G", 39.22m, 9.12m, "Italy Sardinia", "Europe/Rome" },
                     { 38, "10Y1001A1001A75E", 38.12m, 13.36m, "Italy Sicily", "Europe/Rome" },
-                    { 39, "10Y1001A1001A699", 40.63m, 17.94m, "Italy Brindisi", "Europe/Rome" },
-                    { 40, "10Y1001A1001A72K", 41.46m, 15.55m, "Italy Foggia", "Europe/Rome" },
                     { 41, "10Y1001C--00096J", 38.91m, 16.59m, "Italy Calabria", "Europe/Rome" },
-                    { 42, "10Y1001A1001A76C", 37.16m, 15.18m, "Italy Priolo", "Europe/Rome" },
-                    { 43, "10Y1001A1001A77A", 39.57m, 16.63m, "Italy Rossano", "Europe/Rome" }
+                    { 44, "10YAL-KESH-----5", 41.33m, 19.82m, "Albania", "Europe/Tirane" },
+                    { 45, "10YCS-CG-TSO---S", 42.44m, 19.26m, "Montenegro", "Europe/Podgorica" },
+                    { 46, "10Y1001C--00100H", 42.66m, 21.17m, "Kosovo", "Europe/Belgrade" },
+                    { 47, "10YMK-MEPSO----8", 41.99m, 21.43m, "North Macedonia", "Europe/Skopje" },
+                    { 48, "10YCS-SERBIATSOV", 44.79m, 20.45m, "Serbia", "Europe/Belgrade" },
+                    { 49, "10Y1001A1001A59C", 53.35m, -6.26m, "Ireland (SEM)", "Europe/Dublin" }
                 });
 
             migrationBuilder.CreateIndex(
