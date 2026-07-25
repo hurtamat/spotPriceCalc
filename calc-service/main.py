@@ -1,38 +1,15 @@
-# =============================================================================
-# .NET  <->  FastAPI  contract -- AI SLOP
-# -----------------------------------------------------------------------------
-# The .NET API calls this service once per (zone, day range) to get an
-# something back. .NET is the only caller; it owns fetching prices +
-# weather, this service is a pure function over the data it is handed.
-#
-# Conventions (agreed with the .NET side — keep both ends in sync):
-#   * JSON casing .......... camelCase on the wire (biddingZoneId, eurPerMwh, ...)
-#                            Python fields stay snake_case; Field(alias=...) /
-#                            to_camel bridge the two. populate_by_name lets
-#                            either spelling deserialize.
-#   * Timestamps ........... UTC, ISO-8601 (e.g. 2026-07-24T02:00:00Z).
-#                            "from"/"to" on the request are calendar DATES.
-#   * Units ................ price = EUR/MWh, temperature = °C.
-#   * Time resolution ...... NOT a field. It is implied by each price point's
-#                            own from/to span (PT60M => hourly, PT15M => 15-min),
-#                            which is decided per bidding zone upstream.
-#   * Date range ........... "from" required, "to" optional. If "to" is omitted
-#                            it defaults to "from" (a single day).
-#   * Device config ........ intentionally NOT sent yet. Added later.
-# =============================================================================
-
 from datetime import date, datetime
 
+import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-app = FastAPI()  # <- this is the "app" fastapi dev looks for
+app = FastAPI()
 
 
 class _WireModel(BaseModel):
     """Base: snake_case in Python, camelCase on the wire, accepts both."""
-
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
@@ -56,6 +33,42 @@ class ScheduleRequest(_WireModel):
     weather: list[WeatherPoint]
 
 
+# --- Helper Functions ---
+
+def zone_flags(value: float, low: float, high: float) -> dict:
+    return {
+        "green": bool(value < low),
+        "yellow": bool(low <= value <= high),
+        "red": bool(value > high),
+    }
+
+
+def best_window(df: pd.DataFrame, window_size: int, low_q: float, high_q: float, col_name: str) -> dict:
+    rolling_mean = df[col_name].rolling(window_size).mean()
+
+    # Index position of the lowest rolling average
+    best_end_pos = int(rolling_mean.argmin())
+    best_start_pos = best_end_pos - window_size + 1
+
+    window = df.iloc[best_start_pos: best_end_pos + 1]
+    best_avg = float(rolling_mean.iloc[best_end_pos])
+
+    return {
+        "from": window.iloc[0]["from"],
+        "to": window.iloc[-1]["to"],
+        "average_price": round(best_avg, 2),
+        "price_dif": round(float(rolling_mean.max() - rolling_mean.min()), 2),
+        "zones": zone_flags(best_avg, low_q, high_q),
+        "zone_values": {
+            "green": bool(window["greenZone"].all()),
+            "yellow": bool(window["yellowZone"].all()),
+            "red": bool(window["redZone"].all()),
+        },
+    }
+
+
+# --- API Routes ---
+
 @app.get("/")
 def health():
     return {"status": "ok"}
@@ -63,6 +76,64 @@ def health():
 
 @app.post("/schedule")
 def schedule(req: ScheduleRequest):
+    # 1. Convert validated Pydantic model to a dict, keeping the camelCase aliases (eurPerMwh, etc.)
+    data = req.model_dump(by_alias=True)
     date_to = req.date_to or req.date_from
-    # TODO: response shape (on/off windows + cost/saving estimates) — to be defined.
-    return {}
+
+    # 2. Load JSON data into DataFrame
+    prices_df = pd.DataFrame(data["prices"])
+
+    # The Pydantic model maps `eur_per_mwh` -> `eurPerMwh` when dumped with by_alias=True
+    col = "eurPerMwh"
+
+    # Datetimes are already parsed by Pydantic, but converting them to Pandas datetime for safety
+    prices_df["from_dt"] = pd.to_datetime(prices_df["from"], utc=True)
+    prices_df["to_dt"] = pd.to_datetime(prices_df["to"], utc=True)
+
+    # 3. Calculate Quantiles & Zones
+    alpha = 0.3
+    lower_q = float(prices_df[col].quantile(alpha))
+    upper_q = float(prices_df[col].quantile(1 - alpha))
+
+    prices_df["greenZone"] = prices_df[col] < lower_q
+    prices_df["yellowZone"] = prices_df[col].between(lower_q, upper_q, inclusive="both")
+    prices_df["redZone"] = prices_df[col] > upper_q
+
+    # 4. Generate activities dict
+    activities = {
+        "ironing": best_window(prices_df, 4, lower_q, upper_q, col),  # 1 hour (4x15m)
+        "dryer": best_window(prices_df, 6, lower_q, upper_q, col),  # 90 mins (6x15m)
+        "water_boiler": best_window(prices_df, 6, lower_q, upper_q, col),  # 90 mins (6x15m)
+        "washing_machine": best_window(prices_df, 8, lower_q, upper_q, col),  # 2 hours (8x15m)
+    }
+
+    # 5. Format updated prices back to standard dictionary list
+    updated_prices = []
+    for _, row in prices_df.iterrows():
+        updated_prices.append({
+            "from": row["from"],
+            "to": row["to"],
+            "eurPerMwh": row["eurPerMwh"],
+            "zones": {
+                "green": bool(row["greenZone"]),
+                "yellow": bool(row["yellowZone"]),
+                "red": bool(row["redZone"]),
+            }
+        })
+
+    # 6. Combine all data into final output JSON format
+    output_json = {
+        "biddingZoneId": req.bidding_zone_id,
+        "from": req.date_from,
+        "dateTo": date_to,
+        "quantiles": {
+            "lower_quantile": round(lower_q, 2),
+            "upper_quantile": round(upper_q, 2),
+        },
+        "activities": activities,
+        "prices": updated_prices,
+        "weather": data.get("weather", []),
+    }
+
+    # FastAPI will automatically serialize this dictionary (and the inner datetime objects) into JSON
+    return output_json
