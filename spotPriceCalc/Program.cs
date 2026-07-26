@@ -34,6 +34,10 @@ builder.Services.AddScoped<IWeatherRepository, WeatherRepository>();
 
 builder.Services.AddScoped<ISpotPriceService, SpotPriceService>();
 
+// In-process price-data trigger: startup catch-up (yesterday/today/tomorrow) + daily 13:25 CET populate
+// of tomorrow. Resolves ISpotPriceService per run via a scope. Requires min-replicas >= 1 when hosted.
+builder.Services.AddHostedService<PriceDataScheduler>();
+
 // Smart-home scheduling: zone resolution (stubbed) + the device-agnostic decision engine.
 builder.Services.AddScoped<IZoneLocatorService, ZoneLocatorService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
