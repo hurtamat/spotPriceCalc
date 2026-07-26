@@ -4,6 +4,7 @@ using spotPriceCalc.Infrastructure.ExternalClients.OpenMeteo;
 using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Infrastructure.Persistence.Repositories;
 using spotPriceCalc.Services;
+using spotPriceCalc.Services.SmartHome;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,10 @@ builder.Services.AddScoped<ISpotPriceRepository, SpotPriceRepository>();
 builder.Services.AddScoped<IWeatherRepository, WeatherRepository>();
 
 builder.Services.AddScoped<ISpotPriceService, SpotPriceService>();
+
+// Smart-home scheduling: zone resolution (stubbed) + the device-agnostic decision engine.
+builder.Services.AddScoped<IZoneLocatorService, ZoneLocatorService>();
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
