@@ -18,8 +18,10 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
 
     public async Task<ZoneSpotPrices> GetSpotPricesAsync(BiddingZone zone, DateOnly date, CancellationToken ct)
     {
-        var start = date.ToDateTime(TimeOnly.MinValue);
-        var end = start.AddDays(1);
+        // ENTSO-E treats periodStart/End as UTC, and the day-ahead "delivery day" is the zone's LOCAL day.
+        // Query the zone-local day's UTC window (e.g. German 25 Jul -> 24T2200Z..25T2200Z) so we get exactly
+        // that delivery day, not a UTC-midnight day sliced across two of them.
+        var (fromUtc, toUtc) = zone.DeliveryDayWindowUtc(date);
 
         var query = new Dictionary<string, string?>
         {
@@ -27,8 +29,8 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
             ["documentType"] = "A44",
             ["in_Domain"] = zone.Code,
             ["out_Domain"] = zone.Code,
-            ["periodStart"] = start.ToString("yyyyMMddHHmm"),
-            ["periodEnd"] = end.ToString("yyyyMMddHHmm"),
+            ["periodStart"] = fromUtc.ToString("yyyyMMddHHmm"),
+            ["periodEnd"] = toUtc.ToString("yyyyMMddHHmm"),
         };
         
         var url = QueryHelpers.AddQueryString("", query);

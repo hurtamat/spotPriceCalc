@@ -28,11 +28,15 @@ public class SpotPriceService : ISpotPriceService
         _logger = logger;
     }
 
-    public Task<ZoneSpotPrices> GetPricesAsync(int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct) =>
-        _repository.GetAsync(biddingZoneId, from, to, ct);
-
-    public Task<PopulateResult> PopulateAsync(PriceDay day, CancellationToken ct) =>
-        PopulateAsync(ResolveDate(day), ct);
+    public Task<ZoneSpotPrices> GetPricesAsync(int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        // Interpret [from, to] as the zone's local delivery days and resolve to one UTC window:
+        // from's local 00:00 to (to+1)'s local 00:00. The repo then does a pure range query.
+        var zone = BiddingZoneSeedData.ById[biddingZoneId];
+        var fromUtc = zone.DeliveryDayWindowUtc(from).FromUtc;
+        var toUtc = zone.DeliveryDayWindowUtc(to).ToUtcExclusive;
+        return _repository.GetAsync(biddingZoneId, fromUtc, toUtc, ct);
+    }
 
     public async Task<PopulateResult> PopulateUntilCompleteAsync(DateOnly date, CancellationToken ct)
     {
@@ -42,7 +46,7 @@ public class SpotPriceService : ISpotPriceService
         while (true)
         {
             attempt++;
-            result = await PopulateAsync(date, ct);
+            result = await PopulateOnceAsync(date, ct);
 
             // Every zone ended up stored (fetched or already present) — nothing failed/timed out.
             if (result.Failed == 0)
@@ -70,7 +74,9 @@ public class SpotPriceService : ISpotPriceService
         }
     }
 
-    public async Task<PopulateResult> PopulateAsync(DateOnly date, CancellationToken ct)
+    // One pass over every zone for the date. The retry orchestrator above calls this repeatedly; it's the
+    // only entry point that actually hits ENTSO-E. Private on purpose — callers get the retrying version.
+    private async Task<PopulateResult> PopulateOnceAsync(DateOnly date, CancellationToken ct)
     {
         var zones = BiddingZoneSeedData.Zones;
 
@@ -85,9 +91,11 @@ public class SpotPriceService : ISpotPriceService
         {
             try
             {
-                // Already have this day for the zone? Assume the whole day is present and skip the fetch,
-                // so re-running populate only fills in the zones that failed/timed out last time.
-                if (await _repository.HasAnyForDayAsync(zone.Id, date, ct))
+                // Already have a full day for the zone (>= 12 slots)? Skip the fetch, so re-running populate
+                // only fills in the zones that failed/timed out — a partial day (too few slots) is re-fetched.
+                // The window is the zone's local delivery day, so it can't be fooled by an adjacent day's slots.
+                var (fromUtc, toUtc) = zone.DeliveryDayWindowUtc(date);
+                if (await _repository.HasDayAsync(zone.Id, fromUtc, toUtc, ct))
                 {
                     skipped++;
                     _logger.LogInformation("Skipped zone {ZoneId} ({Name}) for {Date}: already populated",
@@ -121,12 +129,5 @@ public class SpotPriceService : ISpotPriceService
             date, succeeded, skipped, failures.Count, pointsSaved);
 
         return new PopulateResult(date, zones.Count, succeeded, skipped, failures.Count, pointsSaved, failures);
-    }
-
-    // "Today"/"Tomorrow" relative to UTC — the provider treats the date as a UTC window.
-    private static DateOnly ResolveDate(PriceDay day)
-    {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return day == PriceDay.Tomorrow ? today.AddDays(1) : today;
     }
 }

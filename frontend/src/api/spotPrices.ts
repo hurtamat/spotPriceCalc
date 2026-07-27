@@ -1,5 +1,6 @@
 // Client for the .NET spot-price API (GET /api/spotprices).
-// The backend treats a date as a UTC-day window and returns the stored day-ahead curve.
+// `date` is the zone's LOCAL delivery day; the backend resolves it to a UTC window via the zone's
+// timezone and returns the stored day-ahead curve (points are UTC; `timeZoneId` says how to label them).
 
 export interface PricePoint {
   fromUtc: string;
@@ -10,6 +11,9 @@ export interface PricePoint {
 
 export interface ZoneSpotPrices {
   biddingZoneId: number;
+  /** IANA timezone of the bidding zone (e.g. "Europe/Berlin"). Points stay UTC; use this to label
+   *  them in the zone's local time rather than the viewer's browser timezone. */
+  timeZoneId: string;
   points: PricePoint[];
 }
 
@@ -42,7 +46,7 @@ export async function fetchSpotPrices(
   date: string,
   signal?: AbortSignal,
 ): Promise<ZoneSpotPrices> {
-  const url = `${API_BASE}/api/spotprices?biddingZoneId=${biddingZoneId}&from=${date}&to=${date}`;
+  const url = `${API_BASE}/api/spotprices?biddingZoneId=${biddingZoneId}&date=${date}`;
   const res = await fetch(url, { signal });
   if (!res.ok) {
     const body = await res.text().catch(() => '');

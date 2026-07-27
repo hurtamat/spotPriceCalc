@@ -34,10 +34,22 @@ type LoadState =
   | { status: 'error'; message: string }
   | { status: 'ready'; data: ZoneSpotPrices };
 
-function hourLabel(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+/** Hour-of-day + minute of a UTC instant, read in a specific IANA timezone (the bidding zone's, not the
+ *  viewer's browser). Used both for the x position and the "HH:MM" label so the curve reads in local
+ *  market time regardless of where the viewer sits. */
+function zonedHourMinute(iso: string, timeZone: string): { hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? '0');
+  // hour12:false can emit "24" at midnight in some engines — normalize to 0.
+  return { hour: get('hour') % 24, minute: get('minute') };
 }
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
 
 export function PriceSection() {
   const [day, setDay] = useState<DayKey>('today');
@@ -194,9 +206,11 @@ function Chart({
     const points = state?.status === 'ready' ? state.data.points : [];
     if (points.length === 0) return null;
 
+    // Label each slot in the bidding zone's local time, not the viewer's browser timezone.
+    const timeZone = state?.status === 'ready' ? state.data.timeZoneId : 'UTC';
     const data: ChartDatum[] = points.map((p) => {
-      const d = new Date(p.fromUtc);
-      return { hour: d.getHours() + d.getMinutes() / 60, time: hourLabel(p.fromUtc), ct: p.ctPerKwh };
+      const { hour, minute } = zonedHourMinute(p.fromUtc, timeZone);
+      return { hour: hour + minute / 60, time: `${pad2(hour)}:${pad2(minute)}`, ct: p.ctPerKwh };
     });
 
     const values = data.map((d) => d.ct);

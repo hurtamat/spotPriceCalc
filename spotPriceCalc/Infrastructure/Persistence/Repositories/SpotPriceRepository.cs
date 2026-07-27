@@ -10,10 +10,8 @@ public class SpotPriceRepository : ISpotPriceRepository
 
     public SpotPriceRepository(AppDbContext db) => _db = db;
 
-    public async Task<ZoneSpotPrices> GetAsync(int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct)
+    public async Task<ZoneSpotPrices> GetAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct)
     {
-        var (fromUtc, toUtcExclusive) = ToUtcWindow(from, to);
-
         var points = await _db.SpotPrices
             .Where(p => p.BiddingZoneId == biddingZoneId && p.From >= fromUtc && p.From < toUtcExclusive)
             .OrderBy(p => p.From)
@@ -23,12 +21,17 @@ public class SpotPriceRepository : ISpotPriceRepository
         return new ZoneSpotPrices { BiddingZoneId = biddingZoneId, Points = points };
     }
 
-    public Task<bool> HasAnyForDayAsync(int biddingZoneId, DateOnly date, CancellationToken ct)
-    {
-        var (fromUtc, toUtcExclusive) = ToUtcWindow(date, date);
+    // Minimum stored slots for a day to count as populated. Below both a full hourly day (24) and a full
+    // 15-minute day (96), but above the handful a wrong/edge window could contain — so a genuinely missing
+    // day is never mistaken for present.
+    private const int MinSlotsForDay = 12;
 
-        return _db.SpotPrices.AnyAsync(
+    public async Task<bool> HasDayAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct)
+    {
+        var count = await _db.SpotPrices.CountAsync(
             p => p.BiddingZoneId == biddingZoneId && p.From >= fromUtc && p.From < toUtcExclusive, ct);
+
+        return count >= MinSlotsForDay;
     }
 
     public async Task SaveAsync(ZoneSpotPrices prices, CancellationToken ct)
@@ -58,8 +61,4 @@ public class SpotPriceRepository : ISpotPriceRepository
         _db.SpotPrices.AddRange(toInsert);
         await _db.SaveChangesAsync(ct);
     }
-
-    private static (DateTime fromUtc, DateTime toUtcExclusive) ToUtcWindow(DateOnly from, DateOnly to) =>
-        (from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
 }

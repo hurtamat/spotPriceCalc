@@ -15,16 +15,16 @@ Accept: application/xml
 @spotPriceCalc_HostAddress = http://localhost:5262
 @biddingZoneId = 6
 
-### Populate ALL zones for today (writes to the DB) — run this first
-POST {{spotPriceCalc_HostAddress}}/api/spotprices/populate?day=today
+### Populate ALL zones for today (writes to the DB) — run this first. Omit ?date to default to today (UTC).
+POST {{spotPriceCalc_HostAddress}}/api/spotprices/populate
 Accept: application/json
 
-### Populate ALL zones for tomorrow (after the day-ahead auction, ~13:00 CET)
-POST {{spotPriceCalc_HostAddress}}/api/spotprices/populate?day=tomorrow
+### Populate ALL zones for a specific date (e.g. tomorrow, after the day-ahead auction ~13:00 CET)
+POST {{spotPriceCalc_HostAddress}}/api/spotprices/populate?date=2026-07-28
 Accept: application/json
 
-### Read stored prices for one zone over a date range (Slovakia = id 6)
-GET {{spotPriceCalc_HostAddress}}/api/spotprices?biddingZoneId={{biddingZoneId}}&from=2026-07-20&to=2026-07-20
+### Read stored prices for one zone for a single LOCAL delivery day (Slovakia = id 6)
+GET {{spotPriceCalc_HostAddress}}/api/spotprices?biddingZoneId={{biddingZoneId}}&date=2026-07-20
 Accept: application/json
 
 ###

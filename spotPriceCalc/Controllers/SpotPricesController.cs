@@ -16,31 +16,31 @@ public class SpotPricesController : ControllerBase
         _service = service;
     }
 
-    /// <summary>GET /api/spotprices?biddingZoneId=6&amp;from=2026-07-18&amp;to=2026-07-18 — stored day-ahead
-    /// prices for one zone over an inclusive date range.</summary>
+    /// <summary>GET /api/spotprices?biddingZoneId=6&amp;date=2026-07-18 — stored day-ahead prices for one
+    /// zone for a single day. The date is the zone's LOCAL delivery day (resolved to a UTC window server-side
+    /// via the zone's timezone), so the returned curve is a whole local day, not a UTC-midnight slice.</summary>
     [HttpGet]
     public async Task<IActionResult> GetPrices(
         [FromQuery] int biddingZoneId,
-        [FromQuery] DateOnly from,
-        [FromQuery] DateOnly to,
+        [FromQuery] DateOnly date,
         CancellationToken ct)
     {
         if (!BiddingZoneSeedData.ById.ContainsKey(biddingZoneId))
             return NotFound($"Unknown bidding zone id {biddingZoneId}.");
 
-        if (to < from)
-            return BadRequest("'to' must be on or after 'from'.");
-
-        var prices = await _service.GetPricesAsync(biddingZoneId, from, to, ct);
-        return Ok(ZoneSpotPricesDto.From(prices));
+        var prices = await _service.GetPricesAsync(biddingZoneId, date, date, ct);
+        var zone = BiddingZoneSeedData.ById[biddingZoneId]; // validated above
+        return Ok(ZoneSpotPricesDto.From(prices, zone.TimeZoneId));
     }
 
-    /// <summary>POST /api/spotprices/populate?day=today — fetches and stores prices for ALL zones for the
-    /// day (today by default, or tomorrow). Manual trigger for now; an Azure Function will call it daily.</summary>
+    /// <summary>POST /api/spotprices/populate?date=2026-07-25 — fetches and stores prices for ALL zones for
+    /// the given date (defaults to today, UTC), retrying until every zone is in. Manual trigger; the
+    /// in-process scheduler calls the same service method daily.</summary>
     [HttpPost("populate")]
-    public async Task<IActionResult> Populate([FromQuery] PriceDay day = PriceDay.Today, CancellationToken ct = default)
+    public async Task<IActionResult> Populate([FromQuery] DateOnly? date, CancellationToken ct = default)
     {
-        var result = await _service.PopulateAsync(day, ct);
+        var target = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var result = await _service.PopulateUntilCompleteAsync(target, ct);
         return Ok(result);
     }
 }

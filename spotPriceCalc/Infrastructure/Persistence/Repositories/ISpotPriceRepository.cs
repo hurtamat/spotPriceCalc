@@ -2,15 +2,18 @@ using spotPriceCalc.Domain;
 
 namespace spotPriceCalc.Infrastructure.Persistence.Repositories;
 
-/// <summary>Persistence for spot prices. Pure storage — no HTTP, no fetch-if-missing logic (that lives
-/// in the service). Range is inclusive by UTC date: [from 00:00, to+1 00:00).</summary>
+/// <summary>Persistence for spot prices. Pure storage — no HTTP, no timezone/delivery-day logic (the caller
+/// resolves the zone-local day to a UTC window and passes explicit bounds). Windows are half-open
+/// <c>[fromUtc, toUtcExclusive)</c>.</summary>
 public interface ISpotPriceRepository
 {
-    Task<ZoneSpotPrices> GetAsync(int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct);
+    Task<ZoneSpotPrices> GetAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
 
-    /// <summary>True if at least one price slot is stored for the zone on that day. Used to skip a zone
-    /// that's already populated — we assume one slot means the whole day is present.</summary>
-    Task<bool> HasAnyForDayAsync(int biddingZoneId, DateOnly date, CancellationToken ct);
+    /// <summary>True if the zone's day (the given UTC window) looks fully populated — at least
+    /// <c>MinSlotsForDay</c> price slots are stored in it. A count threshold (not "any slot") so a partial
+    /// day can still self-heal; 12 sits between the fewest a real day has (22 hourly slots) and the most a
+    /// wrong window could contain, so it works for both hourly and 15-minute zones.</summary>
+    Task<bool> HasDayAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
 
     Task SaveAsync(ZoneSpotPrices prices, CancellationToken ct);
 }

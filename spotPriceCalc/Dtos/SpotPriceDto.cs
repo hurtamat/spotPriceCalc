@@ -2,11 +2,13 @@ using spotPriceCalc.Domain;
 
 namespace spotPriceCalc.Dtos;
 
-/// <summary>The aggregate over the wire: zone id once, then the price curve.</summary>
-public record ZoneSpotPricesDto(int BiddingZoneId, IReadOnlyList<PricePointDto> Points)
+/// <summary>The aggregate over the wire: zone id + its IANA timezone once, then the price curve. Points
+/// stay UTC; <see cref="TimeZoneId"/> lets the client label them in the zone's local time (German prices
+/// read in German hours regardless of where the viewer sits).</summary>
+public record ZoneSpotPricesDto(int BiddingZoneId, string TimeZoneId, IReadOnlyList<PricePointDto> Points)
 {
-    public static ZoneSpotPricesDto From(ZoneSpotPrices z) =>
-        new(z.BiddingZoneId, z.Points.Select(PricePointDto.From).ToList());
+    public static ZoneSpotPricesDto From(ZoneSpotPrices z, string timeZoneId) =>
+        new(z.BiddingZoneId, timeZoneId, z.Points.Select(PricePointDto.From).ToList());
 }
 
 /// <summary>One slot: raw EUR/MWh plus the consumer-facing ct/kWh (÷10).</summary>
