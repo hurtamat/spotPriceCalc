@@ -1,0 +1,64 @@
+name: Deploy to Azure
+
+# Build the three service images and roll them out to Azure Container Apps on every push to main.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+# Required for OIDC login to Azure (no stored passwords — GitHub mints a short-lived token).
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  # --- Non-secret config: set these as repository *Variables* (Settings > Secrets and variables > Actions > Variables) ---
+  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  ACR_NAME: ${{ vars.ACR_NAME }} # e.g. spotbuddyacr  (login server becomes spotbuddyacr.azurecr.io)
+  APP_BACKEND: ${{ vars.ACA_BACKEND }} # Container App name for the .NET API
+  APP_FRONTEND: ${{ vars.ACA_FRONTEND }} # Container App name for the frontend
+  APP_CALC: ${{ vars.ACA_CALC }} # Container App name for the Python calc-service
+  VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }} # public https URL of the backend Container App
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tag every image with the commit SHA so a rollout is traceable and rollback is a re-deploy of an old tag.
+      - name: Compute image tag
+        id: tag
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # OIDC login — uses the three AZURE_* secrets, no client secret stored.
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # `az acr build` builds each image server-side in ACR — no local Docker/buildx or registry login needed.
+      - name: Build & push backend
+        run: az acr build --registry "$ACR_NAME" --image "spotprice-backend:${{ steps.tag.outputs.sha }}" --file spotPriceCalc/Dockerfile .
+
+      - name: Build & push calc-service
+        run: az acr build --registry "$ACR_NAME" --image "spotprice-calc:${{ steps.tag.outputs.sha }}" ./calc-service
+
+      - name: Build & push frontend
+        run: |
+          az acr build --registry "$ACR_NAME" \
+            --image "spotprice-frontend:${{ steps.tag.outputs.sha }}" \
+            --build-arg VITE_API_BASE_URL="$VITE_API_BASE_URL" \
+            ./frontend
+
+      # Point each Container App at the new tag. The apps must already exist (see DEPLOYMENT.md, one-time setup).
+      - name: Deploy backend
+        run: az containerapp update --name "$APP_BACKEND" --resource-group "$RESOURCE_GROUP" --image "$ACR_NAME.azurecr.io/spotprice-backend:${{ steps.tag.outputs.sha }}"
+
+      - name: Deploy calc-service
+        run: az containerapp update --name "$APP_CALC" --resource-group "$RESOURCE_GROUP" --image "$ACR_NAME.azurecr.io/spotprice-calc:${{ steps.tag.outputs.sha }}"
+
+      - name: Deploy frontend
+        run: az containerapp update --name "$APP_FRONTEND" --resource-group "$RESOURCE_GROUP" --image "$ACR_NAME.azurecr.io/spotprice-frontend:${{ steps.tag.outputs.sha }}"

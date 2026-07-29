@@ -1,0 +1,50 @@
+name: CI
+
+# Verify every service builds on pull requests and pushes to non-main branches.
+# Deploys happen separately in deploy.yml (only on main).
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet restore
+      - run: dotnet build --no-restore -c Release
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  calc-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: calc-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      # Smoke check: the app imports and constructs without error.
+      - run: python -c "import main; assert main.app"
