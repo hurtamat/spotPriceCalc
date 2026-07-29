@@ -9,12 +9,17 @@ using spotPriceCalc.Services.SmartHome;
 var builder = WebApplication.CreateBuilder(args);
 
 const string FrontendCors = "frontend-dev";
+// Allowed origins come from config (Cors:AllowedOrigins) so each environment can add its own frontend
+// URL — e.g. the deployed Container App — without a code change. Falls back to the local Vite origins.
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                  ?? new[]
+                  {
+                      "http://localhost:5173", "http://127.0.0.1:5173",
+                      "http://localhost:4173", "http://127.0.0.1:4173",
+                  };
 builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCors, policy => policy
-        // Vite dev server (npm run dev) and preview (npm run preview).
-        .WithOrigins(
-            "http://localhost:5173", "http://127.0.0.1:5173",
-            "http://localhost:4173", "http://127.0.0.1:4173")
+        .WithOrigins(corsOrigins)
         .AllowAnyHeader()
         .AllowAnyMethod()));
 
@@ -57,7 +62,13 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// In containers (compose or Azure Container Apps) the app serves plain HTTP on 8080 and the platform's
+// ingress terminates TLS, so an in-app HTTP->HTTPS redirect just breaks requests. Only redirect when
+// running natively (e.g. Rider's https launch profile). The base aspnet image sets this env var.
+if (!builder.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER"))
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors(FrontendCors);
 

@@ -312,7 +312,12 @@ function Chart({
                 />
                 <Tooltip
                   formatter={(v) => [`${(v as number).toFixed(1)} c/kWh`, 'Price']}
-                  labelFormatter={(h) => `${String(Math.floor(h as number)).padStart(2, '0')}:00`}
+                  labelFormatter={(h, payload) =>
+                    // Prefer the datum's own "HH:MM" label so 15-minute slots read correctly
+                    // (e.g. 19:45). Fall back to deriving it from the fractional hour.
+                    (payload?.[0]?.payload as ChartDatum | undefined)?.time ??
+                    `${pad2(Math.floor(h as number))}:${pad2(Math.round(((h as number) % 1) * 60))}`
+                  }
                   contentStyle={{
                     background: 'var(--color-surface)',
                     border: '1px solid var(--color-divider)',
