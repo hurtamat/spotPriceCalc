@@ -4,9 +4,9 @@ using spotPriceCalc.Domain;
 
 namespace spotPriceCalc.Infrastructure.Persistence.Configurations;
 
-// Maps the BiddingZone domain entity and seeds the whole table from BiddingZoneSeedData (the code
-// source of truth). HasData is baked into the migration, so applying migrations creates + seeds the
-// table in one idempotent step.
+// Maps the BiddingZone domain entity. The rows themselves are seeded at runtime by
+// DbInitializer.SeedBiddingZonesAsync from BiddingZoneSeedData (the code source of truth), NOT via
+// HasData — so editing the hardcoded zone list is a code change + restart, not a schema migration.
 public class BiddingZoneConfiguration : IEntityTypeConfiguration<BiddingZone>
 {
     public void Configure(EntityTypeBuilder<BiddingZone> builder)
@@ -26,7 +26,5 @@ public class BiddingZoneConfiguration : IEntityTypeConfiguration<BiddingZone>
         builder.Property(z => z.Longitude).HasColumnType("numeric(9,6)");
 
         builder.HasIndex(z => z.Code).IsUnique();
-
-        builder.HasData(BiddingZoneSeedData.Zones);
     }
 }

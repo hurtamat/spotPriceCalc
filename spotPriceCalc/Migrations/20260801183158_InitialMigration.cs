@@ -4,8 +4,6 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
-
 namespace spotPriceCalc.Migrations
 {
     /// <inheritdoc />
@@ -71,58 +69,6 @@ namespace spotPriceCalc.Migrations
                         principalTable: "bidding_zones",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.InsertData(
-                table: "bidding_zones",
-                columns: new[] { "Id", "Code", "Latitude", "Longitude", "Name", "TimeZoneId" },
-                values: new object[,]
-                {
-                    { 1, "10YAT-APG------L", 48.21m, 16.37m, "Austria", "Europe/Vienna" },
-                    { 2, "10YBE----------2", 50.85m, 4.35m, "Belgium", "Europe/Brussels" },
-                    { 3, "10YCA-BULGARIA-R", 42.70m, 23.32m, "Bulgaria", "Europe/Sofia" },
-                    { 4, "10YCH-SWISSGRIDZ", 46.95m, 7.45m, "Switzerland", "Europe/Zurich" },
-                    { 5, "10YCZ-CEPS-----N", 50.08m, 14.44m, "Czech Republic", "Europe/Prague" },
-                    { 6, "10YSK-SEPS-----K", 48.15m, 17.11m, "Slovakia", "Europe/Bratislava" },
-                    { 7, "10Y1001A1001A82H", 52.52m, 13.41m, "Germany-Luxembourg", "Europe/Berlin" },
-                    { 8, "10Y1001A1001A39I", 59.44m, 24.75m, "Estonia", "Europe/Tallinn" },
-                    { 9, "10YES-REE------0", 40.42m, -3.70m, "Spain", "Europe/Madrid" },
-                    { 10, "10YFI-1--------U", 60.17m, 24.94m, "Finland", "Europe/Helsinki" },
-                    { 11, "10YFR-RTE------C", 48.85m, 2.35m, "France", "Europe/Paris" },
-                    { 12, "10YGR-HTSO-----Y", 37.98m, 23.73m, "Greece", "Europe/Athens" },
-                    { 13, "10YHR-HEP------M", 45.81m, 15.98m, "Croatia", "Europe/Zagreb" },
-                    { 14, "10YHU-MAVIR----U", 47.50m, 19.04m, "Hungary", "Europe/Budapest" },
-                    { 15, "10YLT-1001A0008Q", 54.69m, 25.28m, "Lithuania", "Europe/Vilnius" },
-                    { 16, "10YLV-1001A00074", 56.95m, 24.11m, "Latvia", "Europe/Riga" },
-                    { 17, "10YNL----------L", 52.37m, 4.90m, "Netherlands", "Europe/Amsterdam" },
-                    { 18, "10YPL-AREA-----S", 52.23m, 21.01m, "Poland", "Europe/Warsaw" },
-                    { 19, "10YPT-REN------W", 38.72m, -9.14m, "Portugal", "Europe/Lisbon" },
-                    { 20, "10YRO-TEL------P", 44.43m, 26.10m, "Romania", "Europe/Bucharest" },
-                    { 21, "10YSI-ELES-----O", 46.05m, 14.51m, "Slovenia", "Europe/Ljubljana" },
-                    { 22, "10Y1001A1001A44P", 65.58m, 22.15m, "Sweden SE1", "Europe/Stockholm" },
-                    { 23, "10Y1001A1001A45N", 62.39m, 17.31m, "Sweden SE2", "Europe/Stockholm" },
-                    { 24, "10Y1001A1001A46L", 59.33m, 18.07m, "Sweden SE3", "Europe/Stockholm" },
-                    { 25, "10Y1001A1001A47J", 55.60m, 13.00m, "Sweden SE4", "Europe/Stockholm" },
-                    { 26, "10YNO-1--------2", 59.91m, 10.75m, "Norway NO1", "Europe/Oslo" },
-                    { 27, "10YNO-2--------T", 58.15m, 8.00m, "Norway NO2", "Europe/Oslo" },
-                    { 28, "10YNO-3--------J", 63.43m, 10.39m, "Norway NO3", "Europe/Oslo" },
-                    { 29, "10YNO-4--------9", 69.65m, 18.96m, "Norway NO4", "Europe/Oslo" },
-                    { 30, "10Y1001A1001A48H", 60.39m, 5.32m, "Norway NO5", "Europe/Oslo" },
-                    { 31, "10YDK-1--------W", 56.16m, 10.20m, "Denmark DK1", "Europe/Copenhagen" },
-                    { 32, "10YDK-2--------M", 55.68m, 12.57m, "Denmark DK2", "Europe/Copenhagen" },
-                    { 33, "10Y1001A1001A73I", 45.46m, 9.19m, "Italy North", "Europe/Rome" },
-                    { 34, "10Y1001A1001A70O", 43.77m, 11.26m, "Italy Centre-North", "Europe/Rome" },
-                    { 35, "10Y1001A1001A71M", 41.90m, 12.50m, "Italy Centre-South", "Europe/Rome" },
-                    { 36, "10Y1001A1001A788", 40.85m, 14.27m, "Italy South", "Europe/Rome" },
-                    { 37, "10Y1001A1001A74G", 39.22m, 9.12m, "Italy Sardinia", "Europe/Rome" },
-                    { 38, "10Y1001A1001A75E", 38.12m, 13.36m, "Italy Sicily", "Europe/Rome" },
-                    { 41, "10Y1001C--00096J", 38.91m, 16.59m, "Italy Calabria", "Europe/Rome" },
-                    { 44, "10YAL-KESH-----5", 41.33m, 19.82m, "Albania", "Europe/Tirane" },
-                    { 45, "10YCS-CG-TSO---S", 42.44m, 19.26m, "Montenegro", "Europe/Podgorica" },
-                    { 46, "10Y1001C--00100H", 42.66m, 21.17m, "Kosovo", "Europe/Belgrade" },
-                    { 47, "10YMK-MEPSO----8", 41.99m, 21.43m, "North Macedonia", "Europe/Skopje" },
-                    { 48, "10YCS-SERBIATSOV", 44.79m, 20.45m, "Serbia", "Europe/Belgrade" },
-                    { 49, "10Y1001A1001A59C", 53.35m, -6.26m, "Ireland (SEM)", "Europe/Dublin" }
                 });
 
             migrationBuilder.CreateIndex(
