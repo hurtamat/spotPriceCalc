@@ -26,7 +26,6 @@ public class OpenMeteoWeatherClient : IWeatherProvider
 
         var url = QueryHelpers.AddQueryString("", query);
 
-        // Open-Meteo replies with JSON (unlike ENTSO-E's XML), so we can deserialize directly.
         var response = await _httpClient.GetFromJsonAsync<OpenMeteoResponse>(url, ct)
                        ?? throw new InvalidOperationException("Open-Meteo returned no data.");
 

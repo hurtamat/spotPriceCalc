@@ -43,20 +43,16 @@ builder.Services.AddScoped<ISpotPriceService, SpotPriceService>();
 // of tomorrow. Resolves ISpotPriceService per run via a scope. Requires min-replicas >= 1 when hosted.
 builder.Services.AddHostedService<PriceDataScheduler>();
 
-// Smart-home scheduling: zone resolution (stubbed) + the device-agnostic decision engine.
+// Smart-home scheduling: zone resolution + the device-agnostic decision engine.
 builder.Services.AddScoped<IZoneLocatorService, ZoneLocatorService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Apply migrations + seed bidding zones on startup.
 await DbInitializer.InitializeAsync(app.Services);
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

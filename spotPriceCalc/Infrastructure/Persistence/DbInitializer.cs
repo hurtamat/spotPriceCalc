@@ -5,11 +5,8 @@ namespace spotPriceCalc.Infrastructure.Persistence;
 
 public static class DbInitializer
 {
-    /// <summary>
-    /// Runs on startup: applies any pending schema migrations, then seeds the reference bidding_zones from
-    /// the code source of truth. Migrate() is idempotent (checks __EFMigrationsHistory), and the zone seed
-    /// is an idempotent upsert — so restarts are safe no-ops when nothing changed.
-    /// </summary>
+    // Startup: apply pending migrations, then seed bidding_zones from the code source of truth. Both are
+    // idempotent, so restarts are safe no-ops when nothing changed.
     public static async Task InitializeAsync(IServiceProvider services, CancellationToken ct = default)
     {
         await using var scope = services.CreateAsyncScope();
@@ -18,13 +15,9 @@ public static class DbInitializer
         await SeedBiddingZonesAsync(db, ct);
     }
 
-    /// <summary>
-    /// Idempotent runtime seed of bidding_zones from BiddingZoneSeedData. Inserts missing zones and syncs
-    /// changed fields on every startup, so editing the hardcoded list is a code change + restart — NOT a
-    /// schema migration. Zones present in the DB but absent from the list are left untouched: removing one
-    /// is rare/deliberate and could orphan FK references (spot_prices, temperature_readings), so it's not
-    /// auto-deleted.
-    /// </summary>
+    // Idempotent seed of bidding_zones from BiddingZoneSeedData: inserts missing zones and syncs changed
+    // fields, so editing the list is a code change + restart, not a migration. Zones in the DB but absent
+    // from the list are left untouched (removing one could orphan FK references).
     private static async Task SeedBiddingZonesAsync(AppDbContext db, CancellationToken ct)
     {
         var existing = await db.BiddingZones.ToDictionaryAsync(z => z.Id, ct);

@@ -1,13 +1,12 @@
 namespace spotPriceCalc.Domain;
 
-/// <summary>A day's price curve for one bidding zone. The zone id is held once here, not per point.</summary>
 public record ZoneSpotPrices
 {
     public required int BiddingZoneId { get; set; }
     public required IReadOnlyList<PricePoint> Points { get; set; }
 }
 
-/// <summary>One price slot (zone-agnostic). EUR/MWh, raw.</summary>
+// Price is raw EUR/MWh.
 public record PricePoint
 {
     public required DateTime From { get; set; }

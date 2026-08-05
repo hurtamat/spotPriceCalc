@@ -3,8 +3,7 @@ using spotPriceCalc.Domain;
 
 namespace spotPriceCalc.Infrastructure.ExternalClients.OpenMeteo;
 
-/// <summary>Zips the parallel time/temperature arrays into zone-agnostic <see cref="TemperaturePoint"/>s.
-/// The zone id is stamped once by the client when it wraps these into a <see cref="ZoneTemperatures"/>.</summary>
+// Zips the parallel time/temperature arrays into zone-agnostic TemperaturePoints; zone id stamped later.
 public static class OpenMeteoMapper
 {
     public static IReadOnlyList<TemperaturePoint> ToTemperaturePoints(this OpenMeteoResponse response)

@@ -14,7 +14,6 @@ public class SpotPriceService : ISpotPriceService
     // Throttle the sequential ENTSO-E calls so we don't trip their rate limits / gateway timeouts.
     private static readonly TimeSpan RequestDelay = TimeSpan.FromMilliseconds(100);
 
-    // Retry cadence + cap for PopulateUntilCompleteAsync when some zones are still missing.
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
     private const int MaxAttempts = 5;
 
@@ -48,7 +47,6 @@ public class SpotPriceService : ISpotPriceService
             attempt++;
             result = await PopulateOnceAsync(date, ct);
 
-            // Every zone ended up stored (fetched or already present) — nothing failed/timed out.
             if (result.Failed == 0)
             {
                 _logger.LogInformation(
@@ -120,7 +118,6 @@ public class SpotPriceService : ISpotPriceService
                 failures.Add($"{zone.Name} ({zone.Code}): {ex.Message}");
             }
 
-            // Throttle between actual ENTSO-E calls (skipped zones use `continue` and never reach here).
             await Task.Delay(RequestDelay, ct);
         }
 

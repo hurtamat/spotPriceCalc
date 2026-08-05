@@ -2,12 +2,8 @@ using spotPriceCalc.Infrastructure.Persistence;
 
 namespace spotPriceCalc.Services.SmartHome;
 
-/// <summary>Coordinates → bidding zone. First-cut implementation: nearest zone *centre* over
-/// <see cref="BiddingZoneSeedData"/>. We only have centres (no polygons) today, so this is wrong right at
-/// internal borders — e.g. a point in far-west Czechia may snap to Germany. Good enough to run end-to-end and
-/// fine where zone centres are far apart (Italy/Sweden/Norway).
-/// (ship per-zone GeoJSON, NetTopologySuite STRtree + PreparedGeometry, this nearest-centre as the no-match
-/// fallback). See smartHomeIntegration.md "Current limitations".</summary>
+// Coordinates → bidding zone by nearest zone centre. First cut: wrong right at internal borders (only
+// centres, no polygons). TODO(geojson): point-in-polygon, keeping nearest-centre as the no-match fallback.
 public class ZoneLocatorService : IZoneLocatorService
 {
     public int ResolveBiddingZone(decimal latitude, decimal longitude)
@@ -30,9 +26,7 @@ public class ZoneLocatorService : IZoneLocatorService
         return nearestId;
     }
 
-    /// <summary>
-    /// Great-circle distance in km. Haversine (not raw degree distance) so it stays consistnat
-    /// </summary>
+    // Great-circle km. Haversine, not raw degrees, so it stays correct at high (Nordic) latitudes.
     private static double HaversineKm(double lat1, double lon1, double lat2, double lon2)
     {
         const double earthRadiusKm = 6371.0;

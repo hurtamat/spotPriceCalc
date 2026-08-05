@@ -1,22 +1,15 @@
 namespace spotPriceCalc.Services;
 
-/// <summary>The in-process price-data trigger. Two responsibilities:
-/// <list type="number">
-///   <item>On startup: populate <b>yesterday, today, tomorrow</b> (a catch-up so a fresh boot / redeploy
-///   isn't missing recent days), each awaited and retried until every zone lands.</item>
-///   <item>Daily at <b>13:25 CET/CEST</b> (shortly after the ~12:45 CET day-ahead auction clears): populate
-///   <b>tomorrow</b>.</item>
-/// </list>
-/// The actual fetch + "retry until all zones present" lives in <see cref="ISpotPriceService.PopulateUntilCompleteAsync"/> —
-/// this class only decides <i>when</i>. Runs in-process, so the app must stay at min-replicas ≥ 1 in
-/// Container Apps (a scaled-to-zero container has no running timer). If we later want the API to scale to
-/// zero, move the daily job to a Container Apps Job (cron) that calls the same service method.</summary>
+// In-process price-data trigger: on startup populate yesterday/today/tomorrow (catch-up), then daily populate
+// tomorrow shortly after the day-ahead auction clears. Only decides *when* — the fetch + retry-until-complete
+// lives in ISpotPriceService.PopulateUntilCompleteAsync. Needs min-replicas >= 1 (a timer needs a running
+// replica); move to a Container Apps cron Job if the API ever scales to zero.
 public class PriceDataScheduler : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<PriceDataScheduler> _logger;
 
-    // 13:25 local time, Central European (CET/CEST). IANA id resolves on Linux (Container Apps) and on
+    // Daily run time, Central European (CET/CEST); IANA id resolves on Linux and Windows.
     private static readonly TimeOnly DailyRunTime = new(17, 28);
     private static readonly TimeZoneInfo CentralEurope = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
 
@@ -52,8 +45,7 @@ public class PriceDataScheduler : BackgroundService
         }
     }
 
-    /// <summary>Startup catch-up: yesterday, today, tomorrow, in order. Awaited, so each is confirmed
-    /// complete (or given up on) before the next. Runs in the background — it does not block app boot.</summary>
+    // Startup catch-up: yesterday, today, tomorrow, in order (each confirmed before the next).
     private async Task RunStartupPopulateAsync(CancellationToken ct)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -64,8 +56,7 @@ public class PriceDataScheduler : BackgroundService
         await PopulateAsync(today.AddDays(1), "startup: tomorrow", ct);
     }
 
-    /// <summary>Resolves a fresh scope (the service + its DbContext are scoped) and runs the retry-until-complete
-    /// populate for one date. Never throws — a failed run is logged and the schedule loop continues.</summary>
+    // Runs the retry-until-complete populate for one date in a fresh scope. Never throws — logs and continues.
     private async Task PopulateAsync(DateOnly date, string reason, CancellationToken ct)
     {
         try
@@ -85,7 +76,6 @@ public class PriceDataScheduler : BackgroundService
         }
     }
 
-    /// <summary>Next occurrence of 13:25 CET/CEST strictly after <paramref name="fromUtc"/>, as UTC.</summary>
     private static DateTimeOffset NextRunUtc(DateTimeOffset fromUtc)
     {
         var localNow = TimeZoneInfo.ConvertTime(fromUtc, CentralEurope);

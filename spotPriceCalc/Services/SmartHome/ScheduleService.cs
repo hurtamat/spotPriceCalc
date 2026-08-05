@@ -3,14 +3,8 @@ using spotPriceCalc.Infrastructure.Persistence;
 
 namespace spotPriceCalc.Services.SmartHome;
 
-/// <summary>Price-ranking scheduler (v1). Deliberately naive — cheapest hours under the given constraints —
-/// which is the MVP. The thermal/comfort optimisation that actually beats rigid competitors is planned for
-/// the Python calc-service; see README's "Algorithm note".
-///
-/// TODO(timezone): everything here is UTC in / UTC out. We currently assume the client sends UTC and we
-/// return UTC. The proper design is to resolve the zone's IANA TimeZoneId, keep the whole computation in UTC,
-/// and convert to the device's local time at the edge (in the controller) for display. Revisit once we care
-/// about correct local delivery-day boundaries and human-facing labels.</summary>
+// Price-ranking scheduler (v1): cheapest hours under the given constraints. Thermal/comfort optimisation is
+// planned for the Python calc-service. TODO(timezone): UTC in / UTC out; convert to device-local at the edge.
 public class ScheduleService : IScheduleService
 {
     private readonly ISpotPriceService _prices;
@@ -24,7 +18,6 @@ public class ScheduleService : IScheduleService
         _logger = logger;
     }
 
-    /// <summary>A price slot in UTC.</summary>
     private record Slot(DateTimeOffset Start, DateTimeOffset End, decimal Price)
     {
         public double Hours => (End - Start).TotalHours;
@@ -71,8 +64,7 @@ public class ScheduleService : IScheduleService
         };
     }
 
-    /// <summary>Fetch the stored curve around "today" (a day can straddle two UTC dates at the edges, so pull
-    /// a ±1-day window) as UTC slots.</summary>
+    // Fetch the stored curve as UTC slots over a ±1-day window (a day straddles two UTC dates at the edges).
     private async Task<List<Slot>> LoadSlotsAsync(int zoneId, DateTimeOffset nowUtc, CancellationToken ct)
     {
         var today = DateOnly.FromDateTime(nowUtc.UtcDateTime);
@@ -87,9 +79,6 @@ public class ScheduleService : IScheduleService
             .ToList();
     }
 
-    /// <summary>Evaluate a single task: build its eligible window (deadline-anchored, minus the unavailable
-    /// window) and pick the hours to run. Returns the chosen slots (UTC, sorted by time), empty if it can't
-    /// be placed.</summary>
     private static List<Slot> EvaluateTask(
         TaskRequest task,
         List<Slot> slots,
@@ -113,7 +102,6 @@ public class ScheduleService : IScheduleService
             : SelectCheapest(eligible, task);
     }
 
-    /// <summary>Non-continuous: greedily take the cheapest slots until the duration is covered.</summary>
     private static List<Slot> SelectCheapest(List<Slot> eligible, TaskRequest task)
     {
         var chosen = new List<Slot>();
@@ -127,8 +115,6 @@ public class ScheduleService : IScheduleService
         return chosen.OrderBy(s => s.Start).ToList();
     }
 
-    /// <summary>Continuous: slide a back-to-back block of the required length over the eligible slots and
-    /// pick the cheapest valid position.</summary>
     private static List<Slot> SelectContiguous(List<Slot> eligible, TaskRequest task)
     {
         var byTime = eligible.OrderBy(s => s.Start).ToList();
@@ -156,8 +142,7 @@ public class ScheduleService : IScheduleService
         return best ?? new List<Slot>();
     }
 
-    /// <summary>Is the slot inside the single "do not run" window? Compared on the slot's UTC time-of-day.
-    /// A window with from &gt; to wraps past midnight (e.g. 22:00–06:00).</summary>
+    // Is the slot inside the "do not run" window (by UTC time-of-day)? from > to wraps past midnight.
     private static bool IsExcluded(Slot s, UnavailableWindow? window)
     {
         if (window is null) return false;
@@ -175,7 +160,6 @@ public class ScheduleService : IScheduleService
         return true;
     }
 
-    /// <summary>First moment after now where the union-of-selected state flips.</summary>
     private static DateTimeOffset? NextToggle(List<Slot> slots, HashSet<DateTimeOffset> selected, DateTimeOffset now, bool currentState)
     {
         foreach (var s in slots.Where(s => s.End > now).OrderBy(s => s.Start))

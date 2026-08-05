@@ -2,13 +2,8 @@ using spotPriceCalc.Domain;
 
 namespace spotPriceCalc.Infrastructure.Persistence;
 
-/// <summary>
-/// Canonical bidding zones (source of truth, from coutnries.txt). Code + Name come from the file;
-/// TimeZoneId (IANA) and Latitude/Longitude are added here — timezone drives the ENTSO-E UTC window,
-/// lat/lng drive the Open-Meteo weather query. Fed to EF via BiddingZoneConfiguration.HasData, so the
-/// table is seeded once from this list.
-/// Note: some EIC codes are virtual/aggregate zones — verify each with a live A44 query.
-/// </summary>
+// Canonical bidding zones (source of truth). TimeZoneId drives the ENTSO-E UTC window; lat/lng drive the
+// Open-Meteo weather query. Seeded at runtime by DbInitializer. Some EIC codes are virtual/aggregate zones.
 public static class BiddingZoneSeedData
 {
     public static readonly IReadOnlyList<BiddingZone> Zones = new List<BiddingZone>
@@ -64,7 +59,6 @@ public static class BiddingZoneSeedData
         new() { Id = 49, Name = "Ireland (SEM)",      Code = "10Y1001A1001A59C", TimeZoneId = "Europe/Dublin",     Latitude = 53.35m, Longitude = -6.26m },
     };
 
-    /// <summary>Zones keyed by Id — for resolving/validating a zone id without a DB round-trip.</summary>
     public static readonly IReadOnlyDictionary<int, BiddingZone> ById =
         Zones.ToDictionary(z => z.Id);
 }
