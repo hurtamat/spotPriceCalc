@@ -13,9 +13,9 @@ TAG=$(git rev-parse --short HEAD)
 echo ">> Deploying tag: $TAG"
 
 echo ">> Building images in ACR..."
-az acr build -r "$ACR" -i "spotprice-backend:$TAG"  -f spotPriceCalc/Dockerfile .
-az acr build -r "$ACR" -i "spotprice-calc:$TAG"     ./calc-service
-az acr build -r "$ACR" -i "spotprice-frontend:$TAG" --build-arg VITE_API_BASE_URL="$BACKEND_URL" ./frontend
+az acr build -r "$ACR" -t "spotprice-backend:$TAG"  -f spotPriceCalc/Dockerfile .
+az acr build -r "$ACR" -t "spotprice-calc:$TAG"     ./calc-service
+az acr build -r "$ACR" -t "spotprice-frontend:$TAG" --build-arg VITE_API_BASE_URL="$BACKEND_URL" ./frontend
 
 echo ">> Rolling out to Container Apps..."
 az containerapp update -g "$RG" -n spotbuddy-backend  --image "$ACR.azurecr.io/spotprice-backend:$TAG"
