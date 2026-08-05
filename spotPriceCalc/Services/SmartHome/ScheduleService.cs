@@ -29,46 +29,69 @@ public class ScheduleService : IScheduleService
         if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out var zone))
             throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
 
-        var nowUtc = DateTimeOffset.UtcNow;
-        var slots = await LoadSlotsAsync(biddingZoneId, nowUtc, ct);
+        var slots = await LoadSlotsAsync(biddingZoneId, request.Date, ct);
 
-        // Union of every task's selected slots — drives the overall relay state and the next toggle.
-        var selectedAll = new HashSet<DateTimeOffset>();
         var taskResults = new List<TaskResult>();
-        var relay = false;
-
         foreach (var task in request.Tasks)
         {
-            var chosen = EvaluateTask(task, slots, request.AvailableFrom, request.Unavailable, nowUtc);
-
-            if (chosen.Any(s => nowUtc >= s.Start && nowUtc < s.End)) relay = true;
-            foreach (var s in chosen) selectedAll.Add(s.Start);
-
+            var chosen = EvaluateTask(task, slots, request.Date, request.Unavailable);
             taskResults.Add(new TaskResult
             {
                 TaskId = task.TaskId,
                 Scheduled = chosen.Count > 0,
-                Hours = chosen.Select(ToHourDto).ToList(),
+                Blocks = MergeIntoBlocks(chosen),
             });
         }
 
         return new ScheduleResponse
         {
             DeviceId = request.DeviceId,
-            BiddingZoneId = biddingZoneId,
             ZoneName = zone.Name,
-            RelayState = relay,
-            NowUtc = nowUtc,
-            NextToggleUtc = NextToggle(slots, selectedAll, nowUtc, relay),
             Tasks = taskResults,
         };
     }
 
-    // Fetch the stored curve as UTC slots over a ±1-day window (a day straddles two UTC dates at the edges).
-    private async Task<List<Slot>> LoadSlotsAsync(int zoneId, DateTimeOffset nowUtc, CancellationToken ct)
+    // Collapse contiguous chosen slots into single blocks so we don't emit every 15-min/hourly slot
+    // separately. Split (non-continuous) selections naturally yield multiple blocks.
+    private static List<ScheduledBlock> MergeIntoBlocks(List<Slot> chosen)
     {
-        var today = DateOnly.FromDateTime(nowUtc.UtcDateTime);
-        var priced = await _prices.GetPricesAsync(zoneId, today.AddDays(-1), today.AddDays(1), ct);
+        var ordered = chosen.OrderBy(s => s.Start).ToList();
+        var blocks = new List<ScheduledBlock>();
+
+        var i = 0;
+        while (i < ordered.Count)
+        {
+            var start = ordered[i].Start;
+            var end = ordered[i].End;
+            var weightedPrice = ordered[i].Price * (decimal)ordered[i].Hours;
+            var hours = ordered[i].Hours;
+
+            var j = i + 1;
+            while (j < ordered.Count && ordered[j].Start == end)
+            {
+                end = ordered[j].End;
+                weightedPrice += ordered[j].Price * (decimal)ordered[j].Hours;
+                hours += ordered[j].Hours;
+                j++;
+            }
+
+            blocks.Add(new ScheduledBlock
+            {
+                StartUtc = start,
+                EndUtc = end,
+                EurPerMwh = hours > 0 ? decimal.Round(weightedPrice / (decimal)hours, 4) : ordered[i].Price,
+            });
+            i = j;
+        }
+
+        return blocks;
+    }
+
+    // Fetch the stored curve as UTC slots over a ±1-day window (the 24h-before-ready_by window can reach
+    // into the previous day).
+    private async Task<List<Slot>> LoadSlotsAsync(int zoneId, DateOnly date, CancellationToken ct)
+    {
+        var priced = await _prices.GetPricesAsync(zoneId, date.AddDays(-1), date.AddDays(1), ct);
 
         return priced.Points
             .Select(p => new Slot(
@@ -82,17 +105,24 @@ public class ScheduleService : IScheduleService
     private static List<Slot> EvaluateTask(
         TaskRequest task,
         List<Slot> slots,
-        DateTimeOffset? availableFrom,
-        UnavailableWindow? unavailable,
-        DateTimeOffset nowUtc)
+        DateOnly date,
+        UnavailableWindow? unavailable)
     {
-        // Deadline is the anchor; the window is the 24h before it (or from available_from), never the past.
-        var anchor = task.ReadyBy ?? nowUtc.AddHours(24);
-        var windowStart = availableFrom ?? anchor.AddHours(-24);
-        var effectiveStart = windowStart > nowUtc ? windowStart : nowUtc;
+        // ready by means 24 horus before otherwise the whole day 
+        DateTimeOffset windowStart, anchor;
+        if (task.ReadyBy is TimeOnly readyBy)
+        {
+            anchor = new DateTimeOffset(date.ToDateTime(readyBy, DateTimeKind.Utc));
+            windowStart = anchor.AddHours(-24);
+        }
+        else
+        {
+            windowStart = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+            anchor = windowStart.AddDays(1);
+        }
 
         var eligible = slots
-            .Where(s => s.Start >= effectiveStart && s.End <= anchor)
+            .Where(s => s.Start >= windowStart && s.End <= anchor)
             .Where(s => !IsExcluded(s, unavailable))
             .OrderBy(s => s.Start)
             .ToList();
@@ -159,24 +189,4 @@ public class ScheduleService : IScheduleService
                 return false;
         return true;
     }
-
-    private static DateTimeOffset? NextToggle(List<Slot> slots, HashSet<DateTimeOffset> selected, DateTimeOffset now, bool currentState)
-    {
-        foreach (var s in slots.Where(s => s.End > now).OrderBy(s => s.Start))
-        {
-            var on = selected.Contains(s.Start);
-            var boundary = on ? s.Start : s.End;
-            if (boundary <= now) continue;
-            if (on != currentState)
-                return on ? s.Start : now < s.Start ? s.Start : boundary;
-        }
-        return null;
-    }
-
-    private static ScheduledHour ToHourDto(Slot s) => new()
-    {
-        StartUtc = s.Start,
-        EndUtc = s.End,
-        EurPerMwh = s.Price,
-    };
 }

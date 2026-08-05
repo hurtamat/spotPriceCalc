@@ -15,9 +15,9 @@ public record ScheduleRequest
     [JsonPropertyName("lon")]
     public decimal Lon { get; init; }
 
-    // Lower bound of the window. Null ⇒ deadline minus 24h.
-    [JsonPropertyName("available_from")]
-    public DateTimeOffset? AvailableFrom { get; init; }
+    // The day to schedule for. The window is this whole day, or the 24h before a task's ready_by.
+    [JsonPropertyName("date")]
+    public required DateOnly Date { get; init; }
 
     // Time-of-day only; may wrap past midnight (from > to).
     [JsonPropertyName("unavailable")]
@@ -45,9 +45,10 @@ public record TaskRequest
     [JsonPropertyName("duration_hours")]
     public double DurationHours { get; init; }
 
-    // The anchor: deadline the task must finish by; the window is the 24h before it. Null ⇒ now + 24h.
+    // Deadline time-of-day (UTC) the task must finish by; the window is the 24h before it on `date`.
+    // Null ⇒ the whole of `date`.
     [JsonPropertyName("ready_by")]
-    public DateTimeOffset? ReadyBy { get; init; }
+    public TimeOnly? ReadyBy { get; init; }
 
     // true ⇒ hours run back-to-back (boiler, washer). false ⇒ split for the cheapest hours (EV charging).
     [JsonPropertyName("continuous_block")]

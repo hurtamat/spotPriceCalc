@@ -2,28 +2,14 @@ using System.Text.Json.Serialization;
 
 namespace spotPriceCalc.Dtos.Schedule;
 
-// Response of POST /api/schedule. Recomputed fresh on every poll (stateless); the device reads RelayState.
+// Response of POST /api/schedule. The device stores the blocks and runs its relay locally.
 public record ScheduleResponse
 {
     [JsonPropertyName("device_id")]
     public required string DeviceId { get; init; }
 
-    [JsonPropertyName("bidding_zone_id")]
-    public required int BiddingZoneId { get; init; }
-
     [JsonPropertyName("zone_name")]
     public required string ZoneName { get; init; }
-
-    // The one actionable field: ON if ANY task is active this instant.
-    [JsonPropertyName("relay_state")]
-    public required bool RelayState { get; init; }
-
-    [JsonPropertyName("now_utc")]
-    public required DateTimeOffset NowUtc { get; init; }
-
-    // Null if the relay stays as-is for the rest of the plan.
-    [JsonPropertyName("next_toggle_utc")]
-    public DateTimeOffset? NextToggleUtc { get; init; }
 
     [JsonPropertyName("tasks")]
     public required IReadOnlyList<TaskResult> Tasks { get; init; }
@@ -38,11 +24,12 @@ public record TaskResult
     [JsonPropertyName("scheduled")]
     public required bool Scheduled { get; init; }
 
-    [JsonPropertyName("hours")]
-    public required IReadOnlyList<ScheduledHour> Hours { get; init; }
+    // Chosen run-time as merged continuous blocks (UTC, sorted).
+    [JsonPropertyName("blocks")]
+    public required IReadOnlyList<ScheduledBlock> Blocks { get; init; }
 }
 
-public record ScheduledHour
+public record ScheduledBlock
 {
     [JsonPropertyName("start_utc")]
     public required DateTimeOffset StartUtc { get; init; }
@@ -50,6 +37,7 @@ public record ScheduledHour
     [JsonPropertyName("end_utc")]
     public required DateTimeOffset EndUtc { get; init; }
 
+    // Duration-weighted average price across the block.
     [JsonPropertyName("eur_per_mwh")]
     public required decimal EurPerMwh { get; init; }
 }
