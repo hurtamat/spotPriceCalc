@@ -2,6 +2,11 @@
 
 How SpotBuddy is containerized and shipped to **Azure Container Apps (ACA)** via **GitHub Actions**.
 
+> **Status:** deployed and live. All three services run on ACA (resource group `spotbuddy-rg`, West Europe),
+> backed by a managed **Postgres Flexible Server**. Images live in `spotbuddyacr` and are pulled with each
+> app's **system-assigned managed identity** (AcrPull). Deploys currently go through **`deploy.sh`** (manual);
+> the GitHub Actions pipeline is blocked on a directory permission — see *Connect GitHub to Azure* below.
+
 ## Coming from GitLab CI — the mental map
 
 | GitLab CI | GitHub Actions (this repo) |
@@ -30,7 +35,8 @@ The big difference: instead of storing a long-lived Azure password, we use **OID
 ## The two pipelines
 
 - **`ci.yml`** — on PRs and non-main branches. Builds the .NET app, lints + builds the frontend, and import-checks the Python service. Pure verification; no Azure access.
-- **`deploy.yml`** — on push to `main` (or manual dispatch). Logs into Azure via OIDC, builds all three images server-side with `az acr build` (tagged with the commit SHA), then rolls each Container App onto the new tag. Rollback = re-run `az containerapp update` with an older SHA tag.
+- **`deploy.yml`** — on push to `main` (or manual dispatch). Logs into Azure via OIDC, builds all three images server-side with `az acr build` (tagged with the commit SHA), then rolls each Container App onto the new tag. Rollback = re-run `az containerapp update` with an older SHA tag. *(Not active yet — see the OIDC prerequisite below.)*
+- **`deploy.sh`** (repo root) — manual fallback that does the same build + rollout by hand. Run from Cloud Shell: `cd ~/spotPriceCalc && git pull && bash deploy.sh`. This is the current deploy path until `deploy.yml` is unblocked.
 
 ---
 
@@ -132,6 +138,14 @@ az containerapp registry set -g $RG -n spotbuddy-frontend --server $ACR_SERVER -
 ---
 
 ## Connect GitHub to Azure (OIDC)
+
+> **Prerequisite — directory permission (the current blocker).** Creating an app registration is a *Microsoft
+> Entra ID (directory)* action, which is a **separate system from Azure RBAC**. Being subscription **Owner /
+> Account admin is not enough** — you also need the **Application Developer** Entra role (or the tenant setting
+> *Users can register applications = Yes*). On a managed tenant (e.g. a Visual Studio Enterprise / MPN
+> subscription) a directory admin must grant this; otherwise `az ad app create` fails with *Insufficient
+> privileges* and the Entra ID portal blade returns 401. The `role assignment` (Contributor on the RG) at the
+> end of this block is RBAC, which Owner can already do — only the app-registration part needs the directory role.
 
 Create an app registration GitHub can log in as, with a **federated credential** scoped to this repo's `main` branch:
 
