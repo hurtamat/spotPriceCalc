@@ -23,6 +23,24 @@ All optimization is server-side — this is the thin client described in
 
 You can also push it over RPC with `Script.PutCode` — see the docs below.
 
+## Planned onboarding: the config wizard (not yet implemented)
+
+Editing the `CONFIG` block by hand is the developer path, not the end-user one. The intended
+onboarding is a **separate frontend screen — a step-by-step wizard** that walks the user through
+their parameters (location/zone, hours needed, ready-by time, continuous vs. split, unavailable
+window, switch/channel) and then **outputs a ready-to-paste `schedule.js` with those values
+pre-filled**. The user just copies it into the device's Scripts UI — no code editing, no manual
+JSON, no on-device settings screen.
+
+This means the values are **baked into the script at generation time**. Changing a setting later =
+re-run the wizard and re-paste (fine for set-and-forget configs; see the discussion in
+[`../../smartHomeIntegration.md`](../../smartHomeIntegration.md)). It also lets us drop the fiddly
+on-device Virtual Component inputs for v1 — only the read-only "charging today/tomorrow" displays
+stay.
+
+> **Status:** decided, **not built yet.** No wizard screen exists; today you still paste and edit
+> `CONFIG` by hand.
+
 ## Documentation
 
 - Scripting tutorial — https://shelly-api-docs.shelly.cloud/gen2/Scripts/Tutorial/
@@ -37,4 +55,9 @@ Request/response shapes mirror the backend DTOs in
 `spotPriceCalc/Dtos/Schedule/`. Keep them in sync:
 
 - `ScheduleRequest.cs` — what we POST.
-- `ScheduleResponse.cs` — what we read (`relay_state` is the one field that matters).
+- `ScheduleResponse.cs` — what we read.
+
+**Single task by design.** The API's `tasks` array can carry several jobs, but a Shelly switches one
+relay, so this client always sends exactly one task (`task_id` 1) and reads `tasks[0]` back. Multi-task
+is left to integrations that drive multiple outputs (e.g. Home Assistant); it is deliberately not
+surfaced in the device's Virtual Components.

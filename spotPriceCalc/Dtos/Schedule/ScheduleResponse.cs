@@ -31,11 +31,12 @@ public record TaskResult
 
 public record ScheduledBlock
 {
+    // UTC DateTime (Kind=Utc) so it serialises as "...Z" with no offset — the device works in that one form.
     [JsonPropertyName("start_utc")]
-    public required DateTimeOffset StartUtc { get; init; }
+    public required DateTime StartUtc { get; init; }
 
     [JsonPropertyName("end_utc")]
-    public required DateTimeOffset EndUtc { get; init; }
+    public required DateTime EndUtc { get; init; }
 
     // Duration-weighted average price across the block.
     [JsonPropertyName("eur_per_mwh")]

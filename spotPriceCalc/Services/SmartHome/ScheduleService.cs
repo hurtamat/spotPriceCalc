@@ -77,8 +77,8 @@ public class ScheduleService : IScheduleService
 
             blocks.Add(new ScheduledBlock
             {
-                StartUtc = start,
-                EndUtc = end,
+                StartUtc = start.UtcDateTime,
+                EndUtc = end.UtcDateTime,
                 EurPerMwh = hours > 0 ? decimal.Round(weightedPrice / (decimal)hours, 4) : ordered[i].Price,
             });
             i = j;

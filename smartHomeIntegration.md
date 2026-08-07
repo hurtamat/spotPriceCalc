@@ -21,6 +21,16 @@ The design goal throughout is a **thin client**: the device should read one bool
 real thinking (price ranking, windowing, exclusions) happens server-side, once, and is reusable across every
 integration (Shelly first, Home Assistant and others later).
 
+### Device onboarding (planned, not built)
+
+The end-user onboarding is a **separate frontend screen — a step-by-step wizard**. It collects the user's
+parameters (location/zone, hours needed, ready-by time, continuous vs. split, unavailable window,
+switch/channel) and then **outputs a ready-to-paste device script with those values pre-filled**; the user
+copies it into the Shelly Scripts UI. No hand-editing of config, no on-device settings screen. Values are
+**baked in at generation time**, so changing a setting later means re-running the wizard and re-pasting —
+acceptable for set-and-forget appliances. Decided, but not implemented yet. See
+[`scripts/shelly/README.md`](./scripts/shelly/README.md).
+
 ---
 
 ## The endpoint
