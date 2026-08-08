@@ -1,42 +1,20 @@
-// spot-price schedule client — Shelly Gen2+ script (mJS)
-//
-// Model: fetch the day's plan ONCE, store it, run the relay locally off the stored plan.
-//   - User settings live in Virtual Components (sliders / toggle) the user edits in the Shelly app.
-//   - Once a day we read those, POST /api/schedule, and store the returned ON-hours in KVS.
-//   - A local tick drives the relay from the stored plan — no per-minute backend calls.
-//   - Two read-only text components show the hours chosen for today and tomorrow.
-//
-// One task only: the /api/schedule API accepts a list of tasks, but a Shelly drives a single relay,
-// so this client always sends exactly one task (task_id 1) and reads back tasks[0]. Multi-task is a
-// backend capability other integrations can use; it is intentionally not exposed here.
-//
-// One time format only. The backend sends plain UTC ISO ("YYYY-MM-DDTHH:MM:SSZ", no offset), and we
-// normalise the device clock into that exact same form (see nowIso). Every time value in this script is
-// then the same fixed-width UTC string, so we compare them with a plain string compare — lexicographic
-// order is chronological order — and never parse dates (which mJS doesn't reliably support). Local time
-// is ignored for now; the hour sliders are UTC hours.
-
 let CONFIG = {
   backendUrl: "https://spotbuddy-backend.yellowsea-e9574071.westeurope.azurecontainerapps.io",
   endpoint: "/api/schedule",
 
-  switchId: 0,           // which Switch component the relay is
+  switchId: 0,
 
-  tickSec: 300,           // how often the local tick re-evaluates the relay
+  tickSec: 300,
   fetchHourUtc: 13,
-
-  // Fallbacks for location
+  
   lat: 50.08,
   lon: 14.44,
   deviceId: "shelly-1",
 };
 
-// KVS keys (persist across reboots).
-let KVS_VC = "sched_vc";      // role -> component key ("number:200", ...)
-let KVS_PLAN = "sched_plan";  // the committed plan for the day
-let KVS_INIT = "sched_init";  // "1" once the virtual components have been created (guards re-creation)
+let KVS_VC = "sched_vc";
+let KVS_PLAN = "sched_plan";
 
-// The Virtual Components we manage, in display order.
 let COMPONENTS = [
   { role: "continuous", type: "boolean",
     config: { name: "Continuous block", default_value: false, meta: { ui: { view: "toggle" } } } },
@@ -58,19 +36,15 @@ let COMPONENTS = [
     config: { name: "Charging tomorrow", default_value: "—", meta: { ui: { view: "label" } } } },
 ];
 
-let VC = {};        // role -> component key, filled by setup
-let PLAN = null;    // in-memory mirror of the stored plan { day, afterPublish, slots: [[startIso,endIso],...] }
-
-// A virtual component key must be the string "type:id" (e.g. "boolean:200") — that's what
-// Shelly.getComponentStatus and our setText slicing expect. Virtual.Add (and older KVS values) may hand
-// back just the numeric id, so normalise everything to "type:id" using the role's declared type.
+let VC = {};
+let PLAN = null;
 function typeForRole(role) {
   for (let i = 0; i < COMPONENTS.length; i++) if (COMPONENTS[i].role === role) return COMPONENTS[i].type;
   return null;
 }
 function normalizeKey(role, raw) {
-  if (typeof raw === "string") return raw;                 // already "boolean:200"
-  if (typeof raw === "number") {                           // 200 -> "boolean:200"
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "number") { 
     let t = typeForRole(role);
     return t ? (t + ":" + raw) : null;
   }
@@ -97,34 +71,31 @@ function createAllComponents(cb) {
   }
   next();
 }
-
-// Create the Virtual Components exactly once
+function anyComponentExists(ids) {
+  for (let i = 0; i < COMPONENTS.length; i++) {
+    let key = ids[COMPONENTS[i].role];
+    if (key && Shelly.getComponentStatus(key)) return true;
+  }
+  return false;
+}
+function createAndStore(done) {
+  createAllComponents(function (newIds) {
+    VC = newIds;
+    Shelly.call("KVS.Set", { key: KVS_VC, value: JSON.stringify(newIds) }, function () { done(); });
+  });
+}
 function loadOrCreateComponents(done) {
-  Shelly.call("KVS.Get", { key: KVS_INIT }, function (res, ec) {
-    let initialized = (ec === 0 && res && res.value === "1");
-
-    if (initialized) {
-      Shelly.call("KVS.Get", { key: KVS_VC }, function (r2, e2) {
-        if (e2 === 0 && r2 && r2.value) {
-          try { VC = normalizeVc(JSON.parse(/** @type {string} */ (r2.value))); } catch (e) { VC = {}; }
-        }
-        done();
-      });
-      return;
+  Shelly.call("KVS.Get", { key: KVS_VC }, function (res, ec) {
+    let ids = null;
+    if (ec === 0 && res && res.value) {
+      try { ids = normalizeVc(JSON.parse(/** @type {string} */ (res.value))); } catch (e) { ids = null; }
     }
-
-    createAllComponents(function (newIds) {
-      VC = newIds;
-      Shelly.call("KVS.Set", { key: KVS_VC, value: JSON.stringify(newIds) }, function () {
-        Shelly.call("KVS.Set", { key: KVS_INIT, value: "1" }, function () { done(); });
-      });
-    });
+    if (ids && anyComponentExists(ids)) { VC = ids; done(); return; }
+    createAndStore(done);
   });
 }
 
-// ---------------------------------------------------------------------------
 // Read the user's settings off the Virtual Components.
-// ---------------------------------------------------------------------------
 function getNum(key, dflt) {
   let s = key ? Shelly.getComponentStatus(key) : null;
   let v = s ? /** @type {*} */ (s).value : null;
@@ -152,16 +123,12 @@ function setText(role, str) {
   Shelly.call("Text.Set", { id: id, value: str }, null);
 }
 
-// ---------------------------------------------------------------------------
 // Build the ScheduleRequest.
-// ---------------------------------------------------------------------------
-function pad2(n) { return (n < 10 ? "0" : "") + n; }                                  // 7 -> "07"
-function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }             // now -> "2026-07-25T23:00:00Z"
-function todayStr() { return nowIso().slice(0, 10); }                                 // now -> "2026-07-25"
-function tomorrowStr() { return new Date(Date.now() + 86400000).toISOString().slice(0, 10); }  // now -> "2026-07-26"
-function nowHourUtc() { return Number(nowIso().slice(11, 13)); }                      // now -> 23
-
-// Next future UTC datetime at the given whole hour, canonical form (today if still ahead, else tomorrow).
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }
+function todayStr() { return nowIso().slice(0, 10); }
+function tomorrowStr() { return new Date(Date.now() + 86400000).toISOString().slice(0, 10); }
+function nowHourUtc() { return Number(nowIso().slice(11, 13)); }
 function nextDeadlineIso(hour) {
   let cand = todayStr() + "T" + pad2(hour) + ":00:00Z";
   if (cand <= nowIso()) cand = tomorrowStr() + "T" + pad2(hour) + ":00:00Z";
@@ -195,9 +162,7 @@ function buildBody(inputs) {
   return body;
 }
 
-// ---------------------------------------------------------------------------
 // Fetch + store the plan.
-// ---------------------------------------------------------------------------
 function fetchPlan() {
   let inputs = readInputs();
   if (inputs.hours <= 0) { print("hours needed = 0 — nothing to schedule"); return; }
@@ -232,10 +197,7 @@ function onPlan(resp) {
   print("plan stored: " + slots.length + " on-slot(s), zone=" + (resp.zone_name || "?"));
 }
 
-// ---------------------------------------------------------------------------
 // Drive the relay + displays from the stored plan.
-// ---------------------------------------------------------------------------
-// Both bounds and "now" are the same canonical UTC string, so a plain string compare is chronological.
 function isNowWithin(slot) {
   let now = nowIso();
   return slot[0] <= now && now < slot[1];
@@ -270,9 +232,7 @@ function updateDisplays() {
   setText("tomorrow", formatDay(tomorrowStr()));
 }
 
-// ---------------------------------------------------------------------------
 // Daily fetch decision + tick.
-// ---------------------------------------------------------------------------
 function maybeDailyFetch() {
   let today = todayStr();
   let hourUtc = nowHourUtc();
@@ -289,9 +249,7 @@ function tick() {
   applyRelay();
 }
 
-// ---------------------------------------------------------------------------
 // Boot: ensure components, load the stored plan, then run.
-// ---------------------------------------------------------------------------
 print("spot-price scheduler starting");
 loadOrCreateComponents(function () {
   Shelly.call("KVS.Get", { key: KVS_PLAN }, function (res, ec) {
