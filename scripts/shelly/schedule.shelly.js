@@ -6,7 +6,7 @@ let CONFIG = {
 
   tickSec: 300,
   fetchHourUtc: 13,
-  
+
   lat: 50.08,
   lon: 14.44,
   deviceId: "shelly-1",
@@ -15,39 +15,39 @@ let CONFIG = {
 let KVS_VC = "sched_vc";
 let KVS_PLAN = "sched_plan";
 
-let COMPONENTS = [
-  { role: "continuous", type: "boolean",
-    config: { name: "Continuous block", default_value: false, meta: { ui: { view: "toggle" } } } },
-  { role: "hours", type: "number",
-    config: { name: "Hours needed", default_value: 3, min: 0, max: 24,
-              meta: { ui: { view: "slider", unit: "h", step: 1 } } } },
-  { role: "deadline", type: "number",
-    config: { name: "Charged by (hour UTC)", default_value: 6, min: 0, max: 23,
-              meta: { ui: { view: "slider", unit: "h", step: 1 } } } },
-  { role: "unavailFrom", type: "number",
-    config: { name: "Unavailable from (hour UTC)", default_value: 0, min: 0, max: 23,
-              meta: { ui: { view: "slider", unit: "h", step: 1 } } } },
-  { role: "unavailTo", type: "number",
-    config: { name: "Unavailable to (hour UTC)", default_value: 0, min: 0, max: 23,
-              meta: { ui: { view: "slider", unit: "h", step: 1 } } } },
-  { role: "today", type: "text",
-    config: { name: "Charging today", default_value: "—", meta: { ui: { view: "label" } } } },
-  { role: "tomorrow", type: "text",
-    config: { name: "Charging tomorrow", default_value: "—", meta: { ui: { view: "label" } } } },
+let ROLES = [
+  ["continuous", "boolean"],
+  ["hours", "number"],
+  ["deadline", "number"],
+  ["unavailFrom", "number"],
+  ["unavailTo", "number"],
+  ["today", "text"],
+  ["tomorrow", "text"],
 ];
 
 let VC = {};
 let PLAN = null;
+
 function typeForRole(role) {
-  for (let i = 0; i < COMPONENTS.length; i++) if (COMPONENTS[i].role === role) return COMPONENTS[i].type;
+  for (let i = 0; i < ROLES.length; i++) if (ROLES[i][0] === role) return ROLES[i][1];
   return null;
 }
+
+// Built on demand only during creation, so these strings/objects aren't held in RAM the rest of the time.
+function configFor(role) {
+  if (role === "continuous")  return { name: "Continuous block", default_value: false, meta: { ui: { view: "toggle" } } };
+  if (role === "hours")       return { name: "Hours needed", default_value: 3, min: 0, max: 24, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "deadline")    return { name: "Charged by (hour UTC)", default_value: 6, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "unavailFrom") return { name: "Unavailable from (hour UTC)", default_value: 0, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "unavailTo")   return { name: "Unavailable to (hour UTC)", default_value: 0, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "today")       return { name: "Charging today", default_value: "—", meta: { ui: { view: "label" } } };
+  if (role === "tomorrow")    return { name: "Charging tomorrow", default_value: "—", meta: { ui: { view: "label" } } };
+  return null;
+}
+
 function normalizeKey(role, raw) {
   if (typeof raw === "string") return raw;
-  if (typeof raw === "number") { 
-    let t = typeForRole(role);
-    return t ? (t + ":" + raw) : null;
-  }
+  if (typeof raw === "number") { let t = typeForRole(role); return t ? (t + ":" + raw) : null; }
   return null;
 }
 function normalizeVc(map) {
@@ -60,11 +60,11 @@ function createAllComponents(cb) {
   let ids = {};
   let i = 0;
   function next() {
-    if (i >= COMPONENTS.length) { cb(ids); return; }
-    let spec = COMPONENTS[i];
-    Shelly.call("Virtual.Add", /** @type {*} */ ({ type: spec.type, config: spec.config }), function (res, ec, em) {
-      if (ec !== 0) print("Virtual.Add failed for " + spec.role + ": " + em);
-      else ids[spec.role] = normalizeKey(spec.role, res.id);
+    if (i >= ROLES.length) { cb(ids); return; }
+    let role = ROLES[i][0];
+    Shelly.call("Virtual.Add", /** @type {*} */ ({ type: ROLES[i][1], config: configFor(role) }), function (res, ec, em) {
+      if (ec !== 0) print("Virtual.Add failed for " + role + ": " + em);
+      else ids[role] = normalizeKey(role, res.id);
       i++;
       next();
     });
@@ -72,8 +72,8 @@ function createAllComponents(cb) {
   next();
 }
 function anyComponentExists(ids) {
-  for (let i = 0; i < COMPONENTS.length; i++) {
-    let key = ids[COMPONENTS[i].role];
+  for (let i = 0; i < ROLES.length; i++) {
+    let key = ids[ROLES[i][0]];
     if (key && Shelly.getComponentStatus(key)) return true;
   }
   return false;
@@ -95,7 +95,6 @@ function loadOrCreateComponents(done) {
   });
 }
 
-// Read the user's settings off the Virtual Components.
 function getNum(key, dflt) {
   let s = key ? Shelly.getComponentStatus(key) : null;
   let v = s ? /** @type {*} */ (s).value : null;
@@ -123,12 +122,12 @@ function setText(role, str) {
   Shelly.call("Text.Set", { id: id, value: str }, null);
 }
 
-// Build the ScheduleRequest.
 function pad2(n) { return (n < 10 ? "0" : "") + n; }
 function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }
 function todayStr() { return nowIso().slice(0, 10); }
 function tomorrowStr() { return new Date(Date.now() + 86400000).toISOString().slice(0, 10); }
 function nowHourUtc() { return Number(nowIso().slice(11, 13)); }
+// Next future deadline as canonical UTC ISO (today if the hour is still ahead, else tomorrow).
 function nextDeadlineIso(hour) {
   let cand = todayStr() + "T" + pad2(hour) + ":00:00Z";
   if (cand <= nowIso()) cand = tomorrowStr() + "T" + pad2(hour) + ":00:00Z";
@@ -144,14 +143,17 @@ function deviceLocation() {
 function buildBody(inputs) {
   let info = Shelly.getDeviceInfo();
   let loc = deviceLocation();
+  // Backend wants date (the deadline's day) + ready_by as time-of-day. Derive both from one deadline.
+  let dl = nextDeadlineIso(inputs.deadline);   // e.g. "2026-08-09T06:00:00Z"
   let body = {
     device_id: info ? info.id : CONFIG.deviceId,
     lat: loc ? loc.lat : CONFIG.lat,
     lon: loc ? loc.lon : CONFIG.lon,
+    date: dl.slice(0, 10),
     tasks: [{
       task_id: 1,
       duration_hours: inputs.hours,
-      ready_by: nextDeadlineIso(inputs.deadline),
+      ready_by: dl.slice(11, 19),
       continuous_block: inputs.continuous,
     }],
   };
@@ -162,7 +164,6 @@ function buildBody(inputs) {
   return body;
 }
 
-// Fetch + store the plan.
 function fetchPlan() {
   let inputs = readInputs();
   if (inputs.hours <= 0) { print("hours needed = 0 — nothing to schedule"); return; }
@@ -182,7 +183,6 @@ function fetchPlan() {
 }
 
 function onPlan(resp) {
-  // Single task: read its blocks directly (backend returns them sorted by time, as canonical UTC ISO).
   let task = (resp.tasks && resp.tasks.length > 0) ? resp.tasks[0] : null;
   let slots = [];
   if (task && task.blocks) {
@@ -194,10 +194,9 @@ function onPlan(resp) {
 
   updateDisplays();
   applyRelay();
-  print("plan stored: " + slots.length + " on-slot(s), zone=" + (resp.zone_name || "?"));
+  print("plan stored: " + slots.length + " on-slot(s)");
 }
 
-// Drive the relay + displays from the stored plan.
 function isNowWithin(slot) {
   let now = nowIso();
   return slot[0] <= now && now < slot[1];
@@ -232,7 +231,6 @@ function updateDisplays() {
   setText("tomorrow", formatDay(tomorrowStr()));
 }
 
-// Daily fetch decision + tick.
 function maybeDailyFetch() {
   let today = todayStr();
   let hourUtc = nowHourUtc();
