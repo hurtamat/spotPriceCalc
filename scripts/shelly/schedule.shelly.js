@@ -61,15 +61,36 @@ let COMPONENTS = [
 let VC = {};        // role -> component key, filled by setup
 let PLAN = null;    // in-memory mirror of the stored plan { day, afterPublish, slots: [[startIso,endIso],...] }
 
+// A virtual component key must be the string "type:id" (e.g. "boolean:200") — that's what
+// Shelly.getComponentStatus and our setText slicing expect. Virtual.Add (and older KVS values) may hand
+// back just the numeric id, so normalise everything to "type:id" using the role's declared type.
+function typeForRole(role) {
+  for (let i = 0; i < COMPONENTS.length; i++) if (COMPONENTS[i].role === role) return COMPONENTS[i].type;
+  return null;
+}
+function normalizeKey(role, raw) {
+  if (typeof raw === "string") return raw;                 // already "boolean:200"
+  if (typeof raw === "number") {                           // 200 -> "boolean:200"
+    let t = typeForRole(role);
+    return t ? (t + ":" + raw) : null;
+  }
+  return null;
+}
+function normalizeVc(map) {
+  let out = {};
+  for (let role in map) out[role] = normalizeKey(role, map[role]);
+  return out;
+}
+
 function createAllComponents(cb) {
   let ids = {};
   let i = 0;
   function next() {
     if (i >= COMPONENTS.length) { cb(ids); return; }
     let spec = COMPONENTS[i];
-    Shelly.call("Virtual.Add", { type: spec.type, config: spec.config }, function (res, ec, em) {
+    Shelly.call("Virtual.Add", /** @type {*} */ ({ type: spec.type, config: spec.config }), function (res, ec, em) {
       if (ec !== 0) print("Virtual.Add failed for " + spec.role + ": " + em);
-      else ids[spec.role] = res.id;
+      else ids[spec.role] = normalizeKey(spec.role, res.id);
       i++;
       next();
     });
@@ -85,7 +106,7 @@ function loadOrCreateComponents(done) {
     if (initialized) {
       Shelly.call("KVS.Get", { key: KVS_VC }, function (r2, e2) {
         if (e2 === 0 && r2 && r2.value) {
-          try { VC = JSON.parse(r2.value); } catch (e) { VC = {}; }
+          try { VC = normalizeVc(JSON.parse(/** @type {string} */ (r2.value))); } catch (e) { VC = {}; }
         }
         done();
       });
@@ -106,11 +127,13 @@ function loadOrCreateComponents(done) {
 // ---------------------------------------------------------------------------
 function getNum(key, dflt) {
   let s = key ? Shelly.getComponentStatus(key) : null;
-  return (s && typeof s.value === "number") ? s.value : dflt;
+  let v = s ? /** @type {*} */ (s).value : null;
+  return (typeof v === "number") ? v : dflt;
 }
 function getBool(key, dflt) {
   let s = key ? Shelly.getComponentStatus(key) : null;
-  return (s && typeof s.value === "boolean") ? s.value : dflt;
+  let v = s ? /** @type {*} */ (s).value : null;
+  return (typeof v === "boolean") ? v : dflt;
 }
 function readInputs() {
   return {
@@ -273,7 +296,7 @@ print("spot-price scheduler starting");
 loadOrCreateComponents(function () {
   Shelly.call("KVS.Get", { key: KVS_PLAN }, function (res, ec) {
     if (ec === 0 && res && res.value) {
-      try { PLAN = JSON.parse(res.value); } catch (e) { PLAN = null; }
+      try { PLAN = JSON.parse(/** @type {string} */ (res.value)); } catch (e) { PLAN = null; }
     }
     applyRelay();
     maybeDailyFetch();
