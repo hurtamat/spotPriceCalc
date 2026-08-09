@@ -25,4 +25,13 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
         var response = await BuildScheduleAsync(request, ct);
         return Ok(response);
     }
+
+    [HttpGet("status")]
+    public async Task<IActionResult> Status([FromQuery] decimal lat, decimal lon, DateTime time, CancellationToken ct)
+    {
+        var response = await _schedule.ResolveStatus(
+            new StatusSchedule { Lat = lat, Lon = lon, StatusTime = time }, ct);
+
+        return Ok(response);
+    }
 }

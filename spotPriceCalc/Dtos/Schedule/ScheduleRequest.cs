@@ -7,8 +7,7 @@ public record ScheduleRequest
 {
     [JsonPropertyName("device_id")]
     public required string DeviceId { get; init; }
-
-    // Resolved to a bidding zone server-side.
+    
     [JsonPropertyName("lat")]
     public decimal Lat { get; init; }
 

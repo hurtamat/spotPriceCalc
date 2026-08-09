@@ -27,14 +27,20 @@ public class SpotPriceService : ISpotPriceService
         _logger = logger;
     }
 
+    // Day range: translate each DateOnly to the zone's UTC delivery window and query.
     public Task<ZoneSpotPrices> GetPricesAsync(int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct)
     {
-        // Interpret [from, to] as the zone's local delivery days and resolve to one UTC window:
-        // from's local 00:00 to (to+1)'s local 00:00. The repo then does a pure range query.
         var zone = BiddingZoneSeedData.ById[biddingZoneId];
         var fromUtc = zone.DeliveryDayWindowUtc(from).FromUtc;
         var toUtc = zone.DeliveryDayWindowUtc(to).ToUtcExclusive;
         return _repository.GetAsync(biddingZoneId, fromUtc, toUtc, ct);
+    }
+
+    // Query by instant: resolve to the day containing it and reuse the day-range bounds logic above.
+    public Task<ZoneSpotPrices> GetPricesAsync(int biddingZoneId, DateTime instant, CancellationToken ct)
+    {
+        var day = DateOnly.FromDateTime(instant);
+        return GetPricesAsync(biddingZoneId, day, day, ct);
     }
 
     public async Task<PopulateResult> PopulateUntilCompleteAsync(DateOnly date, CancellationToken ct)

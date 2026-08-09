@@ -1,3 +1,4 @@
+using spotPriceCalc.Dtos;
 using spotPriceCalc.Dtos.Schedule;
 
 namespace spotPriceCalc.Services.SmartHome;
@@ -7,4 +8,6 @@ namespace spotPriceCalc.Services.SmartHome;
 public interface IScheduleService
 {
     Task<ScheduleResponse> BuildAsync(ScheduleRequest request, CancellationToken ct);
+    
+    Task<PriceColor> ResolveStatus(StatusSchedule request,  CancellationToken ct);
 }

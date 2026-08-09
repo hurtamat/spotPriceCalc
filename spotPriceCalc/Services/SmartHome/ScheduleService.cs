@@ -1,3 +1,4 @@
+using spotPriceCalc.Dtos;
 using spotPriceCalc.Dtos.Schedule;
 using spotPriceCalc.Infrastructure.Persistence;
 
@@ -17,8 +18,8 @@ public class ScheduleService : IScheduleService
         _zoneLocator = zoneLocator;
         _logger = logger;
     }
-
-    private record Slot(DateTimeOffset Start, DateTimeOffset End, decimal Price)
+    
+    private record Slot(DateTime Start, DateTime End, decimal Price)
     {
         public double Hours => (End - Start).TotalHours;
     }
@@ -51,6 +52,19 @@ public class ScheduleService : IScheduleService
         };
     }
 
+    public async Task<PriceColor> ResolveStatus(StatusSchedule request, CancellationToken ct)
+    {
+        var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
+        if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
+            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
+
+        var prices = await _prices.GetPricesAsync(biddingZoneId, request.StatusTime, ct);
+
+        // TODO: classify the price at request.StatusTime into Green/Yellow/Red (e.g. relative to the day's
+        // cheap/expensive thresholds). Hardcoded to the middle colour until that logic lands.
+        return PriceColor.Yellow;
+    }
+
     // Collapse contiguous chosen slots into single blocks so we don't emit every 15-min/hourly slot
     // separately. Split (non-continuous) selections naturally yield multiple blocks.
     private static List<ScheduledBlock> MergeIntoBlocks(List<Slot> chosen)
@@ -77,8 +91,8 @@ public class ScheduleService : IScheduleService
 
             blocks.Add(new ScheduledBlock
             {
-                StartUtc = start.UtcDateTime,
-                EndUtc = end.UtcDateTime,
+                StartUtc = start,
+                EndUtc = end,
                 EurPerMwh = hours > 0 ? decimal.Round(weightedPrice / (decimal)hours, 4) : ordered[i].Price,
             });
             i = j;
@@ -95,8 +109,8 @@ public class ScheduleService : IScheduleService
 
         return priced.Points
             .Select(p => new Slot(
-                new DateTimeOffset(DateTime.SpecifyKind(p.From, DateTimeKind.Utc)),
-                new DateTimeOffset(DateTime.SpecifyKind(p.To, DateTimeKind.Utc)),
+                DateTime.SpecifyKind(p.From, DateTimeKind.Utc),
+                DateTime.SpecifyKind(p.To, DateTimeKind.Utc),
                 p.Price))
             .OrderBy(s => s.Start)
             .ToList();
@@ -109,15 +123,15 @@ public class ScheduleService : IScheduleService
         UnavailableWindow? unavailable)
     {
         // ready by means 24 horus before otherwise the whole day 
-        DateTimeOffset windowStart, anchor;
+        DateTime windowStart, anchor;
         if (task.ReadyBy is TimeOnly readyBy)
         {
-            anchor = new DateTimeOffset(date.ToDateTime(readyBy, DateTimeKind.Utc));
+            anchor = date.ToDateTime(readyBy, DateTimeKind.Utc);
             windowStart = anchor.AddHours(-24);
         }
         else
         {
-            windowStart = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+            windowStart = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             anchor = windowStart.AddDays(1);
         }
 
@@ -176,7 +190,7 @@ public class ScheduleService : IScheduleService
     private static bool IsExcluded(Slot s, UnavailableWindow? window)
     {
         if (window is null) return false;
-        var t = TimeOnly.FromDateTime(s.Start.UtcDateTime);
+        var t = TimeOnly.FromDateTime(s.Start);
         return window.From <= window.To
             ? t >= window.From && t < window.To          // same-day range
             : t >= window.From || t < window.To;          // wraps past midnight
