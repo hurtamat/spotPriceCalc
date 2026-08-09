@@ -4,12 +4,10 @@ let COLOR_CONFIG = {
   backendUrl: "https://spotbuddy-backend.yellowsea-e9574071.westeurope.azurecontainerapps.io",
   endpoint: "/api/schedule/status",
   timeoutSec: 15,
-  lat: 50.08,   // fallback if the device has no configured location
+  fetchSec: 300,
+  lat: 50.08,   // location fallback
   lon: 14.44,
 };
-
-let KVS_SCHED = "pc_sched_id";
-let CRON = "0 1,16,31,46 * * * *";   // :01/:16/:31/:46 every hour
 
 function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }
 
@@ -19,19 +17,40 @@ function deviceLocation() {
   return null;
 }
 
-// Enum comes back as a number (0=Green,1=Yellow,2=Red); tolerate strings too.
-function parseColor(body) {
+// 0=green, 1=yellow, 2=red.
+function parseCode(body) {
   let v;
   try { v = JSON.parse(/** @type {string} */ (body)); } catch (e) { return null; }
-  if (v === 0 || v === "Green")  return "green";
-  if (v === 1 || v === "Yellow") return "yellow";
-  if (v === 2 || v === "Red")    return "red";
+  return (v === 0 || v === 1 || v === 2) ? v : null;
+}
+
+// Plug S Gen3 LED ring via PLUGS_UI (rgb 0–100). Both on/off states set the same colour so it shows
+// regardless of relay state.
+function rgbFor(code) {
+  if (code === 0) return [0, 100, 0];    // green
+  if (code === 1) return [100, 55, 0];   // yellow/amber — green pulled down so it isn't greenish
+  if (code === 2) return [100, 0, 0];    // red
   return null;
 }
 
-// TODO: wire to the actual LED per device.
-function setColor(color) { print("TODO setColor -> " + color); }
-function clearColor() { print("TODO clearColor"); }
+function setLeds(rgb, brightness) {
+  let colors = { "switch:0": {
+    on:  { rgb: rgb, brightness: brightness },
+    off: { rgb: rgb, brightness: brightness },
+  } };
+  Shelly.call("PLUGS_UI.SetConfig", /** @type {*} */ ({ config: { leds: { mode: "switch", colors: colors } } }),
+    function (r, ec, em) { if (ec !== 0) print("PLUGS_UI.SetConfig failed: " + em); });
+}
+
+function setColor(code) {
+  let rgb = rgbFor(code);
+  if (rgb === null) { clearColor(); return; }
+  setLeds(rgb, 100);
+}
+
+function clearColor() {
+  setLeds([0, 0, 0], 0);
+}
 
 function fetchColor() {
   let loc = deviceLocation();
@@ -40,39 +59,17 @@ function fetchColor() {
     "&lon=" + (loc ? loc.lon : COLOR_CONFIG.lon) +
     "&time=" + nowIso();
 
+  print("fetching colour @ " + nowIso());
   Shelly.call("HTTP.GET", /** @type {*} */ ({ url: url, timeout: COLOR_CONFIG.timeoutSec }), function (res, ec, em) {
     if (ec !== 0) { print("status GET failed: " + em); clearColor(); return; }
     if (res.code !== 200) { print("status HTTP " + res.code); clearColor(); return; }
-    let color = parseColor(res.body);
-    if (color === null) { print("bad colour body: " + res.body); clearColor(); return; }
-    print("price colour: " + color);
-    setColor(color);
-  });
-}
-
-// One Schedule job that evals fetchColor() in this script; delete any previous one first so we never duplicate.
-function ensureSchedule(done) {
-  let sid = Shelly.getCurrentScriptId();
-
-  function create() {
-    Shelly.call("Schedule.Create", /** @type {*} */ ({
-      enable: true,
-      timespec: CRON,
-      calls: [{ method: "Script.Eval", params: { id: sid, code: "fetchColor()" } }],
-    }), function (cr, cec, cem) {
-      if (cec !== 0) { print("Schedule.Create failed: " + cem); done(); return; }
-      Shelly.call("KVS.Set", { key: KVS_SCHED, value: JSON.stringify(cr.id) }, function () { done(); });
-    });
-  }
-
-  Shelly.call("KVS.Get", { key: KVS_SCHED }, function (r, ec) {
-    let oldId = (ec === 0 && r && r.value) ? Number(r.value) : null;
-    if (oldId !== null) Shelly.call("Schedule.Delete", { id: oldId }, function () { create(); });
-    else create();
+    let code = parseCode(res.body);
+    if (code === null) { print("bad colour body: " + res.body); clearColor(); return; }
+    print("price colour code: " + code);
+    setColor(code);
   });
 }
 
 print("price-color starting");
-ensureSchedule(function () {
-  fetchColor();
-});
+fetchColor();
+Timer.set(COLOR_CONFIG.fetchSec * 1000, true, fetchColor);
