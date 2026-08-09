@@ -62,8 +62,8 @@ export const ZONE_BY_MAPKEY: Record<string, Zone> = {
   XK: { id: 46, name: 'Kosovo' },
   MK: { id: 47, name: 'North Macedonia' },
   RS: { id: 48, name: 'Serbia' },
+  // The IE polygon covers the whole island (Republic + Northern Ireland) — one all-island SEM zone.
   IE: { id: 49, name: 'Ireland (SEM)' },
-  'GB-NIR': { id: 49, name: 'Ireland (SEM)' }, // Northern Ireland is part of the all-island SEM
 };
 
 /** Reverse lookup: zone id → zone. */
