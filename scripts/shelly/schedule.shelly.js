@@ -247,6 +247,26 @@ function tick() {
   applyRelay();
 }
 
+// Refetch when the user edits a setting. Only the input components count (not our own today/tomorrow
+// writes, which would loop). Debounced: a slider drag emits a burst of changes, and each fetch is an
+// HTTPS POST (memory-heavy), so we wait until the changes settle, then fetch once and overwrite the plan.
+let INPUT_ROLES = ["continuous", "hours", "deadline", "unavailFrom", "unavailTo"];
+let refetchTimer = null;
+
+function isInputComponent(comp) {
+  for (let i = 0; i < INPUT_ROLES.length; i++) if (VC[INPUT_ROLES[i]] === comp) return true;
+  return false;
+}
+
+function scheduleRefetch() {
+  if (refetchTimer !== null) Timer.clear(refetchTimer);
+  refetchTimer = Timer.set(3000, false, function () {
+    refetchTimer = null;
+    print("inputs changed — refetching");
+    fetchPlan();   // onPlan overwrites PLAN + sched_plan
+  });
+}
+
 // Boot: ensure components, load the stored plan, then run.
 print("spot-price scheduler starting");
 loadOrCreateComponents(function () {
@@ -257,5 +277,8 @@ loadOrCreateComponents(function () {
     applyRelay();
     maybeDailyFetch();
     Timer.set(CONFIG.tickSec * 1000, true, tick);
+    Shelly.addStatusHandler(function (e) {
+      if (e && e.component && isInputComponent(e.component)) scheduleRefetch();
+    });
   });
 });
