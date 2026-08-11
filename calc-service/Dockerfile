@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Application code.
-COPY main.py .
+COPY main.py wire.py price_zones.py ./
 
 # Run as a non-root user.
 RUN useradd --system --uid 10001 appuser

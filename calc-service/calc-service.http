@@ -5,6 +5,17 @@
 GET {{host}}/
 Accept: application/json
 
+### Price zones — bare list of prices in, two cut-off prices out. Same route for 7 days or a year.
+POST {{host}}/price-zones
+Content-Type: application/json
+Accept: application/json
+
+[
+  155.26, 148.90, 132.00, 121.44, 118.02, 110.35, 104.88, 99.10,
+  95.42, 91.07, 88.63, 84.29, 80.15, 76.88, 71.20, 66.05,
+  62.40, 58.77, 54.13, 49.90, 45.62, 38.04, 22.51, -3.18
+]
+
 ### Schedule — REAL Slovakia data, 2026-07-24 (full 15-min day). Payload from the DB.
 POST {{host}}/schedule
 Content-Type: application/json

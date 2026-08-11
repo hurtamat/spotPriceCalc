@@ -33,6 +33,32 @@ public class SpotPricesController : ControllerBase
         return Ok(ZoneSpotPricesDto.From(prices, zone.TimeZoneId));
     }
 
+    /// <summary>GET /api/spotprices/zones?biddingZoneId=6&amp;from=2026-08-04&amp;to=2026-08-10 — the two cut-off
+    /// prices (EUR/MWh) splitting the range into cheap/medium/expensive. Same call for 7 days or a year.</summary>
+    [HttpGet("zones")]
+    public async Task<IActionResult> GetZones(
+        [FromQuery] int biddingZoneId,
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        CancellationToken ct = default)
+    {
+        if (!BiddingZoneSeedData.ById.ContainsKey(biddingZoneId))
+            return NotFound($"Unknown bidding zone id {biddingZoneId}.");
+
+        if (to < from)
+            return BadRequest("'to' must not be earlier than 'from'.");
+
+        try
+        {
+            return Ok(await _service.GetPriceZonesAsync(biddingZoneId, from, to, ct));
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Not enough stored prices in the range — a state problem, not a bad request.
+            return Conflict(ex.Message);
+        }
+    }
+
     /// <summary>POST /api/spotprices/populate?date=2026-07-25 — fetches and stores prices for ALL zones for
     /// the given date (defaults to today, UTC), retrying until every zone is in. Manual trigger; the
     /// in-process scheduler calls the same service method daily.</summary>

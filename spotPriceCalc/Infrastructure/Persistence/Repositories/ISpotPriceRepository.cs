@@ -8,6 +8,10 @@ public interface ISpotPriceRepository
 {
     Task<ZoneSpotPrices> GetAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
 
+    // Prices only, for statistics where the timestamps carry no information. Projected in SQL.
+    Task<IReadOnlyList<decimal>> GetPriceValuesAsync(
+        int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
+
     // True if the window holds at least MinSlotsForDay slots — a count threshold so a partial day self-heals.
     Task<bool> HasDayAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
 

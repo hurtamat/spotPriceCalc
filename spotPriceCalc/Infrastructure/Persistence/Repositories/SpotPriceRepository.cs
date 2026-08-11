@@ -21,6 +21,16 @@ public class SpotPriceRepository : ISpotPriceRepository
         return new ZoneSpotPrices { BiddingZoneId = biddingZoneId, Points = points };
     }
 
+    public async Task<IReadOnlyList<decimal>> GetPriceValuesAsync(
+        int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct)
+    {
+        return await _db.SpotPrices
+            .Where(p => p.BiddingZoneId == biddingZoneId && p.From >= fromUtc && p.From < toUtcExclusive)
+            .OrderBy(p => p.From)
+            .Select(p => p.Price)
+            .ToListAsync(ct);
+    }
+
     // Minimum stored slots for a day to count as populated. Below both a full hourly day (24) and a full
     // 15-minute day (96), but above the handful a wrong/edge window could contain — so a genuinely missing
     // day is never mistaken for present.

@@ -27,4 +27,12 @@ Accept: application/json
 GET {{spotPriceCalc_HostAddress}}/api/spotprices?biddingZoneId={{biddingZoneId}}&date=2026-07-20
 Accept: application/json
 
+### Price zones (green/yellow/red thresholds) over 7 days — needs the calc-service running on :8000
+GET {{spotPriceCalc_HostAddress}}/api/spotprices/zones?biddingZoneId={{biddingZoneId}}&from=2026-08-04&to=2026-08-10
+Accept: application/json
+
+### Price zones over a year
+GET {{spotPriceCalc_HostAddress}}/api/spotprices/zones?biddingZoneId={{biddingZoneId}}&from=2025-08-11&to=2026-08-10
+Accept: application/json
+
 ###

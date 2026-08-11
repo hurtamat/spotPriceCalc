@@ -34,6 +34,11 @@ builder.Services.AddHttpClient<ISpotPriceProvider, EntsoeSpotPriceClient>(c =>
 builder.Services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherClient>(c =>
     c.BaseAddress = new Uri(builder.Configuration["OpenMeteo:BaseUrl"]));
 
+// Trailing slash on the base URL matters — without it "price-zones" replaces the last path segment.
+builder.Services.AddHttpClient<IPriceZoneProvider, CalcServicePriceZoneClient>(c =>
+    c.BaseAddress = new Uri(builder.Configuration["CalcService:BaseUrl"]
+                            ?? throw new InvalidOperationException("CalcService:BaseUrl is not configured.")));
+
 builder.Services.AddScoped<ISpotPriceRepository, SpotPriceRepository>();
 builder.Services.AddScoped<IWeatherRepository, WeatherRepository>();
 

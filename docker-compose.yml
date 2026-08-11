@@ -27,6 +27,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      calc-service:
+        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # Overrides ConnectionStrings:Postgres from appsettings — talks to the db container over the
@@ -34,6 +36,8 @@ services:
       ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=spotprice;Username=spotprice;Password=spotprice123!"
       # Allow the compose frontend origin (host port 3000 below) to call the API.
       Cors__AllowedOrigins__0: "http://localhost:3000"
+      # Reaches the Python service over the compose network, not the host mapping appsettings uses.
+      CalcService__BaseUrl: "http://calc-service:8000/"
     ports:
       - "8080:8080"
 

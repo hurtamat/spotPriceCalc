@@ -2,15 +2,15 @@ from datetime import date, datetime
 
 import pandas as pd
 from fastapi import FastAPI
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import Field
+
+import price_zones
+from wire import WireModel as _WireModel
 
 app = FastAPI()
 
-
-class _WireModel(BaseModel):
-    """Base: snake_case in Python, camelCase on the wire, accepts both."""
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+# Cheap/medium/expensive thresholds over a bare price list (7 days, a year — same route).
+app.include_router(price_zones.router)
 
 
 class PricePoint(_WireModel):

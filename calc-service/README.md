@@ -53,6 +53,55 @@ price points are parsed, but the response shape (on/off windows + cost/saving
 estimates) is not defined yet. That's the part to build. A `200` with `{}` means
 the contract works end-to-end and your input parsed correctly.
 
+## `POST /price-zones` — cheap / medium / expensive cut-offs
+
+Lives in **`price_zones.py`** (`main.py` only mounts the router). Shared Pydantic
+base config is in `wire.py`.
+
+> **Status: contract done, maths is a stub.** The handler parses the prices into a
+> `pandas.Series` and then returns **placeholder numbers**. A `200` means your input
+> parsed and the contract works end-to-end — it does *not* mean the thresholds are
+> real. Implementing the quantiles is the open task; the `price_zones()` docstring
+> has the pandas calls to write.
+
+Quantiles are order-independent, so the body is a **bare JSON array of prices** —
+no timestamps, no resolution, no metadata. One route serves both cases: send
+7 days of values for short-term colours, or a year for long-term context. Only
+the length of the list changes.
+
+```json
+[155.26, 148.9, 132.0, 121.44, 118.02, 110.35, 104.88, 99.1]
+```
+
+Back come the two **cut-off prices** in EUR/MWh:
+
+```json
+{ "lowerQuantile": 62.04, "upperQuantile": 99.68 }
+```
+
+Below `lowerQuantile` is cheap (green), above `upperQuantile` is expensive (red),
+between them is medium (yellow). With those two numbers the caller colours any
+slot locally, including tomorrow's prices that were never in the sample.
+
+- **These are prices, not the 0..1 fractions.** Where the cut-offs sit in the
+  distribution is fixed in `LOWER_QUANTILE` / `UPPER_QUANTILE` (0.3 / 0.7) — a
+  product decision, deliberately not a request parameter.
+- **Negative prices are fine** — normal in Central European zones, and quantiles
+  handle them without special-casing.
+- The .NET side refuses ranges with fewer than 12 stored prices
+  (`SpotPriceService.MinZoneSamples`) — quantiles over a near-empty sample are noise.
+
+**Caveat — equal slot durations.** Quantiles are unweighted, so every value counts
+once regardless of how long its slot lasted. Correct within one zone at one
+resolution, but a range straddling a PT60M→PT15M switchover would weight an hour
+the same as 15 minutes. The .NET side sends a single zone/range, which holds
+today; revisit if you ever backfill across a resolution change.
+
+**Caveat — a year is not one distribution.** January and July have genuinely
+different price levels, so one yearly cut-off will label most of one season
+expensive and most of the other cheap. Use the year for context and let the 7-day
+cut-offs drive actual switching decisions, or compute per-month.
+
 ## The .NET ↔ FastAPI contract
 
 Keep both ends in sync with these conventions:

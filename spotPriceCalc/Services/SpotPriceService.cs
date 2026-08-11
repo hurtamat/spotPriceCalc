@@ -1,4 +1,5 @@
 using spotPriceCalc.Domain;
+using spotPriceCalc.Dtos.PriceZones;
 using spotPriceCalc.Infrastructure.ExternalClients;
 using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Infrastructure.Persistence.Repositories;
@@ -8,6 +9,7 @@ namespace spotPriceCalc.Services;
 public class SpotPriceService : ISpotPriceService
 {
     private readonly ISpotPriceProvider _provider;
+    private readonly IPriceZoneProvider _priceZoneProvider;
     private readonly ISpotPriceRepository _repository;
     private readonly ILogger<SpotPriceService> _logger;
 
@@ -17,12 +19,17 @@ public class SpotPriceService : ISpotPriceService
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
     private const int MaxAttempts = 5;
 
+    // Below this a quantile is noise, so a too-short range fails here instead of on a round trip.
+    private const int MinZoneSamples = 12;
+
     public SpotPriceService(
         ISpotPriceProvider provider,
+        IPriceZoneProvider priceZoneProvider,
         ISpotPriceRepository repository,
         ILogger<SpotPriceService> logger)
     {
         _provider = provider;
+        _priceZoneProvider = priceZoneProvider;
         _repository = repository;
         _logger = logger;
     }
@@ -41,6 +48,28 @@ public class SpotPriceService : ISpotPriceService
     {
         var day = DateOnly.FromDateTime(instant);
         return GetPricesAsync(biddingZoneId, day, day, ct);
+    }
+
+    // Per zone: one country's prices form one distribution. Range resolved to LOCAL delivery days, as elsewhere.
+    public async Task<PriceZonesResponse> GetPriceZonesAsync(
+        int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        var zone = BiddingZoneSeedData.ById[biddingZoneId];
+        var fromUtc = zone.DeliveryDayWindowUtc(from).FromUtc;
+        var toUtc = zone.DeliveryDayWindowUtc(to).ToUtcExclusive;
+
+        var prices = await _repository.GetPriceValuesAsync(biddingZoneId, fromUtc, toUtc, ct);
+
+        // A range can come back short or empty with no error upstream — populate stores only what arrived.
+        if (prices.Count < MinZoneSamples)
+            throw new InvalidOperationException(
+                $"Only {prices.Count} stored price(s) for zone {biddingZoneId} between {from} and {to} " +
+                $"— need at least {MinZoneSamples}. Populate the range first.");
+
+        _logger.LogInformation("Requesting price zones for zone {ZoneId} ({Name}) {From}..{To}: {Count} points",
+            biddingZoneId, zone.Name, from, to, prices.Count);
+
+        return await _priceZoneProvider.GetPriceZonesAsync(prices, ct);
     }
 
     public async Task<PopulateResult> PopulateUntilCompleteAsync(DateOnly date, CancellationToken ct)
