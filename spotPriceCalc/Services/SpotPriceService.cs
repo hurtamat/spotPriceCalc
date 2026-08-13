@@ -34,12 +34,11 @@ public class SpotPriceService : ISpotPriceService
         _logger = logger;
     }
 
-    // Day range: translate each DateOnly to the zone's UTC delivery window and query.
+    // Day range: translate each DateOnly to its UTC market-day window and query.
     public Task<ZoneSpotPrices> GetPricesAsync(int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct)
     {
-        var zone = BiddingZoneSeedData.ById[biddingZoneId];
-        var fromUtc = zone.DeliveryDayWindowUtc(from).FromUtc;
-        var toUtc = zone.DeliveryDayWindowUtc(to).ToUtcExclusive;
+        var fromUtc = MarketDay.WindowUtc(from).FromUtc;
+        var toUtc = MarketDay.WindowUtc(to).ToUtcExclusive;
         return _repository.GetAsync(biddingZoneId, fromUtc, toUtc, ct);
     }
 
@@ -50,13 +49,13 @@ public class SpotPriceService : ISpotPriceService
         return GetPricesAsync(biddingZoneId, day, day, ct);
     }
 
-    // Per zone: one country's prices form one distribution. Range resolved to LOCAL delivery days, as elsewhere.
+    // Per zone: one country's prices form one distribution. Range resolved to CET market days, as elsewhere.
     public async Task<PriceZonesResponse> GetPriceZonesAsync(
         int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct)
     {
         var zone = BiddingZoneSeedData.ById[biddingZoneId];
-        var fromUtc = zone.DeliveryDayWindowUtc(from).FromUtc;
-        var toUtc = zone.DeliveryDayWindowUtc(to).ToUtcExclusive;
+        var fromUtc = MarketDay.WindowUtc(from).FromUtc;
+        var toUtc = MarketDay.WindowUtc(to).ToUtcExclusive;
 
         var prices = await _repository.GetPriceValuesAsync(biddingZoneId, fromUtc, toUtc, ct);
 
@@ -126,8 +125,8 @@ public class SpotPriceService : ISpotPriceService
             {
                 // Already have a full day for the zone (>= 12 slots)? Skip the fetch, so re-running populate
                 // only fills in the zones that failed/timed out — a partial day (too few slots) is re-fetched.
-                // The window is the zone's local delivery day, so it can't be fooled by an adjacent day's slots.
-                var (fromUtc, toUtc) = zone.DeliveryDayWindowUtc(date);
+                // The window is the CET market day, so it can't be fooled by an adjacent day's slots.
+                var (fromUtc, toUtc) = MarketDay.WindowUtc(date);
                 if (await _repository.HasDayAsync(zone.Id, fromUtc, toUtc, ct))
                 {
                     skipped++;

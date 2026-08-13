@@ -18,9 +18,10 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
 
     public async Task<ZoneSpotPrices> GetSpotPricesAsync(BiddingZone zone, DateOnly date, CancellationToken ct)
     {
-        // ENTSO-E periodStart/End are UTC; the delivery day is the zone's LOCAL day. Query its UTC window so
-        // we get exactly that day, not a UTC-midnight day sliced across two.
-        var (fromUtc, toUtc) = zone.DeliveryDayWindowUtc(date);
+        // ENTSO-E periodStart/End are UTC; the delivery day is the CET day (for every zone, not just the
+        // CET ones). Asking for exactly that window keeps the response to a single publication day — the
+        // API rounds a straddling window outward and returns each extra day as its own TimeSeries.
+        var (fromUtc, toUtc) = MarketDay.WindowUtc(date);
 
         var query = new Dictionary<string, string?>
         {
