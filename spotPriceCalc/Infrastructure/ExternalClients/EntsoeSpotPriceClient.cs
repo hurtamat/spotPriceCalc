@@ -35,7 +35,16 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
         };
         
         var url = QueryHelpers.AddQueryString("", query);
-        var xml = await _httpClient.GetStringAsync(url, ct);
+        using var response = await _httpClient.GetAsync(url, ct);
+        var xml = await response.Content.ReadAsStringAsync(ct);
+
+        // Read the body first: ENTSO-E returns its Acknowledgement document for "no matching data" with a
+        // 200, so the status code alone can't tell a declined request from a served one.
+        if (EntsoeXml.TryReadAcknowledgement(xml, out var reason))
+            throw new EntsoeAcknowledgementException(reason.Code, reason.Text);
+
+        // Anything else non-2xx is a transport/server problem — worth retrying, so let it throw.
+        response.EnsureSuccessStatusCode();
 
         var doc = EntsoeXml.Deserialize(xml);
 

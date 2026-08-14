@@ -1,6 +1,7 @@
 using spotPriceCalc.Domain;
 using spotPriceCalc.Dtos.PriceZones;
 using spotPriceCalc.Infrastructure.ExternalClients;
+using spotPriceCalc.Infrastructure.ExternalClients.Entsoe;
 using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Infrastructure.Persistence.Repositories;
 
@@ -71,21 +72,32 @@ public class SpotPriceService : ISpotPriceService
     }
 
     // Backfills a date range in ONE ENTSO-E call per zone. No quantiles — this is only the trailing history
-    // that ClassifyDayAsync needs a full window of. Not retried: it's best-effort context, and SaveAsync
-    // skips slots already stored, so re-running is cheap and fills whatever is missing.
+    // that ClassifyDayAsync needs a full window of. Not retried: it's best-effort context.
     public async Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct)
     {
         var zones = BiddingZoneSeedData.Zones;
-        int succeeded = 0, pointsSaved = 0, failed = 0;
+        int succeeded = 0, skipped = 0, pointsSaved = 0, failed = 0;
 
         foreach (var zone in zones)
         {
             try
             {
+                if (await HasEveryDayAsync(zone.Id, from, to, ct))
+                {
+                    skipped++;
+                    continue;
+                }
+
                 var prices = await _provider.GetSpotPricesAsync(zone, from, to, ct);
                 await _repository.SaveAsync(prices, ct);
                 succeeded++;
                 pointsSaved += prices.Points.Count;
+            }
+            catch (EntsoeAcknowledgementException ex)
+            {
+                failed++;
+                _logger.LogInformation("No history at ENTSO-E for {Zone} {From}..{To}: {Reason}",
+                    zone.Name, from, to, ex.Message);
             }
             catch (Exception ex)
             {
@@ -97,15 +109,28 @@ public class SpotPriceService : ISpotPriceService
             await Task.Delay(RequestDelay, ct);
         }
 
-        _logger.LogInformation("History backfill {From}..{To}: {Succeeded} zones, {Failed} failed, {Points} points",
-            from, to, succeeded, failed, pointsSaved);
+        _logger.LogInformation(
+            "History backfill {From}..{To}: {Succeeded} fetched, {Skipped} already stored, {Failed} failed, {Points} points",
+            from, to, succeeded, skipped, failed, pointsSaved);
+    }
+    
+    private async Task<bool> HasEveryDayAsync(int zoneId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        for (var day = from; day <= to; day = day.AddDays(1))
+        {
+            var (fromUtc, toUtc) = MarketDay.WindowUtc(day);
+            if (!await _repository.HasDayAsync(zoneId, fromUtc, toUtc, ct))
+                return false;
+        }
+
+        return true;
     }
 
     // One pass over every zone. The only place that hits ENTSO-E; the retry wrapper above calls it repeatedly.
     private async Task<PopulateResult> PopulateOnceAsync(DateOnly date, CancellationToken ct)
     {
         var zones = BiddingZoneSeedData.Zones;
-        int succeeded = 0, skipped = 0, pointsSaved = 0;
+        int succeeded = 0, skipped = 0, declined = 0, pointsSaved = 0;
         var failures = new List<string>();
 
         foreach (var zone in zones)
@@ -116,9 +141,16 @@ public class SpotPriceService : ISpotPriceService
                 if (saved is null) skipped++;
                 else (succeeded, pointsSaved) = (succeeded + 1, pointsSaved + saved.Value);
             }
+            catch (EntsoeAcknowledgementException ex)
+            {
+                // ENTSO-E has nothing for this zone/day. Not a failure to retry — asking again won't help.
+                declined++;
+                _logger.LogInformation("No data at ENTSO-E for {Zone} on {Date}: {Reason}",
+                    zone.Name, date, ex.Message);
+            }
             catch (Exception ex)
             {
-                // One zone with no data yet shouldn't sink the run.
+                // One zone timing out shouldn't sink the run; this one IS worth another attempt.
                 _logger.LogWarning(ex, "Populate failed for {Zone} ({Code}) on {Date}", zone.Name, zone.Code, date);
                 failures.Add($"{zone.Name} ({zone.Code}): {ex.Message}");
             }
@@ -126,10 +158,11 @@ public class SpotPriceService : ISpotPriceService
             await Task.Delay(RequestDelay, ct);
         }
 
-        _logger.LogInformation("Populate {Date}: {Succeeded} fetched, {Skipped} skipped, {Failed} failed, {Points} points",
-            date, succeeded, skipped, failures.Count, pointsSaved);
+        _logger.LogInformation(
+            "Populate {Date}: {Succeeded} fetched, {Skipped} skipped, {Declined} no-data, {Failed} failed, {Points} points",
+            date, succeeded, skipped, declined, failures.Count, pointsSaved);
 
-        return new PopulateResult(date, zones.Count, succeeded, skipped, failures.Count, pointsSaved, failures);
+        return new PopulateResult(date, zones.Count, succeeded, skipped, failures.Count, declined, pointsSaved, failures);
     }
 
     // Fetches, stores and classifies one zone's market day. Returns points saved, or null if already present.
