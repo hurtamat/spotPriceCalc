@@ -17,6 +17,8 @@ public class SpotPriceEntityConfiguration : IEntityTypeConfiguration<SpotPriceEn
         builder.Property(p => p.To).IsRequired();
         builder.Property(p => p.Price).HasColumnType("numeric(10,4)");
         builder.Property(p => p.BiddingZoneId).IsRequired();
+        // Quantile needs no mapping — EF stores an enum as its int value by default, nullable until a slot
+        // has enough history to classify. PriceQuantile pins its values so the numbers stay stable.
 
         builder.HasOne<BiddingZone>()
             .WithMany()

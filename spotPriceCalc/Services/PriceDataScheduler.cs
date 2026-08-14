@@ -30,8 +30,8 @@ public class PriceDataScheduler : BackgroundService
                 var nextRunUtc = NextRunUtc(DateTimeOffset.UtcNow);
                 var delay = nextRunUtc - DateTimeOffset.UtcNow;
                 _logger.LogInformation(
-                    "Next daily populate (tomorrow) scheduled for {NextRunUtc:o} (13:25 CET, in {Delay})",
-                    nextRunUtc, delay);
+                    "Next daily populate (tomorrow) scheduled for {NextRunUtc:o} ({RunTime} CET, in {Delay})",
+                    nextRunUtc, DailyRunTime, delay);
 
                 await Task.Delay(delay, stoppingToken);
                 
@@ -41,11 +41,12 @@ public class PriceDataScheduler : BackgroundService
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            // Normal shutdown — nothing to do.
+            // Normal shutdown, nothing to do.
         }
     }
 
-    // Startup catch-up: yesterday, today, tomorrow, in order (each confirmed before the next).
+    // Startup catch-up: yesterday, today, tomorrow. Each populate classifies its own zones, so there's
+    // nothing to do here afterwards. Ordered oldest-first so each day's quantiles see the prior history.
     private async Task RunStartupPopulateAsync(CancellationToken ct)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);

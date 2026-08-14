@@ -18,9 +18,8 @@ public class SpotPriceService : ISpotPriceService
 
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
     private const int MaxAttempts = 5;
-
-    // Below this a quantile is noise, so a too-short range fails here instead of on a round trip.
-    private const int MinZoneSamples = 12;
+    private const int QuantileWindowDays = 7;
+    private const int MinQuantileSamples = 12;
 
     public SpotPriceService(
         ISpotPriceProvider provider,
@@ -49,116 +48,95 @@ public class SpotPriceService : ISpotPriceService
         return GetPricesAsync(biddingZoneId, day, day, ct);
     }
 
-    // Per zone: one country's prices form one distribution. Range resolved to CET market days, as elsewhere.
-    public async Task<PriceZonesResponse> GetPriceZonesAsync(
-        int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct)
-    {
-        var zone = BiddingZoneSeedData.ById[biddingZoneId];
-        var fromUtc = MarketDay.WindowUtc(from).FromUtc;
-        var toUtc = MarketDay.WindowUtc(to).ToUtcExclusive;
-
-        var prices = await _repository.GetPriceValuesAsync(biddingZoneId, fromUtc, toUtc, ct);
-
-        // A range can come back short or empty with no error upstream — populate stores only what arrived.
-        if (prices.Count < MinZoneSamples)
-            throw new InvalidOperationException(
-                $"Only {prices.Count} stored price(s) for zone {biddingZoneId} between {from} and {to} " +
-                $"— need at least {MinZoneSamples}. Populate the range first.");
-
-        _logger.LogInformation("Requesting price zones for zone {ZoneId} ({Name}) {From}..{To}: {Count} points",
-            biddingZoneId, zone.Name, from, to, prices.Count);
-
-        return await _priceZoneProvider.GetPriceZonesAsync(prices, ct);
-    }
-
+    // Re-runs the pass until every zone lands, then stops. Bounded because "tomorrow" before the auction
+    // clears legitimately has no data — the next scheduled run picks it up.
     public async Task<PopulateResult> PopulateUntilCompleteAsync(DateOnly date, CancellationToken ct)
     {
-        PopulateResult result;
-        var attempt = 0;
-
-        while (true)
+        for (var attempt = 1; ; attempt++)
         {
-            attempt++;
-            result = await PopulateOnceAsync(date, ct);
+            var result = await PopulateOnceAsync(date, ct);
 
-            if (result.Failed == 0)
+            if (result.Failed == 0 || attempt == MaxAttempts)
             {
-                _logger.LogInformation(
-                    "Populate for {Date} complete after {Attempt} attempt(s): all {Total} zones present",
-                    date, attempt, result.ZonesTotal);
+                _logger.Log(result.Failed == 0 ? LogLevel.Information : LogLevel.Error,
+                    "Populate {Date} done after {Attempt} attempt(s): {Failed} of {Total} zone(s) missing",
+                    date, attempt, result.Failed, result.ZonesTotal);
                 return result;
             }
 
-            if (attempt >= MaxAttempts)
-            {
-                // Give up rather than loop forever — for "tomorrow" before publication some zones may
-                // legitimately have no data yet; the next scheduled run will pick them up.
-                _logger.LogError(
-                    "Populate for {Date} gave up after {Attempt} attempts: {Failed} zone(s) still missing",
-                    date, attempt, result.Failed);
-                return result;
-            }
-
-            _logger.LogWarning(
-                "Populate for {Date} attempt {Attempt}/{Max} incomplete: {Failed} zone(s) failed — retrying in {Delay}s",
+            _logger.LogWarning("Populate {Date} attempt {Attempt}/{Max}: {Failed} failed — retry in {Delay}s",
                 date, attempt, MaxAttempts, result.Failed, RetryDelay.TotalSeconds);
             await Task.Delay(RetryDelay, ct);
         }
     }
 
-    // One pass over every zone for the date. The retry orchestrator above calls this repeatedly; it's the
-    // only entry point that actually hits ENTSO-E. Private on purpose — callers get the retrying version.
+    // One pass over every zone. The only place that hits ENTSO-E; the retry wrapper above calls it repeatedly.
     private async Task<PopulateResult> PopulateOnceAsync(DateOnly date, CancellationToken ct)
     {
         var zones = BiddingZoneSeedData.Zones;
-
-        _logger.LogInformation("Populate started for {Date}: {ZoneCount} zones", date, zones.Count);
-
-        var succeeded = 0;
-        var skipped = 0;
-        var pointsSaved = 0;
+        int succeeded = 0, skipped = 0, pointsSaved = 0;
         var failures = new List<string>();
 
         foreach (var zone in zones)
         {
             try
             {
-                // Already have a full day for the zone (>= 12 slots)? Skip the fetch, so re-running populate
-                // only fills in the zones that failed/timed out — a partial day (too few slots) is re-fetched.
-                // The window is the CET market day, so it can't be fooled by an adjacent day's slots.
-                var (fromUtc, toUtc) = MarketDay.WindowUtc(date);
-                if (await _repository.HasDayAsync(zone.Id, fromUtc, toUtc, ct))
-                {
-                    skipped++;
-                    _logger.LogInformation("Skipped zone {ZoneId} ({Name}) for {Date}: already populated",
-                        zone.Id, zone.Name, date);
-                    continue;
-                }
-
-                var prices = await _provider.GetSpotPricesAsync(zone, date, ct);
-                await _repository.SaveAsync(prices, ct);
-
-                succeeded++;
-                pointsSaved += prices.Points.Count;
-
-                _logger.LogInformation("Populated zone {ZoneId} ({Name}) for {Date}: {Points} points",
-                    zone.Id, zone.Name, date, prices.Points.Count);
+                var saved = await PopulateZoneAsync(zone, date, ct);
+                if (saved is null) skipped++;
+                else (succeeded, pointsSaved) = (succeeded + 1, pointsSaved + saved.Value);
             }
             catch (Exception ex)
             {
-                // Keep going — a single zone with no data yet shouldn't sink the whole run.
-                _logger.LogWarning(ex, "Populate failed for zone {ZoneId} ({Code}) on {Date}",
-                    zone.Id, zone.Code, date);
+                // One zone with no data yet shouldn't sink the run.
+                _logger.LogWarning(ex, "Populate failed for {Zone} ({Code}) on {Date}", zone.Name, zone.Code, date);
                 failures.Add($"{zone.Name} ({zone.Code}): {ex.Message}");
             }
 
             await Task.Delay(RequestDelay, ct);
         }
 
-        _logger.LogInformation(
-            "Populate finished for {Date}: {Succeeded} fetched, {Skipped} skipped, {Failed} failed, {Points} points",
+        _logger.LogInformation("Populate {Date}: {Succeeded} fetched, {Skipped} skipped, {Failed} failed, {Points} points",
             date, succeeded, skipped, failures.Count, pointsSaved);
 
         return new PopulateResult(date, zones.Count, succeeded, skipped, failures.Count, pointsSaved, failures);
+    }
+
+    // Fetches, stores and classifies one zone's market day. Returns points saved, or null if already present.
+    private async Task<int?> PopulateZoneAsync(BiddingZone zone, DateOnly date, CancellationToken ct)
+    {
+        // A partial day (< MinSlotsForDay) is re-fetched, so a half-finished run self-heals.
+        var (fromUtc, toUtc) = MarketDay.WindowUtc(date);
+        if (await _repository.HasDayAsync(zone.Id, fromUtc, toUtc, ct))
+        {
+            _logger.LogInformation("Skipped {Zone} for {Date}: already populated", zone.Name, date);
+            return null;
+        }
+
+        var prices = await _provider.GetSpotPricesAsync(zone, date, ct);
+        await _repository.SaveAsync(prices, ct);
+        await ClassifyDayAsync(zone, date, ct);
+
+        _logger.LogInformation("Populated {Zone} for {Date}: {Points} points", zone.Name, date, prices.Points.Count);
+        return prices.Points.Count;
+    }
+
+    // Stamps Green/Yellow/Red on the day's slots, using cut-offs the calc-service derives from the trailing
+    // QuantileWindowDays (this day included) — one country's prices form one distribution.
+    private async Task ClassifyDayAsync(BiddingZone zone, DateOnly date, CancellationToken ct)
+    {
+        var (dayFromUtc, dayToUtc) = MarketDay.WindowUtc(date);
+        var windowFromUtc = MarketDay.WindowUtc(date.AddDays(-(QuantileWindowDays - 1))).FromUtc;
+
+        var prices = await _repository.GetPriceValuesAsync(zone.Id, windowFromUtc, dayToUtc, ct);
+        if (prices.Count < MinQuantileSamples)
+        {
+            _logger.LogInformation("Skipped quantiles for {Zone} on {Date}: only {Count} sample(s)",
+                zone.Name, date, prices.Count);
+            return;
+        }
+
+        var zones = await _priceZoneProvider.GetPriceZonesAsync(prices, ct);
+        await _repository.SetQuantilesAsync(
+            zone.Id, dayFromUtc, dayToUtc, zones.LowerQuantile, zones.UpperQuantile, ct);
     }
 }

@@ -71,4 +71,19 @@ public class SpotPriceRepository : ISpotPriceRepository
         _db.SpotPrices.AddRange(toInsert);
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task SetQuantilesAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive,
+        decimal lower, decimal upper, CancellationToken ct)
+    {
+        var rows = await _db.SpotPrices
+            .Where(p => p.BiddingZoneId == biddingZoneId && p.From >= fromUtc && p.From < toUtcExclusive)
+            .ToListAsync(ct);
+
+        foreach (var row in rows)
+            row.Quantile = row.Price < lower ? PriceQuantile.Green
+                : row.Price > upper ? PriceQuantile.Red
+                : PriceQuantile.Yellow;
+
+        await _db.SaveChangesAsync(ct);
+    }
 }

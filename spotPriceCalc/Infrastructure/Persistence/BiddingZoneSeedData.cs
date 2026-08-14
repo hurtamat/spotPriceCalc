@@ -41,6 +41,7 @@ public static class BiddingZoneSeedData
         new() { Id = 30, Name = "Norway NO5",         Code = "10Y1001A1001A48H", TimeZoneId = "Europe/Oslo",       Latitude = 60.39m, Longitude = 5.32m },
         new() { Id = 31, Name = "Denmark DK1",        Code = "10YDK-1--------W", TimeZoneId = "Europe/Copenhagen", Latitude = 56.16m, Longitude = 10.20m },
         new() { Id = 32, Name = "Denmark DK2",        Code = "10YDK-2--------M", TimeZoneId = "Europe/Copenhagen", Latitude = 55.68m, Longitude = 12.57m },
+        
         new() { Id = 33, Name = "Italy North",        Code = "10Y1001A1001A73I", TimeZoneId = "Europe/Rome",       Latitude = 45.46m, Longitude = 9.19m },
         new() { Id = 34, Name = "Italy Centre-North", Code = "10Y1001A1001A70O", TimeZoneId = "Europe/Rome",       Latitude = 43.77m, Longitude = 11.26m },
         new() { Id = 35, Name = "Italy Centre-South", Code = "10Y1001A1001A71M", TimeZoneId = "Europe/Rome",       Latitude = 41.90m, Longitude = 12.50m },
@@ -48,9 +49,7 @@ public static class BiddingZoneSeedData
         new() { Id = 37, Name = "Italy Sardinia",     Code = "10Y1001A1001A74G", TimeZoneId = "Europe/Rome",       Latitude = 39.22m, Longitude = 9.12m },
         new() { Id = 38, Name = "Italy Sicily",       Code = "10Y1001A1001A75E", TimeZoneId = "Europe/Rome",       Latitude = 38.12m, Longitude = 13.36m },
         new() { Id = 41, Name = "Italy Calabria",     Code = "10Y1001C--00096J", TimeZoneId = "Europe/Rome",       Latitude = 38.91m, Longitude = 16.59m },
-        // Jan 2021 bidding-zone reform — removed. Ids left as gaps on purpose; never renumber existing ids.
-
-        // Western Balkans + all-island Ireland (SEM) — support extended beyond the core 39.
+        
         new() { Id = 44, Name = "Albania",            Code = "10YAL-KESH-----5", TimeZoneId = "Europe/Tirane",     Latitude = 41.33m, Longitude = 19.82m },
         new() { Id = 45, Name = "Montenegro",         Code = "10YCS-CG-TSO---S", TimeZoneId = "Europe/Podgorica",  Latitude = 42.44m, Longitude = 19.26m },
         new() { Id = 46, Name = "Kosovo",             Code = "10Y1001C--00100H", TimeZoneId = "Europe/Belgrade",   Latitude = 42.66m, Longitude = 21.17m },

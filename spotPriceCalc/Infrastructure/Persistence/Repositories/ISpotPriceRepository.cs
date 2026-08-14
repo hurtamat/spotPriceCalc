@@ -16,4 +16,8 @@ public interface ISpotPriceRepository
     Task<bool> HasDayAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
 
     Task SaveAsync(ZoneSpotPrices prices, CancellationToken ct);
+
+    // Stamps Green/Yellow/Red on every slot in the window: below lower = Green, above upper = Red, else Yellow.
+    Task SetQuantilesAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive,
+        decimal lower, decimal upper, CancellationToken ct);
 }

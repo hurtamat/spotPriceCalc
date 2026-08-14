@@ -7,4 +7,5 @@ public class SpotPriceEntity
     public DateTime To { get; set; }
     public decimal Price { get; set; }
     public int BiddingZoneId { get; set; }
+    public PriceQuantile? Quantile { get; set; }
 }
