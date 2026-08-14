@@ -1,16 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react';
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ReferenceDot,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-import {
   DAY_LABELS,
   DAY_ORDER,
   dateForDay,
@@ -20,6 +9,7 @@ import {
 } from '../api/spotPrices';
 import { ZoneMap } from './ZoneMap';
 import { ZONE_BY_ID } from '../api/zones';
+import { PriceBarChart, buildDaySlots, utcOffsetLabel } from './PriceBarChart';
 
 // Default selection until the user picks a zone on the map (Germany-Luxembourg = id 7).
 const DEFAULT_ZONE_ID = 7;
@@ -33,23 +23,6 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; data: ZoneSpotPrices };
-
-/** Hour-of-day + minute of a UTC instant, read in a specific IANA timezone (the bidding zone's, not the
- *  viewer's browser). Used both for the x position and the "HH:MM" label so the curve reads in local
- *  market time regardless of where the viewer sits. */
-function zonedHourMinute(iso: string, timeZone: string): { hour: number; minute: number } {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(new Date(iso));
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? '0');
-  // hour12:false can emit "24" at midnight in some engines — normalize to 0.
-  return { hour: get('hour') % 24, minute: get('minute') };
-}
-
-const pad2 = (n: number) => String(n).padStart(2, '0');
 
 export function PriceSection() {
   const [day, setDay] = useState<DayKey>('today');
@@ -185,12 +158,6 @@ export function PriceSection() {
   );
 }
 
-interface ChartDatum {
-  hour: number; // local hour-of-day (0–24), the x position
-  time: string; // "HH:MM" label
-  ct: number; // price in c/kWh
-}
-
 function Chart({
   state,
   day,
@@ -203,25 +170,29 @@ function Chart({
   zoneName: string;
 }) {
   const derived = useMemo(() => {
-    const points = state?.status === 'ready' ? state.data.points : [];
-    if (points.length === 0) return null;
+    if (state?.status !== 'ready' || state.data.points.length === 0) return null;
 
-    // Label each slot in the bidding zone's local time, not the viewer's browser timezone.
-    const timeZone = state?.status === 'ready' ? state.data.timeZoneId : 'UTC';
-    const data: ChartDatum[] = points.map((p) => {
-      const { hour, minute } = zonedHourMinute(p.fromUtc, timeZone);
-      return { hour: hour + minute / 60, time: `${pad2(hour)}:${pad2(minute)}`, ct: p.ctPerKwh };
-    });
+    // Label and slice the day in the bidding ZONE's local time, not the viewer's browser timezone —
+    // and not the CET market day the API returns. See PriceBarChart for why those differ.
+    const timeZone = state.data.timeZoneId;
+    const slots = buildDaySlots(state.data.points, timeZone, dateForDay(day));
+    if (slots.length === 0) return null;
 
-    const values = data.map((d) => d.ct);
+    const values = slots.map((s) => s.ct);
     const min = Math.min(...values);
     const max = Math.max(...values);
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
-    const minPt = data[values.indexOf(min)];
-    const maxPt = data[values.indexOf(max)];
 
-    return { data, min, max, avg, minPt, maxPt };
-  }, [state]);
+    return {
+      slots,
+      min,
+      max,
+      avg,
+      minPt: slots[values.indexOf(min)],
+      maxPt: slots[values.indexOf(max)],
+      offset: utcOffsetLabel(new Date(slots[0].fromUtc), timeZone),
+    };
+  }, [state, day]);
 
   const fmt = (v: number | undefined) => (v == null ? '—' : v.toFixed(1));
 
@@ -283,87 +254,29 @@ function Chart({
 
       {derived && (
         <>
-          <div style={{ width: '100%', height: 230 }}>
-            <ResponsiveContainer>
-              <AreaChart data={derived.data} margin={{ top: 16, right: 8, bottom: 0, left: -18 }}>
-                <defs>
-                  <linearGradient id="sbFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor="var(--color-accent)" stopOpacity={0.3} />
-                    <stop offset="1" stopColor="var(--color-accent)" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} stroke="var(--color-divider)" />
-                <XAxis
-                  dataKey="hour"
-                  type="number"
-                  domain={[0, 24]}
-                  ticks={[0, 6, 12, 18, 24]}
-                  tickFormatter={(h: number) => `${String(h).padStart(2, '0')}:00`}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: 'var(--color-neutral-600)', fontSize: 12 }}
-                />
-                <YAxis
-                  width={44}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: 'var(--color-neutral-600)', fontSize: 12 }}
-                  tickFormatter={(v: number) => v.toFixed(0)}
-                />
-                <Tooltip
-                  formatter={(v) => [`${(v as number).toFixed(1)} c/kWh`, 'Price']}
-                  labelFormatter={(h, payload) =>
-                    // Prefer the datum's own "HH:MM" label so 15-minute slots read correctly
-                    // (e.g. 19:45). Fall back to deriving it from the fractional hour.
-                    (payload?.[0]?.payload as ChartDatum | undefined)?.time ??
-                    `${pad2(Math.floor(h as number))}:${pad2(Math.round(((h as number) % 1) * 60))}`
-                  }
-                  contentStyle={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-divider)',
-                    borderRadius: 10,
-                    fontSize: 13,
-                  }}
-                />
-                <ReferenceLine
-                  y={derived.avg}
-                  stroke="var(--color-neutral-400)"
-                  strokeDasharray="4 4"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="ct"
-                  stroke="var(--color-accent)"
-                  strokeWidth={2.5}
-                  fill="url(#sbFill)"
-                  isAnimationActive={false}
-                  dot={false}
-                  activeDot={{ r: 4 }}
-                />
-                <ReferenceDot
-                  x={derived.minPt.hour}
-                  y={derived.min}
-                  r={5}
-                  fill="var(--color-accent)"
-                  stroke="#fff"
-                  strokeWidth={2}
-                />
-                <ReferenceDot
-                  x={derived.maxPt.hour}
-                  y={derived.max}
-                  r={5}
-                  fill="var(--color-pop)"
-                  stroke="#fff"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div style={{ width: '100%' }}>
+            <PriceBarChart slots={derived.slots} />
           </div>
 
           <div className="sb-legend">
+            <span className="sb-legend-item">
+              <i className="sb-dot" style={{ background: 'var(--color-q-green)' }} /> Cheap
+            </span>
+            <span className="sb-legend-item">
+              <i className="sb-dot" style={{ background: 'var(--color-q-yellow)' }} /> Average
+            </span>
+            <span className="sb-legend-item">
+              <i className="sb-dot" style={{ background: 'var(--color-q-red)' }} /> Expensive
+            </span>
             <span>
               {zoneName} · {DAY_LABELS[day]} · c/kWh
             </span>
+          </div>
+
+          {/* The x axis is the zone's own wall clock, which is NOT the viewer's and not UTC —
+              say so, and give the offset, so a Greek 01:00 bar doesn't read as a Berlin one. */}
+          <div className="sb-chart-tz">
+            Local time in {zoneName} ({derived.offset})
           </div>
         </>
       )}

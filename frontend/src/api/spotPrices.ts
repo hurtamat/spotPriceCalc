@@ -2,11 +2,17 @@
 // `date` is the zone's LOCAL delivery day; the backend resolves it to a UTC window via the zone's
 // timezone and returns the stored day-ahead curve (points are UTC; `timeZoneId` says how to label them).
 
+/** Where a slot sits in its zone's trailing-7-day price distribution, as stamped by the backend.
+ *  `null` = never classified (too little history, or the calc-service was down when the day landed)
+ *  — render it as unknown, never guess a colour. */
+export type PriceQuantile = 'Green' | 'Yellow' | 'Red';
+
 export interface PricePoint {
   fromUtc: string;
   toUtc: string;
   eurPerMwh: number;
   ctPerKwh: number;
+  quantile: PriceQuantile | null;
 }
 
 export interface ZoneSpotPrices {

@@ -192,6 +192,9 @@ Other things the live responses confirm, worth knowing before touching this code
 - Read returns **only what's in the DB** — there is **no fetch-if-missing / caching**. Populate first, then read.
 - `ZoneSpotPricesDto` adds a computed **`CtPerKwh = EurPerMwh / 10`** (consumer unit) on top of the raw EUR/MWh,
   and carries the zone's `TimeZoneId` so the frontend can label the UTC curve in the country's own wall clock.
+- Each point also carries its **`Quantile` as a name** (`"Green"`/`"Yellow"`/`"Red"`, `null` when unclassified),
+  not the stored int — the numbers are a storage contract clients shouldn't depend on. The frontend colours its
+  bars from it and renders `null` grey rather than guessing.
 - Populate is *also* driven automatically by `PriceDataScheduler` — the manual POST is for ad-hoc backfilling.
 
 ### Smart home (`SmartHomeShellyController`, route `api/schedule`)
