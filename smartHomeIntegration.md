@@ -4,10 +4,10 @@ How the smart-home control endpoint works today, the reasoning behind its shape,
 problem left to solve. For the broader product vision see [IDEA.md](./IDEA.md); for the price-data layer this
 sits on top of see [DESIGN.md](./DESIGN.md).
  
-> **Status in one line:** a stateless `POST /api/schedule` endpoint takes a thin device's tasks (each: "I need
-> N hours of power by deadline X"), ranks the stored spot-price curve, and returns which hours to run plus a
-> single `relay_state` boolean for right now. Coordinate→zone resolution is stubbed; the daily commit model
-> (see the end) is not built yet.
+> **Status in one line:** a stateless `POST /api/schedule` takes a thin device's tasks (each: "I need N hours of
+> power by deadline X"), ranks the stored spot-price curve, and returns the **merged run blocks** per task;
+> `GET /api/schedule/status` returns the current price colour for a location. Coordinate→zone resolution works
+> (nearest zone centre). The daily commit model (see the end) is not built yet.
 
 ---
 
@@ -49,10 +49,10 @@ this periodically, reads the result, and sets its relay.
   "device_id": "shelly-1",
   "lat": 50.08,
   "lon": 14.44,
-  "available_from": "2026-07-25T22:00:00Z",
+  "date": "2026-08-13",
   "unavailable": { "from": "07:00:00", "to": "09:00:00" },
   "tasks": [
-    { "task_id": 1, "duration_hours": 3, "ready_by": "2026-07-26T06:00:00Z", "continuous_block": false }
+    { "task_id": 1, "duration_hours": 3, "ready_by": "06:00:00", "continuous_block": false }
   ]
 }
 ```
@@ -63,7 +63,7 @@ this periodically, reads the result, and sets its relay.
 | --- | --- |
 | `device_id` | Identifies the device (logging, later rate-limiting / state). |
 | `lat` / `lon` | GPS. Resolved server-side to a bidding zone. **`decimal`**, matching the exact-value lat/lng convention used everywhere else. |
-| `available_from` | *Optional.* Earliest the appliance may draw power (e.g. when it was plugged in) — the lower bound of the eligible window. Null ⇒ default to the task's deadline minus 24h. |
+| `date` | **Required.** The day to schedule for. The eligible window is this whole day, or the 24h before a task's `ready_by`. |
 | `unavailable` | *Optional.* A single "do not run" window, **time-of-day only** (no date). Applies to every task. May wrap past midnight (`from > to`, e.g. `22:00–06:00`). |
 
 **Tasks (the jobs):** an array so a user can express several needs at once ("1h wash by 14:00" *and* "4h EV
@@ -73,7 +73,7 @@ charge by 07:00").
 | --- | --- |
 | `task_id` | **`int`**, always supplied by the device script. |
 | `duration_hours` | The one field that's always required — total hours of power the task needs. |
-| `ready_by` | *Optional.* **The anchor** — strict deadline the task must finish by. Null ⇒ default `now + 24h`. |
+| `ready_by` | *Optional.* **The anchor** — deadline **time-of-day (UTC)** on `date` that the task must finish by; the window is the 24h before it. Null ⇒ the whole of `date`. |
 | `continuous_block` | `true` ⇒ hours must run back-to-back (boiler, washer). `false` (default) ⇒ split for the absolute cheapest hours (EV charging, the "don't care" case). |
 
 The minimal valid request is just a device id, coordinates, and one task with a `duration_hours`.
@@ -83,17 +83,13 @@ The minimal valid request is just a device id, coordinates, and one task with a 
 ```json
 {
   "device_id": "shelly-1",
-  "bidding_zone_id": 5,
   "zone_name": "Czech Republic",
-  "relay_state": true,
-  "now_utc": "2026-07-25T23:15:00+00:00",
-  "next_toggle_utc": "2026-07-26T00:00:00+00:00",
   "tasks": [
     {
       "task_id": 1,
       "scheduled": true,
-      "hours": [
-        { "start_utc": "2026-07-25T23:00:00+00:00", "end_utc": "2026-07-26T00:00:00+00:00", "eur_per_mwh": 42.1 }
+      "blocks": [
+        { "start_utc": "2026-08-13T23:00:00Z", "end_utc": "2026-08-14T02:00:00Z", "eur_per_mwh": 42.1 }
       ]
     }
   ]
@@ -102,14 +98,31 @@ The minimal valid request is just a device id, coordinates, and one task with a 
 
 | Field | Meaning |
 | --- | --- |
-| `relay_state` | **The one actionable field** — should the relay be ON right now? `true` if *any* task is scheduled for the current instant (OR across tasks, because one relay = one on/off). |
-| `now_utc` | The evaluation instant. |
-| `next_toggle_utc` | When the relay is next expected to flip, or null. Lets a smarter device poll less and set a local wake. |
-| `tasks[].scheduled` | `false` ⇒ the task couldn't be placed (e.g. window too short). |
-| `tasks[].hours` | The chosen slots, so a client can see *why*, or drive its own logic. |
+| `zone_name` | Which bidding zone the coordinates resolved to — the only human-readable field, for sanity-checking. |
+| `tasks[].scheduled` | `false` ⇒ the task couldn't be placed (e.g. window too short, or no prices stored). |
+| `tasks[].blocks` | The chosen run-time as **merged contiguous blocks** (UTC, sorted), not individual slots. `eur_per_mwh` is the duration-weighted average across the block. |
+
+**There is no `relay_state` / `now_utc` / `next_toggle_utc`.** The model changed: the device is handed the
+blocks and runs its relay locally against them, rather than asking "on or off right now?" on every poll. That
+means one call per day instead of one per polling interval — and it sidesteps the recompute-drift problem
+described at the end of this doc, at the cost of the device needing a clock.
 
 The response is **deliberately lean** — it's consumed by a device script, not a human. No display strings, no
 labels, no reasons. Everything is UTC.
+
+### `GET /api/schedule/status?lat=&lon=&time=`
+
+A second, much simpler endpoint for ambient display: what colour is the price at this instant?
+
+| Response | Meaning |
+| --- | --- |
+| `200` + `0` / `1` / `2` | Green / Yellow / Red, read straight off the slot's stored `Quantile`. |
+| `204 No Content` | No colour applies — no slot for that instant, or it isn't classified yet. |
+
+The quantile is stamped during populate (see [DESIGN.md](./DESIGN.md)), so this is a lookup, not a computation.
+The 204 is deliberate: `scripts/shelly/priceColor.shelly.js` calls `clearColor()` on anything that isn't a 200,
+so an unclassified slot leaves the LED ring **dark** rather than showing a guessed colour. Better honest than
+wrong — a wrong colour would have the device acting on a price signal we don't have.
 
 ---
 
@@ -124,16 +137,17 @@ controller layer is for.
 Controllers/
 ├─ SmartHomeIntegrationController.cs   abstract base: the shared HTTP adapter.
 │                                       Holds the scheduler, exposes one virtual step (BuildScheduleAsync).
-└─ SmartHomeShellyController.cs        concrete: POST /api/schedule. Inherits the base; a vendor-specific
-                                        controller would inherit the same base and override only the mapping.
+└─ SmartHomeShellyController.cs        concrete: POST /api/schedule + GET /api/schedule/status. Inherits
+                                        the base; a vendor controller would override only the mapping.
 Services/SmartHome/
 ├─ IZoneLocatorService.cs             coordinates → bidding zone (own responsibility).
-├─ ZoneLocatorService.cs             STUBBED — throws NotImplementedException (no zone polygons yet).
+├─ ZoneLocatorService.cs             nearest zone centre (Haversine). Works; wrong right at internal borders.
 ├─ IScheduleService.cs               the decision engine's contract.
-└─ ScheduleService.cs                the brain: resolves zone, loads prices, evaluates each task.
+└─ ScheduleService.cs                the brain. Regions: Schedule building / Slot selection / Price colour.
 Dtos/Schedule/
 ├─ ScheduleRequest.cs                request + UnavailableWindow + TaskRequest.
-└─ ScheduleResponse.cs               response + TaskResult + ScheduledHour.
+└─ ScheduleResponse.cs               response + TaskResult + ScheduledBlock.
+StatusSchedule.cs                 the colour query (lat, lon, dateTime).
 ```
 
 **Why an abstract base controller *and* a service?** The service is the reusable brain — testable with no HTTP.
@@ -154,16 +168,16 @@ things (`BiddingZoneSeedData`, the private math helpers).
 
 For each task, independently:
 
-1. **Anchor on the deadline.** The eligible window is the 24h *before* `ready_by` (or from `available_from` if
-   given), clamped so we never schedule in the past:
+1. **Anchor on the deadline.** The eligible window is the 24h *before* `ready_by`, or the whole day if there
+   isn't one:
    ```
-   anchor         = ready_by ?? now + 24h
-   windowStart    = available_from ?? anchor − 24h
-   effectiveStart = max(now, windowStart)
-   eligible       = price slots in [effectiveStart, anchor]  minus  the unavailable window
+   ready_by given:  anchor = date @ ready_by (UTC);  windowStart = anchor − 24h
+   ready_by null:   windowStart = date @ 00:00 UTC;  anchor = windowStart + 24h
+   eligible = price slots fully inside [windowStart, anchor]  minus  the unavailable window
    ```
-   This is deliberately **not** a calendar day (00:00–23:59). Anchoring on the deadline and looking back means
-   the cheap overnight block (e.g. 23:00→05:00) stays whole instead of being sliced at midnight.
+   With a deadline this is deliberately **not** a calendar day: anchoring on it and looking back keeps the cheap
+   overnight block (e.g. 23:00→05:00) whole instead of slicing it at midnight. `LoadSlotsAsync` therefore reads
+   `date ± 1` so the look-back can reach into the previous day.
 
 2. **Exclude the unavailable window** — any slot whose UTC time-of-day falls inside it is dropped (wrap-around
    past midnight supported).
@@ -187,12 +201,15 @@ and converts to the device's local time at the controller edge for display.
 
 ## Current limitations
 
-- **Coordinate→zone resolution is stubbed** (`ZoneLocatorService` throws). The endpoint won't run end-to-end
-  until it's implemented (options: ship bidding-zone polygons for point-in-polygon; nearest-centre as a rough
-  first cut; or an external API). Everything downstream is already written against the interface.
-- **Timezone handling is deferred** — UTC assumed end to end.
-- **The read depends on populated prices** — the scheduler only sees what's in the DB. The daily populate job
-  (README's planned Azure Function, ~13:00 CET after the day-ahead auction) must run first.
+- **Coordinate→zone resolution is nearest-centre, not polygons.** `ZoneLocatorService` picks the closest zone
+  centre by Haversine distance. Good enough away from borders, **wrong right at internal ones** (and inside
+  multi-zone countries like Italy, Sweden and Norway it's essentially a guess). `TODO(geojson)`: point-in-polygon,
+  keeping nearest-centre as the no-match fallback.
+- **Timezone handling is deferred** — UTC assumed end to end. Note the *market* day is CET (see DESIGN.md), so
+  for the 9 non-CET zones a "day" of prices doesn't start at the user's local midnight.
+- **The read depends on populated prices** — the scheduler only sees what's in the DB. `PriceDataScheduler`
+  handles that automatically now (startup catch-up + a daily run), so this is only a problem on a fresh DB.
+- **`/status` returns 204 until prices are classified**, which needs the calc-service running during populate.
 
 ---
 

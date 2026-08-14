@@ -17,8 +17,8 @@ public class SpotPricesController : ControllerBase
     }
 
     /// <summary>GET /api/spotprices?biddingZoneId=6&amp;date=2026-07-18 — stored day-ahead prices for one
-    /// zone for a single day. The date is the zone's LOCAL delivery day (resolved to a UTC window server-side
-    /// via the zone's timezone), so the returned curve is a whole local day, not a UTC-midnight slice.</summary>
+    /// zone for a single day. The date is the CET <b>market</b> day (see Domain/MarketDay.cs) — the same day
+    /// ENTSO-E publishes, for every zone — resolved to its UTC window server-side.</summary>
     [HttpGet]
     public async Task<IActionResult> GetPrices(
         [FromQuery] int biddingZoneId,
