@@ -15,7 +15,7 @@ public class SpotPriceRepository : ISpotPriceRepository
         var points = await _db.SpotPrices
             .Where(p => p.BiddingZoneId == biddingZoneId && p.From >= fromUtc && p.From < toUtcExclusive)
             .OrderBy(p => p.From)
-            .Select(p => new PricePoint { From = p.From, To = p.To, Price = p.Price })
+            .Select(p => new PricePoint { From = p.From, To = p.To, Price = p.Price, Quantile = p.Quantile })
             .ToListAsync(ct);
 
         return new ZoneSpotPrices { BiddingZoneId = biddingZoneId, Points = points };

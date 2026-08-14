@@ -12,4 +12,5 @@ public record PricePoint
     public required DateTime From { get; set; }
     public required DateTime To { get; set; }
     public decimal Price { get; set; }
+    public PriceQuantile? Quantile { get; set; }
 }

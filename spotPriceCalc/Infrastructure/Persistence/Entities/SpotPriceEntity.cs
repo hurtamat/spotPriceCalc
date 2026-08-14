@@ -1,3 +1,5 @@
+using spotPriceCalc.Domain;
+
 namespace spotPriceCalc.Infrastructure.Persistence.Entities;
 
 public class SpotPriceEntity

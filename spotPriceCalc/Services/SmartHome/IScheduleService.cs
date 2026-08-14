@@ -9,5 +9,6 @@ public interface IScheduleService
 {
     Task<ScheduleResponse> BuildAsync(ScheduleRequest request, CancellationToken ct);
     
-    Task<PriceColor> ResolveStatus(StatusSchedule request,  CancellationToken ct);
+    // Null when the slot is missing or unclassified — the caller shows no colour rather than guessing.
+    Task<PriceColor?> ResolveStatus(StatusSchedule request,  CancellationToken ct);
 }

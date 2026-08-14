@@ -32,6 +32,7 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
         var response = await _schedule.ResolveStatus(
             new StatusSchedule { Lat = lat, Lon = lon, StatusTime = time }, ct);
 
-        return Ok(response);
+        // 204 when no colour applies — the device script clears its LEDs on anything that isn't a 200.
+        return response is null ? NoContent() : Ok(response);
     }
 }

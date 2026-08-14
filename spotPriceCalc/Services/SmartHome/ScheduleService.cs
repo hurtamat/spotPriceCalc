@@ -1,3 +1,4 @@
+using spotPriceCalc.Domain;
 using spotPriceCalc.Dtos;
 using spotPriceCalc.Dtos.Schedule;
 using spotPriceCalc.Infrastructure.Persistence;
@@ -52,17 +53,33 @@ public class ScheduleService : IScheduleService
         };
     }
 
-    public async Task<PriceColor> ResolveStatus(StatusSchedule request, CancellationToken ct)
+    // Null = no colour applies (day missing or not yet classified); the caller turns the indicator off.
+    public async Task<PriceColor?> ResolveStatus(StatusSchedule request, CancellationToken ct)
     {
         var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
         if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
             throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
 
-        var prices = await _prices.GetPricesAsync(biddingZoneId, request.StatusTime, ct);
+        // Client timestamps are UTC by contract (see SmartHomeIntegrationController).
+        var at = DateTime.SpecifyKind(request.StatusTime, DateTimeKind.Utc);
+        var prices = await _prices.GetPricesAsync(biddingZoneId, at, ct);
 
-        // TODO: classify the price at request.StatusTime into Green/Yellow/Red (e.g. relative to the day's
-        // cheap/expensive thresholds). Hardcoded to the middle colour until that logic lands.
-        return PriceColor.Yellow;
+        // Quantile is stamped at populate time, so this is a lookup. Half-open [From, To) as everywhere else.
+        var slot = prices.Points.FirstOrDefault(p => at >= p.From && at < p.To);
+
+        if (slot?.Quantile is not { } quantile)
+        {
+            // Better dark than a guessed colour. A steady stream of these means populate is behind.
+            _logger.LogWarning("No classified slot for zone {ZoneId} at {At:o} — no colour", biddingZoneId, at);
+            return null;
+        }
+
+        return quantile switch
+        {
+            PriceQuantile.Green => PriceColor.Green,
+            PriceQuantile.Red => PriceColor.Red,
+            _ => PriceColor.Yellow,
+        };
     }
 
     // Collapse contiguous chosen slots into single blocks so we don't emit every 15-min/hourly slot
