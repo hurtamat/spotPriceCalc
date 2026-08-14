@@ -16,12 +16,13 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
                          ?? throw new InvalidOperationException("Entsoe:SecurityToken is not configured.");
     }
 
-    public async Task<ZoneSpotPrices> GetSpotPricesAsync(BiddingZone zone, DateOnly date, CancellationToken ct)
+    public async Task<ZoneSpotPrices> GetSpotPricesAsync(BiddingZone zone, DateOnly from, DateOnly to, CancellationToken ct)
     {
         // ENTSO-E periodStart/End are UTC; the delivery day is the CET day (for every zone, not just the
         // CET ones). Asking for exactly that window keeps the response to a single publication day — the
         // API rounds a straddling window outward and returns each extra day as its own TimeSeries.
-        var (fromUtc, toUtc) = MarketDay.WindowUtc(date);
+        var (fromUtc, _) = MarketDay.WindowUtc(from);
+        var (_, toUtc) = MarketDay.WindowUtc(to);
 
         var query = new Dictionary<string, string?>
         {
@@ -38,17 +39,22 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
 
         var doc = EntsoeXml.Deserialize(xml);
 
-        // Day-ahead only, preferring the authoritative SDAC series (no classificationSequence position).
-        var chosen = doc.TimeSeries
-                         .Where(t => t.IsDayAhead)
-                         .OrderBy(t => t.ClassificationSequencePosition.HasValue)
-                         .FirstOrDefault()
-                     ?? throw new InvalidOperationException(
-                         $"No day-ahead (A01) series in ENTSO-E response for zone {zone.Code} on {date:yyyy-MM-dd}.");
-
-        var points = chosen.Periods
+        // One TimeSeries per publication day, so a multi-day range returns several — take them all.
+        // Zones with more than one NEMO repeat a day with identical prices, so dedupe by slot start;
+        // ordering SDAC first (no classificationSequence position) means it wins over EXAA.
+        var points = doc.TimeSeries
+            .Where(t => t.IsDayAhead)
+            .OrderBy(t => t.ClassificationSequencePosition.HasValue)
+            .SelectMany(t => t.Periods)
             .SelectMany(p => p.ToPricePoints())
+            .GroupBy(p => p.From)
+            .Select(g => g.First())
+            .OrderBy(p => p.From)
             .ToList();
+
+        if (points.Count == 0)
+            throw new InvalidOperationException(
+                $"No day-ahead (A01) prices for zone {zone.Code} on {from:yyyy-MM-dd}..{to:yyyy-MM-dd}.");
 
         return new ZoneSpotPrices { BiddingZoneId = zone.Id, Points = points };
     }
