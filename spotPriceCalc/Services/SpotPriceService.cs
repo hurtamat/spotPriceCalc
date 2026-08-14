@@ -34,6 +34,8 @@ public class SpotPriceService : ISpotPriceService
         _logger = logger;
     }
 
+    #region Reads
+
     // Day range: translate each DateOnly to its UTC market-day window and query.
     public Task<ZoneSpotPrices> GetPricesAsync(int biddingZoneId, DateOnly from, DateOnly to, CancellationToken ct)
     {
@@ -48,6 +50,10 @@ public class SpotPriceService : ISpotPriceService
         var day = DateOnly.FromDateTime(instant);
         return GetPricesAsync(biddingZoneId, day, day, ct);
     }
+
+    #endregion
+
+    #region Populate — fetch, store, classify
 
     // Re-runs the pass until every zone lands, then stops. Bounded because "tomorrow" before the auction
     // clears legitimately has no data — the next scheduled run picks it up.
@@ -69,61 +75,6 @@ public class SpotPriceService : ISpotPriceService
                 date, attempt, MaxAttempts, result.Failed, RetryDelay.TotalSeconds);
             await Task.Delay(RetryDelay, ct);
         }
-    }
-
-    // Backfills a date range in ONE ENTSO-E call per zone. No quantiles — this is only the trailing history
-    // that ClassifyDayAsync needs a full window of. Not retried: it's best-effort context.
-    public async Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct)
-    {
-        var zones = BiddingZoneSeedData.Zones;
-        int succeeded = 0, skipped = 0, pointsSaved = 0, failed = 0;
-
-        foreach (var zone in zones)
-        {
-            try
-            {
-                if (await HasEveryDayAsync(zone.Id, from, to, ct))
-                {
-                    skipped++;
-                    continue;
-                }
-
-                var prices = await _provider.GetSpotPricesAsync(zone, from, to, ct);
-                await _repository.SaveAsync(prices, ct);
-                succeeded++;
-                pointsSaved += prices.Points.Count;
-            }
-            catch (EntsoeAcknowledgementException ex)
-            {
-                failed++;
-                _logger.LogInformation("No history at ENTSO-E for {Zone} {From}..{To}: {Reason}",
-                    zone.Name, from, to, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                failed++;
-                _logger.LogWarning(ex, "History backfill failed for {Zone} ({Code}) {From}..{To}",
-                    zone.Name, zone.Code, from, to);
-            }
-
-            await Task.Delay(RequestDelay, ct);
-        }
-
-        _logger.LogInformation(
-            "History backfill {From}..{To}: {Succeeded} fetched, {Skipped} already stored, {Failed} failed, {Points} points",
-            from, to, succeeded, skipped, failed, pointsSaved);
-    }
-    
-    private async Task<bool> HasEveryDayAsync(int zoneId, DateOnly from, DateOnly to, CancellationToken ct)
-    {
-        for (var day = from; day <= to; day = day.AddDays(1))
-        {
-            var (fromUtc, toUtc) = MarketDay.WindowUtc(day);
-            if (!await _repository.HasDayAsync(zoneId, fromUtc, toUtc, ct))
-                return false;
-        }
-
-        return true;
     }
 
     // One pass over every zone. The only place that hits ENTSO-E; the retry wrapper above calls it repeatedly.
@@ -203,4 +154,65 @@ public class SpotPriceService : ISpotPriceService
         await _repository.SetQuantilesAsync(
             zone.Id, dayFromUtc, dayToUtc, zones.LowerQuantile, zones.UpperQuantile, ct);
     }
+
+    #endregion
+
+    #region History backfill
+
+    // Backfills a date range in ONE ENTSO-E call per zone. No quantiles — this is only the trailing history
+    // that ClassifyDayAsync needs a full window of. Not retried: it's best-effort context.
+    public async Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        var zones = BiddingZoneSeedData.Zones;
+        int succeeded = 0, skipped = 0, pointsSaved = 0, failed = 0;
+
+        foreach (var zone in zones)
+        {
+            try
+            {
+                if (await HasEveryDayAsync(zone.Id, from, to, ct))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                var prices = await _provider.GetSpotPricesAsync(zone, from, to, ct);
+                await _repository.SaveAsync(prices, ct);
+                succeeded++;
+                pointsSaved += prices.Points.Count;
+            }
+            catch (EntsoeAcknowledgementException ex)
+            {
+                failed++;
+                _logger.LogInformation("No history at ENTSO-E for {Zone} {From}..{To}: {Reason}",
+                    zone.Name, from, to, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                failed++;
+                _logger.LogWarning(ex, "History backfill failed for {Zone} ({Code}) {From}..{To}",
+                    zone.Name, zone.Code, from, to);
+            }
+
+            await Task.Delay(RequestDelay, ct);
+        }
+
+        _logger.LogInformation(
+            "History backfill {From}..{To}: {Succeeded} fetched, {Skipped} already stored, {Failed} failed, {Points} points",
+            from, to, succeeded, skipped, failed, pointsSaved);
+    }
+
+    private async Task<bool> HasEveryDayAsync(int zoneId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        for (var day = from; day <= to; day = day.AddDays(1))
+        {
+            var (fromUtc, toUtc) = MarketDay.WindowUtc(day);
+            if (!await _repository.HasDayAsync(zoneId, fromUtc, toUtc, ct))
+                return false;
+        }
+
+        return true;
+    }
+
+    #endregion
 }

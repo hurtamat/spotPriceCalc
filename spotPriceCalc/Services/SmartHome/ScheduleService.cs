@@ -25,6 +25,8 @@ public class ScheduleService : IScheduleService
         public double Hours => (End - Start).TotalHours;
     }
 
+    #region Schedule building
+
     public async Task<ScheduleResponse> BuildAsync(ScheduleRequest request, CancellationToken ct)
     {
         var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
@@ -51,71 +53,6 @@ public class ScheduleService : IScheduleService
             ZoneName = zone.Name,
             Tasks = taskResults,
         };
-    }
-
-    // Null = no colour applies (day missing or not yet classified); the caller turns the indicator off.
-    public async Task<PriceColor?> ResolveStatus(StatusSchedule request, CancellationToken ct)
-    {
-        var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
-        if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
-            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
-
-        // Client timestamps are UTC by contract (see SmartHomeIntegrationController).
-        var at = DateTime.SpecifyKind(request.StatusTime, DateTimeKind.Utc);
-        var prices = await _prices.GetPricesAsync(biddingZoneId, at, ct);
-
-        // Quantile is stamped at populate time, so this is a lookup. Half-open [From, To) as everywhere else.
-        var slot = prices.Points.FirstOrDefault(p => at >= p.From && at < p.To);
-
-        if (slot?.Quantile is not { } quantile)
-        {
-            // Better dark than a guessed colour. A steady stream of these means populate is behind.
-            _logger.LogWarning("No classified slot for zone {ZoneId} at {At:o} — no colour", biddingZoneId, at);
-            return null;
-        }
-
-        return quantile switch
-        {
-            PriceQuantile.Green => PriceColor.Green,
-            PriceQuantile.Red => PriceColor.Red,
-            _ => PriceColor.Yellow,
-        };
-    }
-
-    // Collapse contiguous chosen slots into single blocks so we don't emit every 15-min/hourly slot
-    // separately. Split (non-continuous) selections naturally yield multiple blocks.
-    private static List<ScheduledBlock> MergeIntoBlocks(List<Slot> chosen)
-    {
-        var ordered = chosen.OrderBy(s => s.Start).ToList();
-        var blocks = new List<ScheduledBlock>();
-
-        var i = 0;
-        while (i < ordered.Count)
-        {
-            var start = ordered[i].Start;
-            var end = ordered[i].End;
-            var weightedPrice = ordered[i].Price * (decimal)ordered[i].Hours;
-            var hours = ordered[i].Hours;
-
-            var j = i + 1;
-            while (j < ordered.Count && ordered[j].Start == end)
-            {
-                end = ordered[j].End;
-                weightedPrice += ordered[j].Price * (decimal)ordered[j].Hours;
-                hours += ordered[j].Hours;
-                j++;
-            }
-
-            blocks.Add(new ScheduledBlock
-            {
-                StartUtc = start,
-                EndUtc = end,
-                EurPerMwh = hours > 0 ? decimal.Round(weightedPrice / (decimal)hours, 4) : ordered[i].Price,
-            });
-            i = j;
-        }
-
-        return blocks;
     }
 
     // Fetch the stored curve as UTC slots over a ±1-day window (the 24h-before-ready_by window can reach
@@ -162,6 +99,10 @@ public class ScheduleService : IScheduleService
             ? SelectContiguous(eligible, task)
             : SelectCheapest(eligible, task);
     }
+
+    #endregion
+
+    #region Slot selection
 
     private static List<Slot> SelectCheapest(List<Slot> eligible, TaskRequest task)
     {
@@ -220,4 +161,75 @@ public class ScheduleService : IScheduleService
                 return false;
         return true;
     }
+
+    // Collapse contiguous chosen slots into single blocks so we don't emit every 15-min/hourly slot
+    // separately. Split (non-continuous) selections naturally yield multiple blocks.
+    private static List<ScheduledBlock> MergeIntoBlocks(List<Slot> chosen)
+    {
+        var ordered = chosen.OrderBy(s => s.Start).ToList();
+        var blocks = new List<ScheduledBlock>();
+
+        var i = 0;
+        while (i < ordered.Count)
+        {
+            var start = ordered[i].Start;
+            var end = ordered[i].End;
+            var weightedPrice = ordered[i].Price * (decimal)ordered[i].Hours;
+            var hours = ordered[i].Hours;
+
+            var j = i + 1;
+            while (j < ordered.Count && ordered[j].Start == end)
+            {
+                end = ordered[j].End;
+                weightedPrice += ordered[j].Price * (decimal)ordered[j].Hours;
+                hours += ordered[j].Hours;
+                j++;
+            }
+
+            blocks.Add(new ScheduledBlock
+            {
+                StartUtc = start,
+                EndUtc = end,
+                EurPerMwh = hours > 0 ? decimal.Round(weightedPrice / (decimal)hours, 4) : ordered[i].Price,
+            });
+            i = j;
+        }
+
+        return blocks;
+    }
+
+    #endregion
+
+    #region Price colour
+
+    // Null = no colour applies (day missing or not yet classified); the caller turns the indicator off.
+    public async Task<PriceColor?> ResolveStatus(StatusSchedule request, CancellationToken ct)
+    {
+        var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
+        if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
+            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
+
+        // Client timestamps are UTC by contract (see SmartHomeIntegrationController).
+        var at = DateTime.SpecifyKind(request.StatusTime, DateTimeKind.Utc);
+        var prices = await _prices.GetPricesAsync(biddingZoneId, at, ct);
+
+        // Quantile is stamped at populate time, so this is a lookup. Half-open [From, To) as everywhere else.
+        var slot = prices.Points.FirstOrDefault(p => at >= p.From && at < p.To);
+
+        if (slot?.Quantile is not { } quantile)
+        {
+            // Better dark than a guessed colour. A steady stream of these means populate is behind.
+            _logger.LogWarning("No classified slot for zone {ZoneId} at {At:o} — no colour", biddingZoneId, at);
+            return null;
+        }
+
+        return quantile switch
+        {
+            PriceQuantile.Green => PriceColor.Green,
+            PriceQuantile.Red => PriceColor.Red,
+            _ => PriceColor.Yellow,
+        };
+    }
+
+    #endregion
 }
