@@ -7,7 +7,7 @@ const STEPS = [
   {
     n: '2',
     title: 'We find the cheap hours',
-    body: 'Our engine ranks the hours and plans when each flexible load should run, factoring weather and comfort.',
+    body: 'Our engine ranks the hours and plans when each flexible load should run, based on what you need.',
   },
   {
     n: '3',
@@ -22,9 +22,10 @@ export function HowItWorks() {
       <div className="sb-section-head">
         <h2 style={{ fontSize: 'clamp(26px,3.6vw,38px)', margin: '14px 0' }}>What are spot prices</h2>
         <p style={{ color: 'var(--color-neutral-700)' }}>
-          On the wholesale market, electricity is priced <strong>every single hour</strong>. At 3am
-          with lots of wind it can be nearly free; at 6pm when everyone cooks it spikes. That hourly
-          wholesale price is the <em>spot price</em>.
+          On the wholesale market, electricity is priced <strong>every single hour</strong>. That
+          hourly wholesale price is the <em>spot price</em>. Pricing like this used to be reserved
+          for large companies and factories, but today an ordinary household can get in on it too, and
+          put money back in its own pocket every month.
         </p>
       </div>
 
@@ -43,23 +44,18 @@ export function HowItWorks() {
           <h4>Fixed tariff</h4>
           <p>
             You pay the same rate at 3am and 6pm. Shifting your boiler or EV charging to cheap hours
-            saves you <strong>nothing</strong> — the meter can&apos;t tell the difference.
+            saves you <strong>nothing</strong>, because the meter can&apos;t tell the difference.
           </p>
         </div>
         <div className="sb-tariff sb-tariff-dynamic">
           <h4>Dynamic / spot tariff</h4>
           <p>
             You pay the real hourly price. Now moving flexible loads into the cheap hours{' '}
-            <strong>directly cuts your bill</strong> — and that&apos;s exactly what SpotBuddy
+            <strong>directly cuts your bill</strong>, and that&apos;s exactly what SpotBuddy
             automates.
           </p>
         </div>
       </div>
-
-      <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--color-neutral-600)', marginTop: 18 }}>
-        Ask your supplier for a <strong>dynamic tariff &amp; install a smart switch</strong>. Once
-        you do, SpotBuddy handles the data and integration for you.
-      </p>
     </section>
   );
 }

@@ -1,29 +1,26 @@
 import { useState } from 'react';
 
-const FAQ = [
+const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = [
   {
-    q: 'What exactly is a spot price?',
-    a: 'It is the wholesale price of electricity for one specific hour, set on the power exchange the day before delivery. Because supply (wind, solar, demand) shifts through the day, the price can swing several-fold between 3am and 6pm. SpotBuddy uses that hourly curve to decide when your devices should run.',
+    q: 'How can you provide this service for free?',
+    a: 'We are university graduates and the service runs on our school’s resources, so it costs us nothing to host and nothing for you to use.',
   },
   {
-    q: 'Why do I need a dynamic / spot tariff — won’t a fixed one work?',
-    a: 'On a fixed tariff you pay the same rate every hour, so shifting load to cheap hours saves you nothing on paper. A dynamic (spot) tariff bills you the real hourly price, so moving flexible loads into the cheap hours directly lowers your bill. Ask your supplier for an hourly-settled / spot product — then SpotBuddy pays off.',
+    q: 'How do you decide whether a spot price is cheap or expensive?',
+    a: 'Every hour is scored against the recent price history of your own bidding zone, then marked green, yellow or red. Your devices follow that.',
+    link: { href: '#how', label: 'More about how it works' },
+  },
+  {
+    q: 'I pay a flat price for electricity, what now?',
+    a: 'On a flat tariff 3am and 6pm cost the same, so there is nothing to shift yet. Almost every European country has suppliers offering a dynamic (spot) tariff billed at the real hourly price. Ask yours for one, and SpotBuddy starts paying off.',
+  },
+  {
+    q: 'I don’t have a smart meter, what now?',
+    a: 'You can still use SpotBuddy. Read the price curve and set a timer, or just switch things on during the cheap hours yourself. To automate it later, the simplest route is a smart plug with Home Assistant and our add-on.',
   },
   {
     q: 'Do my devices or appliances risk any harm?',
-    a: 'No. SpotBuddy only switches a relay or plug on and off at sensible times, exactly like you flipping a switch — with comfort limits so, e.g., the boiler never drops below your set temperature. Nothing is over-driven.',
-  },
-  {
-    q: 'Do I need a smart meter?',
-    a: 'Not for the automation itself — SpotBuddy works from the published market prices and your smart switches. You do need a dynamic tariff from your supplier to be billed at those hourly prices, which usually comes with an interval/smart meter.',
-  },
-  {
-    q: 'How is my price zone chosen?',
-    a: 'Europe is divided into bidding zones (often one per country, sometimes split). You pick your location and we lock onto that zone’s day-ahead curve — no manual price entry.',
-  },
-  {
-    q: 'What will SpotBuddy cost?',
-    a: 'We are finalising pricing for the beta. The plan is a small flat subscription that stays well below what an average flexible household saves. Join the waitlist and you’ll be first to know.',
+    a: 'No. SpotBuddy just switches a plug or relay on and off, exactly like you flipping a switch, and your comfort limits still apply so the boiler never drops below your set temperature.',
   },
 ];
 
@@ -55,7 +52,17 @@ export function Faq() {
               </button>
               <div className="sb-faq-panel" data-open={isOpen}>
                 <div>
-                  <p className="sb-faq-a">{f.a}</p>
+                  <p className="sb-faq-a">
+                    {f.a}
+                    {f.link && (
+                      <>
+                        {' '}
+                        <a className="sb-faq-link" href={f.link.href}>
+                          {f.link.label} →
+                        </a>
+                      </>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>

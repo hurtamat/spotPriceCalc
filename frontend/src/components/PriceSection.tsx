@@ -135,7 +135,7 @@ export function PriceSection() {
           type="button"
           className="sb-chart-handle"
           onClick={() => setPanelOpen(false)}
-          aria-label="Back to map — change zone"
+          aria-label="Back to map, change zone"
         >
           <span aria-hidden="true">›</span>
         </button>
@@ -144,8 +144,8 @@ export function PriceSection() {
           <div className="sb-price-head">
             <h2>Today&apos;s price curve</h2>
             <p>
-              Pick a zone on the map — live day-ahead spot prices for {zoneName}. The graph shows
-              the price through the day; SpotBuddy runs your devices in the dips.
+              Pick a zone on the map for live spot prices. The graph shows
+              the price through the day.
             </p>
           </div>
 

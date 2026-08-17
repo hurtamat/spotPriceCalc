@@ -1,8 +1,10 @@
-const LOGOS = [
+// `comingSoon` greys + blurs the logo and stamps a "Coming soon" badge over it.
+// logo-tuya.png / logo-aqara.png are still in public/assets, just not on the wall.
+const LOGOS: { src: string; alt: string; height: number; comingSoon?: boolean }[] = [
   { src: '/assets/logo-shelly.png', alt: 'Shelly', height: 30 },
-  { src: '/assets/logo-tuya.png', alt: 'Tuya', height: 40 },
-  { src: '/assets/logo-aqara.png', alt: 'Aqara', height: 28 },
   { src: '/assets/logo-homeassistant.png', alt: 'Home Assistant', height: 34 },
+  { src: '/assets/logo-alexa.png', alt: 'Amazon Alexa', height: 42, comingSoon: true },
+  { src: '/assets/logo-google-home.png', alt: 'Google Home', height: 54, comingSoon: true },
 ];
 
 export function Devices() {
@@ -20,8 +22,9 @@ export function Devices() {
 
       <div className="sb-logo-wall">
         {LOGOS.map((l) => (
-          <div key={l.alt} className="sb-logo-card">
+          <div key={l.alt} className="sb-logo-card" data-soon={l.comingSoon ? 'true' : undefined}>
             <img src={l.src} alt={l.alt} style={{ height: l.height }} />
+            {l.comingSoon && <span className="sb-logo-soon">Coming soon</span>}
           </div>
         ))}
       </div>

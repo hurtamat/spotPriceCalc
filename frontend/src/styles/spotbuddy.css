@@ -924,6 +924,7 @@ a:hover {
 }
 
 .sb-logo-card {
+  position: relative;
   background: var(--color-surface);
   border: 1px solid var(--color-divider);
   border-radius: 18px;
@@ -947,6 +948,36 @@ a:hover {
 .sb-logo-card img {
   width: auto;
   object-fit: contain;
+}
+
+/* Integration we don't ship yet: the logo stays recognisable but is clearly
+   inactive (greyed + blurred), with the badge sitting sharp on top of it. */
+.sb-logo-card[data-soon] img {
+  filter: grayscale(1) blur(1.6px);
+  opacity: 0.4;
+}
+
+.sb-logo-card[data-soon]:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--color-divider);
+}
+
+.sb-logo-soon {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--color-pop-100);
+  border: 1px solid var(--color-divider);
+  color: var(--color-pop-700);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .sb-devices-cta {
@@ -1025,6 +1056,11 @@ a:hover {
 
 .sb-faq-panel[data-open='true'] .sb-faq-a {
   opacity: 1;
+}
+
+.sb-faq-link {
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {

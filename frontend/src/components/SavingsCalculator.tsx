@@ -66,7 +66,7 @@ export function SavingsCalculator() {
       </div>
 
       <div>
-        <label className="sb-field-label">Yearly consumption — optional (kWh/year)</label>
+        <label className="sb-field-label">Yearly consumption, optional (kWh/year)</label>
         <input
           className="sb-input"
           inputMode="numeric"
