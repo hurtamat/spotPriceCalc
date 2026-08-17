@@ -5,13 +5,12 @@ export function CtaStrip() {
       <div style={{ position: 'relative' }}>
         <h2>Ready to let cheap hours pay your bill?</h2>
         <p className="sb-cta-sub">
-          Join the waitlist and we&apos;ll ping you when SpotBuddy opens in your zone.
+          Look up your zone, see what today&apos;s hours cost, and let SpotBuddy run your devices in
+          the dips.
         </p>
-        {/* Waitlist submission is wired up later. */}
-        <div className="sb-cta-form">
-          <input className="sb-cta-input" placeholder="you@email.com" />
-          <button className="sb-btn sb-cta-btn">Join waitlist</button>
-        </div>
+        <a className="sb-btn sb-cta-btn" href="#prices">
+          See live prices →
+        </a>
       </div>
     </section>
   );

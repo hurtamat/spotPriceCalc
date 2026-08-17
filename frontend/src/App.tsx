@@ -4,7 +4,7 @@ import { PriceSection } from './components/PriceSection';
 import { HowItWorks } from './components/HowItWorks';
 import { Devices } from './components/Devices';
 import { Faq } from './components/Faq';
-import { CtaStrip } from './components/CtaStrip';
+// CtaStrip ("Ready to let cheap hours pay your bill?") is kept but not rendered.
 import { Footer } from './components/Footer';
 
 export default function App() {
@@ -16,7 +16,6 @@ export default function App() {
       <HowItWorks />
       <Devices />
       <Faq />
-      <CtaStrip />
       <Footer />
     </div>
   );

@@ -30,9 +30,9 @@ export function Devices() {
       </div>
 
       <div className="sb-devices-cta">
-        <button className="sb-btn sb-primary" style={{ fontSize: 15, padding: '14px 34px' }}>
-          Join the waitlist
-        </button>
+        <a className="sb-btn sb-primary" href="#prices" style={{ fontSize: 15, padding: '14px 34px' }}>
+          See live prices
+        </a>
         <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>
           Got the device but no dynamic tariff yet? <a href="#how">Here&apos;s why you need one →</a>
         </span>

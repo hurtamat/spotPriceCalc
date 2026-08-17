@@ -13,7 +13,9 @@ React + TypeScript + Vite landing page for SpotBuddy, ported from the Claude Des
   Germany-Luxembourg, id 7); results are cached per zone+day.
 - **Mobile** — the price section is a two-panel slider (chart ⇄ map): nothing preselected, tap a zone
   to slide to the graph, use the handle / swipe to slide back.
-- **Savings estimator, waitlist forms, FAQ** — static / local-only. Placeholders to be wired up later.
+- **Savings estimator, FAQ** — static / local-only. Placeholders to be wired up later.
+- **No waitlist / email capture** — deliberately removed. Every CTA on the page is an anchor into
+  the `#prices` section; there is no signup form anywhere.
 
 ## Run it
 

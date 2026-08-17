@@ -20,10 +20,6 @@ export function Nav() {
             {l.label}
           </a>
         ))}
-        {/* Waitlist wiring comes later. */}
-        <button className="sb-btn sb-primary" style={{ padding: '10px 20px', fontSize: 14 }}>
-          Join waitlist
-        </button>
       </div>
     </nav>
   );

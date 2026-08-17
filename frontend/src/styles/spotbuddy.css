@@ -118,10 +118,15 @@ a:hover {
   color: var(--color-accent);
 }
 
+/* Used on both <button> and <a> (the CTAs are anchors into #prices), hence the
+   explicit display / text-decoration that a <button> would get for free. */
 .sb-btn {
   cursor: pointer;
   border: none;
   border-radius: 999px;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
   font-family: var(--font-heading);
   font-weight: 600;
   transition:
@@ -142,6 +147,7 @@ a:hover {
 
 .sb-primary:hover {
   background: var(--color-accent-700);
+  color: #fff; /* beats the global a:hover colour when .sb-primary is an anchor */
 }
 
 .sb-card {
@@ -1107,36 +1113,16 @@ a:hover {
   margin: 0 auto 26px;
 }
 
-.sb-cta-form {
-  display: flex;
-  gap: 10px;
-  max-width: 430px;
-  margin: 0 auto;
-  flex-wrap: wrap;
-}
-
-.sb-cta-input {
-  flex: 1;
-  min-width: 180px;
-  min-height: 46px;
-  padding: 8px 16px;
-  font-size: 15px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  outline: none;
-}
-
-.sb-cta-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
-}
-
 .sb-cta-btn {
-  padding: 13px 26px;
+  padding: 14px 30px;
   background: #fff;
   color: var(--color-accent-900);
   font-size: 15px;
+}
+
+.sb-cta-btn:hover {
+  background: var(--color-accent-100);
+  color: var(--color-accent-900);
 }
 
 /* ── footer ────────────────────────────────────────────────────── */
