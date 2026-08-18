@@ -10,6 +10,7 @@ import {
 import { ZoneMap } from './ZoneMap';
 import { ZONE_BY_ID } from '../api/zones';
 import { PriceBarChart, buildDaySlots, utcOffsetLabel } from './PriceBarChart';
+import { publishSelection } from '../state/selectionStore';
 
 // Default selection until the user picks a zone on the map (Germany-Luxembourg = id 7).
 const DEFAULT_ZONE_ID = 7;
@@ -106,6 +107,11 @@ export function PriceSection() {
   }, [key, zoneId, day]);
 
   const state = zoneId != null ? cache[key] : undefined;
+
+  // Let the Individual-savings section follow this selection and reuse the curve.
+  useEffect(() => {
+    publishSelection({ zoneId, day, data: state?.status === 'ready' ? state.data : null });
+  }, [zoneId, day, state]);
 
   return (
     <section

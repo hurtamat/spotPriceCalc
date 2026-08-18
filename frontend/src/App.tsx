@@ -1,6 +1,7 @@
 import { Nav } from './components/Nav';
 import { Hero } from './components/Hero';
 import { PriceSection } from './components/PriceSection';
+import { IndividualSavings } from './components/IndividualSavings';
 import { HowItWorks } from './components/HowItWorks';
 import { Devices } from './components/Devices';
 import { Faq } from './components/Faq';
@@ -13,6 +14,7 @@ export default function App() {
       <Nav />
       <Hero />
       <PriceSection />
+      <IndividualSavings />
       <HowItWorks />
       <Devices />
       <Faq />
