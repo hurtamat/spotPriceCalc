@@ -16,8 +16,6 @@ class PriceZonesResponse(WireModel):
 
 @router.post("/price-zones", response_model=PriceZonesResponse)
 def price_zones(eur_per_mwh: list[float]) -> PriceZonesResponse:
-    # PLACEHOLDER: sort and cut at the 1/3 and 2/3 marks. Deliberately dumb — plain index picks, no
-    # interpolation, no outlier handling, no weighting by how recent a price is. TODO: real model.
 
     pandas_list = pd.Series(eur_per_mwh)
     ma = pandas_list.rolling(672).mean()
