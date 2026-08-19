@@ -7,12 +7,12 @@ const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = 
   },
   {
     q: 'How do you decide whether a spot price is cheap or expensive?',
-    a: 'Every hour is scored against the recent price history of your own bidding zone, then marked green, yellow or red. Your devices follow that.',
+    a: 'Every hour is scored against the historic price of your bidding zone using moving average residuals method.',
     link: { href: '#how', label: 'More about how it works' },
   },
   {
     q: 'I pay a flat price for electricity, what now?',
-    a: 'On a flat tariff 3am and 6pm cost the same, so there is nothing to shift yet. Almost every European country has suppliers offering a dynamic (spot) tariff billed at the real hourly price. Ask yours for one, and SpotBuddy starts paying off.',
+    a: 'Every European country has suppliers offering a dynamic (spot) tariff billed at the hourly/15min price. Ask yours for one, and SpotBuddy starts paying off.',
   },
   {
     q: 'I don’t have a smart meter, what now?',
@@ -20,7 +20,7 @@ const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = 
   },
   {
     q: 'Do my devices or appliances risk any harm?',
-    a: 'No. SpotBuddy just switches a plug or relay on and off, exactly like you flipping a switch, and your comfort limits still apply so the boiler never drops below your set temperature.',
+    a: 'No. SpotBuddy just switches a plug or relay on and off, exactly like you flipping a switch, and your comfort parameters always apply so your EV is charged when you need it to be.',
   },
 ];
 
