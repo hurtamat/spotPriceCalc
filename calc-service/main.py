@@ -9,7 +9,6 @@ from wire import WireModel as _WireModel
 
 app = FastAPI()
 
-# Cheap/medium/expensive thresholds over a bare price list (7 days, a year — same route).
 app.include_router(price_zones.router)
 
 
@@ -35,16 +34,21 @@ class ScheduleRequest(_WireModel):
 
 # --- Helper Functions ---
 
-def zone_flags(value: float, low: float, high: float) -> dict:
+def zone_flags(residual_value: float, low: float, high: float) -> dict:
+    # Now evaluates based on the residual quantiles rather than absolute price
     return {
-        "green": bool(value < low),
-        "yellow": bool(low <= value <= high),
-        "red": bool(value > high),
+        "green": bool(residual_value < low),
+        "yellow": bool(low <= residual_value <= high),
+        "red": bool(residual_value > high),
     }
 
 
 def best_window(df: pd.DataFrame, window_size: int, low_q: float, high_q: float, col_name: str) -> dict:
+    # We still want the absolute cheapest price for the window
     rolling_mean = df[col_name].rolling(window_size).mean()
+
+    # We also calculate the rolling residual to accurately determine the zone of this specific window
+    rolling_residual = df["residual"].rolling(window_size).mean()
 
     # Index position of the lowest rolling average
     best_end_pos = int(rolling_mean.argmin())
@@ -52,13 +56,14 @@ def best_window(df: pd.DataFrame, window_size: int, low_q: float, high_q: float,
 
     window = df.iloc[best_start_pos: best_end_pos + 1]
     best_avg = float(rolling_mean.iloc[best_end_pos])
+    best_residual_avg = float(rolling_residual.iloc[best_end_pos])
 
     return {
         "from": window.iloc[0]["from"],
         "to": window.iloc[-1]["to"],
         "average_price": round(best_avg, 2),
         "price_dif": round(float(rolling_mean.max() - rolling_mean.min()), 2),
-        "zones": zone_flags(best_avg, low_q, high_q),
+        "zones": zone_flags(best_residual_avg, low_q, high_q),
         "zone_values": {
             "green": bool(window["greenZone"].all()),
             "yellow": bool(window["yellowZone"].all()),
@@ -90,16 +95,22 @@ def schedule(req: ScheduleRequest):
     prices_df["from_dt"] = pd.to_datetime(prices_df["from"], utc=True)
     prices_df["to_dt"] = pd.to_datetime(prices_df["to"], utc=True)
 
-    # 3. Calculate Quantiles & Zones
+    # 3. Calculate Moving Average & Residuals
+    # 672 periods = 7 days (Assuming 15 min intervals: 4 * 24 * 7 = 672)
+    # min_periods=1 prevents returning NaNs if the incoming payload has less than 7 days of data
+    prices_df['moving_average'] = prices_df[col].rolling(window=672, min_periods=1).mean()
+    prices_df['residual'] = prices_df[col] - prices_df['moving_average']
+
+    # 4. Calculate Quantiles & Zones based on the Residuals
     alpha = 0.3
-    lower_q = float(prices_df[col].quantile(alpha))
-    upper_q = float(prices_df[col].quantile(1 - alpha))
+    lower_q = float(prices_df['residual'].quantile(alpha))
+    upper_q = float(prices_df['residual'].quantile(1 - alpha))
 
-    prices_df["greenZone"] = prices_df[col] < lower_q
-    prices_df["yellowZone"] = prices_df[col].between(lower_q, upper_q, inclusive="both")
-    prices_df["redZone"] = prices_df[col] > upper_q
+    prices_df["greenZone"] = prices_df['residual'] < lower_q
+    prices_df["yellowZone"] = prices_df['residual'].between(lower_q, upper_q, inclusive="both")
+    prices_df["redZone"] = prices_df['residual'] > upper_q
 
-    # 4. Generate activities dict
+    # 5. Generate activities dict
     activities = {
         "ironing": best_window(prices_df, 4, lower_q, upper_q, col),  # 1 hour (4x15m)
         "dryer": best_window(prices_df, 6, lower_q, upper_q, col),  # 90 mins (6x15m)
@@ -107,7 +118,7 @@ def schedule(req: ScheduleRequest):
         "washing_machine": best_window(prices_df, 8, lower_q, upper_q, col),  # 2 hours (8x15m)
     }
 
-    # 5. Format updated prices back to standard dictionary list
+    # 6. Format updated prices back to standard dictionary list
     updated_prices = []
     for _, row in prices_df.iterrows():
         updated_prices.append({
@@ -121,7 +132,7 @@ def schedule(req: ScheduleRequest):
             }
         })
 
-    # 6. Combine all data into final output JSON format
+    # 7. Combine all data into final output JSON format
     output_json = {
         "biddingZoneId": req.bidding_zone_id,
         "from": req.date_from,
