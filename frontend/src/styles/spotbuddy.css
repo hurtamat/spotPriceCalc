@@ -1441,3 +1441,20 @@ a:hover {
     display: none;
   }
 }
+
+/* Termly legal documents rendered inside LegalDialog. Their own stylesheet is prefixed
+   with .sb-legal at runtime (see api/legal.ts), so this only sets what Termly doesn't. */
+.sb-legal {
+  overflow-wrap: anywhere;
+}
+
+.sb-legal h1 {
+  /* The document repeats its own title; the dialog header already shows it. */
+  display: none;
+}
+
+.sb-legal table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
