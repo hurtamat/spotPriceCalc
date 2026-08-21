@@ -1448,11 +1448,6 @@ a:hover {
   overflow-wrap: anywhere;
 }
 
-.sb-legal h1 {
-  /* The document repeats its own title; the dialog header already shows it. */
-  display: none;
-}
-
 .sb-legal table {
   display: block;
   max-width: 100%;

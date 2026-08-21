@@ -25,6 +25,31 @@ function stripTermlyLogo(html: string): string {
 }
 
 /**
+ * Drops the document's own `<h1>` and the element wrapping it — the dialog header already
+ * names the document. Removing the wrapper matters: hiding just the `<h1>` in CSS leaves an
+ * empty block behind, which renders as a stray blank line above "Last updated".
+ *
+ * The two exports nest the title differently (privacy wraps it in a bare `<div><strong>`,
+ * terms in a `div.MsoNormal[data-custom-class="title"]`), so this matches the innermost
+ * `<div>` containing the `<h1>` rather than either specific shape.
+ */
+function stripDocumentTitle(html: string): string {
+  return html.replace(/<div[^>]*>(?:(?!<\/?div)[\s\S])*?<h1[\s\S]*?<\/h1>(?:(?!<\/?div)[\s\S])*?<\/div>/, '');
+}
+
+/**
+ * Termly pads its documents with runs of empty spacer divs — `privacy.html` has three in a
+ * row right under the title, which read as three blank lines at the top of the dialog.
+ * Collapses any run of two or more down to a single one so the spacing stays even.
+ */
+function collapseBlankRuns(html: string): string {
+  return html.replace(
+    /(?:<div[^>]*>\s*<br\s*\/?>\s*<\/div>\s*){2,}/g,
+    '<div><br></div>',
+  );
+}
+
+/**
  * Prefixes every selector in a stylesheet with {@link SCOPE}.
  *
  * Load-bearing, not cosmetic: Termly's second `<style>` block styles bare `ul`,
@@ -78,7 +103,9 @@ export async function loadLegalDocument(kind: LegalKind): Promise<string> {
     throw new Error(`Failed to load ${kind} document: ${response.status}`);
   }
 
-  const prepared = hardenLinks(scopeStyleBlocks(stripTermlyLogo(await response.text())));
+  const prepared = hardenLinks(
+    scopeStyleBlocks(collapseBlankRuns(stripDocumentTitle(stripTermlyLogo(await response.text())))),
+  );
   cache.set(kind, prepared);
   return prepared;
 }
