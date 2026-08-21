@@ -111,11 +111,6 @@ export function Devices() {
           </div>
         ))}
       </div>
-
-      <p className="sb-int-note">
-        More integrations on the way, every one goes live over time. Brand names and logos belong to
-        their respective owners.
-      </p>
     </section>
   );
 }
