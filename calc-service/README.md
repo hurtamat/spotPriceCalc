@@ -58,16 +58,17 @@ the contract works end-to-end and your input parsed correctly.
 Lives in **`price_zones.py`** (`main.py` only mounts the router). Shared Pydantic
 base config is in `wire.py`.
 
-> **Status: contract done, maths is a stub.** The handler parses the prices into a
-> `pandas.Series` and then returns **placeholder numbers**. A `200` means your input
-> parsed and the contract works end-to-end — it does *not* mean the thresholds are
-> real. Implementing the quantiles is the open task; the `price_zones()` docstring
-> has the pandas calls to write.
+> **Status: implemented.** Cut-offs are de-trended, not plain quantiles of the raw
+> prices — see *How the cut-offs are derived* below.
 
-Quantiles are order-independent, so the body is a **bare JSON array of prices** —
-no timestamps, no resolution, no metadata. One route serves both cases: send
-7 days of values for short-term colours, or a year for long-term context. Only
-the length of the list changes.
+The body is a **bare JSON array of prices** — no timestamps, no resolution, no
+metadata — but it **must be in chronological order**: the moving baseline is
+order-dependent, unlike plain quantiles. .NET's `GetPriceValuesAsync` sorts by
+`From`, which is what makes this safe.
+
+The caller sends a trailing window (7 days today) and stamps only the **last day**
+of it. That is why one pair of numbers is enough: it only has to be correct for
+the day being classified, and the next day gets a fresh pair from its own window.
 
 ```json
 [155.26, 148.9, 132.0, 121.44, 118.02, 110.35, 104.88, 99.1]
@@ -83,13 +84,39 @@ Below `lowerQuantile` is cheap (green), above `upperQuantile` is expensive (red)
 between them is medium (yellow). With those two numbers the caller colours any
 slot locally, including tomorrow's prices that were never in the sample.
 
+**The colours are informative only.** They drive the chart so a user can see the
+shape of a day. Nothing switches on them — device scheduling picks the cheapest
+hours directly, because the appliance has to run either way.
+
+### How the cut-offs are derived
+
+Plain quantiles over the raw window make a day that is expensive *relative to the
+preceding week* come back with zero cheap hours: the week's cheaper prices swamp
+it, even though that day still has hours worth waiting for. So instead:
+
+1. `baseline` = rolling mean over `MA_WINDOW` (672 = 7 days), `min_periods=1`
+   so a short or still-backfilling window yields a real number instead of NaN.
+2. `residuals` = each price minus that baseline — how unusual it is for its moment.
+3. Take `ALPHA` of the residuals, then **add
+   `baseline.iloc[-1]` back**, so what goes out is two absolute EUR/MWh prices the
+   caller can compare raw prices against.
+
+Step 3 is what keeps the wire contract two plain numbers:
+`SpotPriceRepository.SetQuantilesAsync` does `row.Price < lower`, so residuals
+centred on zero would stamp every slot red.
+
 - **These are prices, not the 0..1 fractions.** Where the cut-offs sit in the
-  distribution is fixed in `LOWER_QUANTILE` / `UPPER_QUANTILE` (0.3 / 0.7) — a
-  product decision, deliberately not a request parameter.
+  residual distribution is fixed in `ALPHA` (0.3 / 0.7)
+  — a product decision, deliberately not a request parameter.
+- **`MA_WINDOW` is a tuning knob.** At 672 it equals the whole window .NET
+  sends, so the baseline is effectively the window's running mean and adapts
+  slowly. A shorter baseline (2 days = 192) tracks the recent level more tightly.
 - **Negative prices are fine** — normal in Central European zones, and quantiles
   handle them without special-casing.
+- **An empty list is a `422`**, not a 500.
 - The .NET side refuses ranges with fewer than 12 stored prices
-  (`SpotPriceService.MinZoneSamples`) — quantiles over a near-empty sample are noise.
+  (`SpotPriceService.MinQuantileSamples`) — quantiles over a near-empty sample are
+  noise.
 
 **Caveat — equal slot durations.** Quantiles are unweighted, so every value counts
 once regardless of how long its slot lasted. Correct within one zone at one
@@ -98,9 +125,11 @@ the same as 15 minutes. The .NET side sends a single zone/range, which holds
 today; revisit if you ever backfill across a resolution change.
 
 **Caveat — a year is not one distribution.** January and July have genuinely
-different price levels, so one yearly cut-off will label most of one season
-expensive and most of the other cheap. Use the year for context and let the 7-day
-cut-offs drive actual switching decisions, or compute per-month.
+different price levels. De-trending is what addresses this: the baseline follows
+the seasonal level, so residuals stay comparable across the year rather than
+labelling one whole season expensive. Note this only holds while the window is
+meaningfully longer than `MA_WINDOW` — at today's 7-day window and 672-slot
+baseline the two are equal, so there is little trend left to remove.
 
 ## The .NET ↔ FastAPI contract
 

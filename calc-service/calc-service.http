@@ -1,11 +1,11 @@
-### Calc service (FastAPI) — run `fastapi dev main.py`, listens on 8000. Docs at /docs
 @host = http://localhost:8000
 
 ### Health check
 GET {{host}}/
 Accept: application/json
 
-### Price zones — bare list of prices in, two cut-off prices out. Same route for 7 days or a year.
+
+### 1. Falling — ends cheap, so cut-offs sit low.
 POST {{host}}/price-zones
 Content-Type: application/json
 Accept: application/json
@@ -14,6 +14,46 @@ Accept: application/json
   155.26, 148.90, 132.00, 121.44, 118.02, 110.35, 104.88, 99.10,
   95.42, 91.07, 88.63, 84.29, 80.15, 76.88, 71.20, 66.05,
   62.40, 58.77, 54.13, 49.90, 45.62, 38.04, 22.51, -3.18
+]
+
+### 2. Rising — #1 reversed, so order matters.
+POST {{host}}/price-zones
+Content-Type: application/json
+Accept: application/json
+
+[
+  -3.18, 22.51, 38.04, 45.62, 49.90, 54.13, 58.77, 62.40,
+  66.05, 71.20, 76.88, 80.15, 84.29, 88.63, 91.07, 95.42,
+  99.10, 104.88, 110.35, 118.02, 121.44, 132.00, 148.90, 155.26
+]
+
+### 3. Fluctuating — no trend, night green / peaks red.
+POST {{host}}/price-zones
+Content-Type: application/json
+Accept: application/json
+
+[
+  92.0, 74.5, 61.0, 55.0, 58.5, 70.0, 96.0, 128.0,
+  141.0, 133.0, 118.0, 105.0, 98.0, 94.5, 97.0, 108.0,
+  126.0, 152.0, 168.0, 159.0, 140.0, 121.0, 108.0, 96.0
+]
+
+### 4. Tiny — 5 values, proves min_periods=1 works.
+POST {{host}}/price-zones
+Content-Type: application/json
+Accept: application/json
+
+[40.0, 80.0, 120.0, 160.0, 200.0]
+
+### 5. Negatives — no special-casing needed.
+POST {{host}}/price-zones
+Content-Type: application/json
+Accept: application/json
+
+[
+  88.0, 72.0, 45.0, 10.0, -8.5, -21.0, -15.0, 4.0,
+  52.0, 96.0, 118.0, 131.0, 127.0, 119.0, 112.0, 120.0,
+  138.0, 166.0, 181.0, 172.0, 150.0, 128.0, 110.0, 94.0
 ]
 
 ### Schedule — REAL Slovakia data, 2026-07-24 (full 15-min day). Payload from the DB.
