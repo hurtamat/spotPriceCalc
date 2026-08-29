@@ -18,3 +18,12 @@ dist/
 # IDE
 .idea/
 .claude/
+CLAUDE.md
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
