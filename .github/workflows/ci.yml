@@ -1,12 +1,9 @@
 name: CI
 
-# Verify every service builds on pull requests and pushes to non-main branches.
-# Deploys happen separately in deploy.yml (only on main).
+# Verify service builds
 on:
   pull_request:
   push:
-    branches-ignore:
-      - main
 
 jobs:
   backend:
@@ -46,5 +43,18 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      # Smoke check: the app imports and constructs without error.
       - run: python -c "import main; assert main.app"
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.9"
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate

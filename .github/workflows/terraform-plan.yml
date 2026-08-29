@@ -1,0 +1,63 @@
+name: Terraform Plan
+
+# Shows the infrastructure diff on a PR before it can be merged.
+# Read-only: never applies. Uses the github-pr federated credential.
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-plan.yml"
+
+permissions:
+  id-token: write # required to request the OIDC token
+  contents: read
+  pull-requests: write # required to post the plan as a comment
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    env:
+      ARM_USE_OIDC: true
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_entsoe_token: ${{ secrets.ENTSOE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.9"
+          terraform_wrapper: false
+
+      - run: terraform init
+
+      - name: Plan
+        id: plan
+        run: |
+          terraform plan -no-color -input=false -out=tfplan
+          terraform show -no-color tfplan > plan.txt
+        continue-on-error: true
+
+      - name: Comment plan on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let plan = fs.readFileSync('infra/plan.txt', 'utf8');
+            // GitHub comments cap at 65536 chars.
+            if (plan.length > 60000) plan = plan.slice(0, 60000) + '\n... truncated, see the job log.';
+            const body = `### Terraform Plan \`${{ steps.plan.outcome }}\`\n\n<details><summary>Show plan</summary>\n\n\`\`\`terraform\n${plan}\n\`\`\`\n\n</details>`;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+      # continue-on-error above lets the comment post first; fail the job here.
+      - if: steps.plan.outcome == 'failure'
+        run: exit 1
