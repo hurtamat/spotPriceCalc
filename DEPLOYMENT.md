@@ -1,208 +1,238 @@
-# Deployment & CI/CD
+# Deployment
 
-How SpotBuddy is containerized and shipped to **Azure Container Apps (ACA)** via **GitHub Actions**.
+SpotBuddy runs on Azure Container Apps, provisioned with Terraform and deployed by GitHub Actions.
+Docker Compose is used for local development.
 
-> **Status:** deployed and live. All three services run on ACA (resource group `spotbuddy-rg`, West Europe),
-> backed by a managed **Postgres Flexible Server**. Images live in `spotbuddyacr` and are pulled with each
-> app's **system-assigned managed identity** (AcrPull). Deploys currently go through **`deploy.sh`** (manual);
-> the GitHub Actions pipeline is blocked on a directory permission — see *Connect GitHub to Azure* below.
+## Contents
 
-## Coming from GitLab CI — the mental map
+1. [Azure](#azure)
+2. [Local development](#local-development)
 
-| GitLab CI | GitHub Actions (this repo) |
+---
+
+# Azure
+
+## Architecture
+
+Four services in resource group `spotbuddy-rg` (westeurope):
+
+| Resource | Type | Notes |
+| --- | --- | --- |
+| `spotbuddy-frontend` | Container App | React build served by nginx, port 8080, public |
+| `spotbuddy-backend` | Container App | .NET API, port 8080, public, always one replica for the daily scheduler |
+| `spotbuddy-calc` | Container App | FastAPI, port 8000, internal ingress only |
+| `spotbuddy-pg` | PostgreSQL Flexible Server | B1ms Burstable, database `spotprice` |
+| `spotbuddyacr` | Container Registry | Basic tier, images pulled by managed identity |
+| `spotbuddy-env` | Container Apps Environment | backed by `spotbuddy-logs` (Log Analytics) |
+
+The calc-service has no public address. Only apps inside the environment reach it, at
+`http://spotbuddy-calc/`.
+
+Postgres is in **northeurope**, not westeurope. The subscription is restricted from provisioning
+Flexible Server in westeurope, so `var.postgres_location` is a separate variable.
+
+A second resource group, `spotbuddy-bootstrap-rg`, holds the Terraform state storage account
+(`spotbuddytfstate`) and the managed identity GitHub Actions authenticates as
+(`spotbuddy-github-oidc`). It is created by hand and never managed by Terraform, so a
+`terraform destroy` cannot destroy the state file or the deploy credentials.
+
+## Authentication
+
+There is no Entra ID directory permission on this subscription, so app registrations and service
+principals are unavailable. Instead a **user-assigned managed identity** carries GitHub OIDC federated
+credentials. A managed identity is an ordinary Azure resource governed by RBAC, so it needs no
+directory rights, and since 2023 it can hold federated credentials.
+
+At deploy time GitHub mints a short lived token describing the run. Azure matches its issuer, subject
+and audience against a federated credential on the identity and issues an Azure token in exchange.
+Nothing is stored on either side beyond three non secret GUIDs, and there is no password to rotate.
+
+Two credentials exist, matched verbatim with no wildcards:
+
+| Name | Subject | Used by |
+| --- | --- | --- |
+| `github-main` | `repo:hurtamat/spotPriceCalc:ref:refs/heads/main` | deploy |
+| `github-pr` | `repo:hurtamat/spotPriceCalc:pull_request` | plan |
+
+The identity holds Contributor on the subscription and Storage Blob Data Contributor on the state
+storage account. Both are needed: Azure separates control plane from data plane, and Contributor
+alone can delete a storage account without being able to read a blob inside it.
+
+## First time setup
+
+Terraform cannot create the storage account holding its own state, nor the identity it authenticates
+as. Both are created once by `infra/bootstrap.sh`:
+
+```bash
+bash infra/bootstrap.sh
+```
+
+This creates the bootstrap resource group, the state storage account with TLS 1.2, no public blob
+access and blob versioning enabled, the state container, the managed identity, both federated
+credentials and the role assignments. It prints the values needed for GitHub secrets and the
+Terraform backend.
+
+The script is not idempotent, so do not re-run it casually. Role assignments take 30 to 60 seconds to
+propagate; a 403 on the first `terraform init` usually just means waiting and retrying.
+
+Then add four repository secrets under Settings, Secrets and variables, Actions:
+
+| Secret | Source |
 | --- | --- |
-| `.gitlab-ci.yml` | `.github/workflows/*.yml` (one file per pipeline) |
-| `stages` / `jobs` | `jobs` (run in parallel unless `needs:` chains them) |
-| Runners | GitHub-hosted `ubuntu-latest` runners |
-| CI/CD Variables (masked) | **Secrets** (masked) + **Variables** (plain), under repo *Settings → Secrets and variables → Actions* |
-| `rules:` / `only:` | `on:` triggers + `if:` conditions |
-| GitLab Container Registry | **Azure Container Registry (ACR)** |
-| `deploy` stage with a `$KUBECONFIG` | `azure/login` via **OIDC** + `az containerapp update` |
+| `AZURE_CLIENT_ID` | client id printed by the bootstrap script |
+| `AZURE_TENANT_ID` | tenant id |
+| `AZURE_SUBSCRIPTION_ID` | subscription id |
+| `ENTSOE_TOKEN` | ENTSO-E security token, passed to Terraform as `TF_VAR_entsoe_token` |
 
-The big difference: instead of storing a long-lived Azure password, we use **OIDC federated credentials** — GitHub mints a short-lived token per run and Azure trusts it. Nothing secret to rotate.
+No repository variables are used. Everything else comes from Terraform outputs.
 
-## What runs where
+## Pipelines
 
-| Service | Image | Port | Prod (ACA) | Local (compose) |
-| --- | --- | --- | --- | --- |
-| `frontend` (React/Vite → nginx) | `spotprice-frontend` | 8080 | Container App, external ingress | `localhost:3000` |
-| `spotPriceCalc` (.NET API) | `spotprice-backend` | 8080 | Container App, external ingress | `localhost:8080` |
-| `calc-service` (FastAPI) | `spotprice-calc` | 8000 | Container App, **internal** ingress | `localhost:8000` |
-| Postgres | — | 5432 | **Azure Database for PostgreSQL Flexible Server** (managed) | postgres container |
+| Workflow | Trigger | Purpose |
+| --- | --- | --- |
+| `ci.yml` | every push and pull request | Builds .NET, lints and builds the frontend, import checks the Python service, validates and format checks Terraform. No Azure access. |
+| `terraform-plan.yml` | pull requests touching `infra/**` | Runs `terraform plan` and posts the diff as a pull request comment. Read only. |
+| `deploy.yml` | push to `main`, or manual dispatch | Builds the three images in ACR tagged with the commit SHA, then applies with that tag. |
 
-> The frontend's API URL is **baked in at build time** (Vite inlines `VITE_API_BASE_URL`). That's why the deploy workflow passes it as a `--build-arg`, and why changing the backend URL means a rebuild, not just an env change.
+Deploy reads `acr_name` and `backend_url` from Terraform outputs before building. This matters because
+Vite inlines `VITE_API_BASE_URL` into the frontend bundle at build time, so the backend URL must be
+known before the frontend image exists. It is already in state from the previous apply, so no two pass
+apply is needed.
 
-## The two pipelines
+Images are built with `az acr build`, which builds inside the registry. The runner needs no Docker and
+no registry login. Deploys are serialised with a concurrency group so two applies cannot collide on
+the state lock.
 
-- **`ci.yml`** — on PRs and non-main branches. Builds the .NET app, lints + builds the frontend, and import-checks the Python service. Pure verification; no Azure access.
-- **`deploy.yml`** — on push to `main` (or manual dispatch). Logs into Azure via OIDC, builds all three images server-side with `az acr build` (tagged with the commit SHA), then rolls each Container App onto the new tag. Rollback = re-run `az containerapp update` with an older SHA tag. *(Not active yet — see the OIDC prerequisite below.)*
-- **`deploy.sh`** (repo root) — manual fallback that does the same build + rollout by hand. Run from Cloud Shell: `cd ~/spotPriceCalc && git pull && bash deploy.sh`. This is the current deploy path until `deploy.yml` is unblocked.
+`workflow_dispatch` on any branch other than `main` fails at login, because no federated credential
+matches that ref.
+
+## Terraform
+
+The configuration lives in `infra/`. `providers.tf` pins azurerm 5.x and configures the remote
+backend, `variables.tf` holds six inputs of which only `entsoe_token` has no default, `main.tf`
+declares twelve resources and `outputs.tf` exposes the values the pipeline consumes.
+
+Local runs need `infra/terraform.tfvars` containing the ENTSO-E token. That file is gitignored; copy
+`terraform.tfvars.example` and fill it in. CI supplies the same value as an environment variable.
+
+Four things in `main.tf` are non obvious and should not be tidied away:
+
+* `local.images` falls back to a Microsoft placeholder image when `var.image_tag` is empty, so the
+  first apply works against an empty registry. Any manual apply must pass a real tag, or it reverts
+  the running deployment to the placeholder.
+* All three apps declare `depends_on` on the AcrPull role assignment. Terraform infers ordering from
+  references, and nothing in an app's configuration mentions that role, but it must exist before the
+  app can pull an image.
+* Image pulls use a user-assigned identity rather than a system-assigned one. A system identity does
+  not exist until its app does, which makes granting AcrPull impossible to sequence.
+* Postgres ignores changes to `zone`, because Azure reports it back in a way that otherwise produces a
+  phantom replacement on every plan.
+
+The Postgres firewall rule from `0.0.0.0` to `0.0.0.0` is Azure's convention for allowing Azure
+services. GitHub runners are not Azure services and are not covered by it.
+
+## Deploying manually
+
+The same steps the pipeline runs:
+
+```bash
+TAG=$(git rev-parse --short HEAD)
+BACKEND_URL=$(cd infra && terraform output -raw backend_url)
+
+az acr build -r spotbuddyacr -t spotprice-backend:$TAG -f spotPriceCalc/Dockerfile .
+az acr build -r spotbuddyacr -t spotprice-calc:$TAG ./calc-service
+az acr build -r spotbuddyacr -t spotprice-frontend:$TAG --build-arg VITE_API_BASE_URL="$BACKEND_URL" ./frontend
+
+cd infra && terraform apply -var="image_tag=$TAG"
+```
+
+## Rolling back
+
+Apply an older tag:
+
+```bash
+cd infra && terraform apply -var="image_tag=<older-sha>"
+```
+
+Container Apps keeps previous revisions, so the swap is quick. Terraform state is blob versioned if it
+ever needs restoring.
+
+## Database migrations
+
+There is no migration step in the pipeline. The API applies pending EF Core migrations at startup and
+then seeds the bidding zones idempotently, so schema and code ship together and cannot fall out of
+step.
+
+This suits a project without production data. Three limitations are worth knowing. During a rollout
+the old and new revisions overlap briefly, so two versions can migrate at once. A failing migration
+means the new revision never becomes healthy, which is safe but late. A destructive migration runs
+unreviewed the moment a container starts.
+
+Once there is data worth protecting, generate an idempotent SQL script with
+`dotnet ef migrations script --idempotent`, review it in the pull request, and apply it from a
+Container Apps Job, which runs inside the environment and inherits its network access. A plain
+pipeline step is awkward because a GitHub runner cannot reach the database without opening a temporary
+firewall rule for its address.
+
+## Operations
+
+```bash
+az containerapp logs show -n spotbuddy-backend -g spotbuddy-rg --tail 50 --follow
+az containerapp revision list -n spotbuddy-backend -g spotbuddy-rg -o table
+cd infra && terraform output -raw postgres_password
+```
+
+## Troubleshooting
+
+| Symptom | Cause |
+| --- | --- |
+| `terraform init` returns 403 | Missing Storage Blob Data Contributor, or role assignments have not propagated yet. |
+| `azure/login` fails in Actions | `permissions: id-token: write` is missing, or the branch has no matching federated credential. |
+| `The value of 'Version' should be in: []` | Not a version problem. The subscription is restricted from provisioning Postgres in that region. |
+| Apps unhealthy after a first apply | They are still on the placeholder image, which listens on port 80 while ingress expects 8080. The first real deploy fixes it. |
+| Backend starts and then exits | Usually the database. Check the backend logs. |
 
 ---
 
-## One-time Azure setup
+# Local development
 
-Run these once (locally with `az login`, or in Cloud Shell). Replace the placeholder values at the top.
-
-```bash
-# ---- pick your values ----
-RG=spotbuddy-rg
-LOCATION=westeurope
-ACR=spotbuddyacr                 # must be globally unique, lowercase
-ENV=spotbuddy-env                # Container Apps environment
-PG=spotbuddy-pg                  # Postgres server name (globally unique)
-PG_ADMIN=spotadmin
-PG_PASSWORD='CHANGE-ME-strong!'  # store this; you'll need it in the connection string
-
-az group create -n $RG -l $LOCATION
-
-# Container registry (Basic is fine to start)
-az acr create -g $RG -n $ACR --sku Basic
-
-# Container Apps environment
-az extension add --name containerapp --upgrade
-az provider register -n Microsoft.App --wait
-az provider register -n Microsoft.OperationalInsights --wait
-az containerapp env create -g $RG -n $ENV -l $LOCATION
-
-# Managed Postgres (Flexible Server) + database
-az postgres flexible-server create -g $RG -n $PG -l $LOCATION \
-  --admin-user $PG_ADMIN --admin-password "$PG_PASSWORD" \
-  --tier Burstable --sku-name Standard_B1ms --storage-size 32 \
-  --version 17 --public-access 0.0.0.0   # allow Azure services; tighten later
-az postgres flexible-server db create -g $RG -s $PG -d spotprice
-```
-
-### Create the three Container Apps
-
-Deploy a placeholder image first; the pipeline replaces it on the next push to main.
-
-```bash
-ACR_SERVER=$ACR.azurecr.io
-PG_CONN="Host=$PG.postgres.database.azure.com;Port=5432;Database=spotprice;Username=$PG_ADMIN;Password=$PG_PASSWORD;SSL Mode=Require;Trust Server Certificate=true"
-
-# calc-service — INTERNAL only (nothing outside the env should reach it)
-az containerapp create -g $RG -n spotbuddy-calc --environment $ENV \
-  --image mcr.microsoft.com/k8se/quickstart:latest \
-  --ingress internal --target-port 8000 --min-replicas 1
-
-# backend — external, min-replicas 1 (the in-process daily scheduler needs an always-on replica)
-az containerapp create -g $RG -n spotbuddy-backend --environment $ENV \
-  --image mcr.microsoft.com/k8se/quickstart:latest \
-  --ingress external --target-port 8080 --min-replicas 1 \
-  --secrets pg-conn="$PG_CONN" \
-  --env-vars ASPNETCORE_ENVIRONMENT=Production \
-             ConnectionStrings__Postgres=secretref:pg-conn \
-             Entsoe__SecurityToken=secretref:entsoe-token
-
-# frontend — external
-az containerapp create -g $RG -n spotbuddy-frontend --environment $ENV \
-  --image mcr.microsoft.com/k8se/quickstart:latest \
-  --ingress external --target-port 8080 --min-replicas 1
-```
-
-Add the ENTSO-E token secret (it's currently only in `appsettings.Development.json`, which does **not** ship in the image):
-
-```bash
-az containerapp secret set -g $RG -n spotbuddy-backend \
-  --secrets entsoe-token='YOUR-ENTSOE-TOKEN'
-```
-
-### Wire the cross-service URLs
-
-Get the public FQDNs and feed them back in:
-
-```bash
-BACKEND_URL=https://$(az containerapp show -g $RG -n spotbuddy-backend --query properties.configuration.ingress.fqdn -o tsv)
-CALC_URL=https://spotbuddy-calc  # internal DNS name inside the ACA environment
-
-# Let the backend accept CORS calls from the deployed frontend:
-FRONTEND_URL=https://$(az containerapp show -g $RG -n spotbuddy-frontend --query properties.configuration.ingress.fqdn -o tsv)
-az containerapp update -g $RG -n spotbuddy-backend \
-  --set-env-vars Cors__AllowedOrigins__0="$FRONTEND_URL"
-
-echo "Backend URL (use as VITE_API_BASE_URL): $BACKEND_URL"
-```
-
-> If/when the backend starts calling the Python service, add its internal URL as a backend env var (e.g. `CalcService__BaseUrl=$CALC_URL`) — internal ingress means only apps in the same environment can reach it.
-
-### Let ACA pull from ACR
-
-```bash
-az containerapp registry set -g $RG -n spotbuddy-backend  --server $ACR_SERVER --identity system
-az containerapp registry set -g $RG -n spotbuddy-calc     --server $ACR_SERVER --identity system
-az containerapp registry set -g $RG -n spotbuddy-frontend --server $ACR_SERVER --identity system
-# grant each app's managed identity AcrPull (repeat per app, or use a shared user-assigned identity)
-```
-
----
-
-## Connect GitHub to Azure (OIDC)
-
-> **Prerequisite — directory permission (the current blocker).** Creating an app registration is a *Microsoft
-> Entra ID (directory)* action, which is a **separate system from Azure RBAC**. Being subscription **Owner /
-> Account admin is not enough** — you also need the **Application Developer** Entra role (or the tenant setting
-> *Users can register applications = Yes*). On a managed tenant (e.g. a Visual Studio Enterprise / MPN
-> subscription) a directory admin must grant this; otherwise `az ad app create` fails with *Insufficient
-> privileges* and the Entra ID portal blade returns 401. The `role assignment` (Contributor on the RG) at the
-> end of this block is RBAC, which Owner can already do — only the app-registration part needs the directory role.
-
-Create an app registration GitHub can log in as, with a **federated credential** scoped to this repo's `main` branch:
-
-```bash
-APP_ID=$(az ad app create --display-name "spotbuddy-github-oidc" --query appId -o tsv)
-az ad sp create --id $APP_ID
-SUB_ID=$(az account show --query id -o tsv)
-
-# Federated credential: trust tokens from this repo on branch main
-az ad app federated-credential create --id $APP_ID --parameters '{
-  "name": "github-main",
-  "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:YOUR_GH_ORG/YOUR_REPO:ref:refs/heads/main",
-  "audiences": ["api://AzureADTokenExchange"]
-}'
-
-# Give it permission to push images and update the container apps (Contributor on the RG is simplest to start)
-az role assignment create --assignee $APP_ID --role Contributor \
-  --scope /subscriptions/$SUB_ID/resourceGroups/$RG
-
-echo "AZURE_CLIENT_ID=$APP_ID"
-echo "AZURE_TENANT_ID=$(az account show --query tenantId -o tsv)"
-echo "AZURE_SUBSCRIPTION_ID=$SUB_ID"
-```
-
-> Add a second federated credential with subject `repo:YOUR_GH_ORG/YOUR_REPO:pull_request` only if you later want CI to touch Azure — the current `ci.yml` doesn't need it.
-
-## GitHub configuration
-
-Under **Settings → Secrets and variables → Actions**:
-
-**Secrets** (from the OIDC step above):
-- `AZURE_CLIENT_ID`
-- `AZURE_TENANT_ID`
-- `AZURE_SUBSCRIPTION_ID`
-
-**Variables**:
-- `AZURE_RESOURCE_GROUP` = `spotbuddy-rg`
-- `ACR_NAME` = `spotbuddyacr`
-- `ACA_BACKEND` = `spotbuddy-backend`
-- `ACA_FRONTEND` = `spotbuddy-frontend`
-- `ACA_CALC` = `spotbuddy-calc`
-- `VITE_API_BASE_URL` = the backend URL printed above (e.g. `https://spotbuddy-backend.xxxx.westeurope.azurecontainerapps.io`)
-
-That's it — push to `main` and the deploy workflow builds and rolls out all three services.
-
----
-
-## Local development
+## Docker Compose
 
 ```bash
 docker compose up --build
 ```
 
-- Frontend → http://localhost:3000
-- Backend  → http://localhost:8080
-- calc-service → http://localhost:8000
-- Postgres → localhost:5433
+| Service | URL |
+| --- | --- |
+| Frontend | http://localhost:3000 |
+| API | http://localhost:8080 |
+| calc-service | http://localhost:8000 (docs at `/docs`) |
+| Postgres | localhost:5433 |
 
-The compose backend runs `ASPNETCORE_ENVIRONMENT=Development`; its ENTSO-E token still comes from `appsettings.Development.json`. HTTPS redirect is skipped inside containers (the platform handles TLS), so browser calls to the HTTP ports work directly.
+Postgres is mapped to host port 5433 so a native install can keep 5432.
+
+Compose differs from Azure in four ways. The API runs with `ASPNETCORE_ENVIRONMENT=Development`, so
+its ENTSO-E token comes from `appsettings.Development.json`, which is neither in git nor in the image.
+HTTPS redirection is skipped inside containers because the platform terminates TLS, so calls to the
+HTTP ports work directly. `VITE_API_BASE_URL` is baked in as `http://localhost:8080`, so the browser
+reaches the API through the host port mapping. The API reaches Postgres and the calc-service by
+compose service name rather than through those host mappings.
+
+## Without containers
+
+Three terminals, one per service:
+
+```bash
+cd spotPriceCalc && dotnet run                                        # http://localhost:5262
+cd calc-service  && source .venv/bin/activate && fastapi dev main.py  # http://localhost:8000
+cd frontend      && npm run dev                                       # http://localhost:5173
+```
+
+First run in `calc-service` needs a virtualenv:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+```
+
+The Vite dev server proxies `/api` to port 5262. A local Postgres is still required; see
+`scripts/local-db.sh`.

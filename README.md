@@ -1,77 +1,44 @@
-# Energy Optimization Site
- 
-**Scope for now:** Build the web app and the price-aggregation / calculation engine. Physical switch integration is a later enhancement.
+# SpotBuddy
 
-## Running locally
+Automates household energy consumption around day-ahead electricity spot prices. Keep your supplier,
+keep your devices; this is the brain that decides when things switch on.
 
-Three services run at the same time, one terminal each. Start them in any order.
+![Interactive map with zone prices](docs/price-map.png)
 
-| Service      | Directory      | Command                          | URL                     |
-| ------------ | -------------- | -------------------------------- | ----------------------- |
-| .NET API     | `spotPriceCalc/` | `dotnet run`                   | http://localhost:5262   |
-| Calc service | `calc-service/`  | `source .venv/bin/activate` then `fastapi dev main.py` | http://localhost:8000 (docs at `/docs`) |
-| Frontend     | `frontend/`      | `npm run dev`                  | http://localhost:5173   |
+## What it does
 
-**.NET API** (or just hit Run in Rider):
+* **Works with Shelly and Home Assistant.** Shelly scripts ship in the repo, and Home Assistant drives
+  the same scheduling endpoint. No hardware to buy, no supplier to switch.
+* **Day-ahead spot prices** for 45 European bidding zones, refreshed daily.
+* **Every hour classified** as cheap, average or expensive, judged against its own zone.
+* **Interactive map:** pick a zone, see yesterday, today and tomorrow.
+* **Scheduling API:** ask for "4 hours before 6am", get back the cheapest blocks.
+* Prices in c/kWh in the zone's own local time.
+* Weather per zone, feeding the classification and thermal scheduling.
+
+## Components
+
+* **React, TypeScript, Vite and MUI.** The web app. Built to static files and served by nginx.
+* **ASP.NET Core.** Owns the REST surface, the database and the external clients, and runs a
+  background job that fetches tomorrow's prices each afternoon.
+* **Python and FastAPI.** Computes quantile residuals to categorise how expensive an hour is, and
+  picks the cheapest usable windows. Kept separate so the maths can iterate on its own.
+* **PostgreSQL.** Prices, weather snapshots and bidding zones.
+* **Terraform and GitHub Actions.** Every Azure resource declared, built and deployed on merge.
+
+## Running it
+
 ```bash
-cd spotPriceCalc
-dotnet run
+docker compose up --build
 ```
 
-**Calc service** (Python / FastAPI — activate the venv first, only in this terminal):
-```bash
-cd calc-service
-source .venv/bin/activate      # prompt shows (.venv); `deactivate` to exit
-fastapi dev main.py
-```
-First-time setup (only if `.venv` is missing, e.g. fresh clone):
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+Frontend on `:3000`, API on `:8080`, calc-service on `:8000`, Postgres on `:5433`.
 
-**Frontend** (React / Vite):
-```bash
-cd frontend
-npm install                    # first time / after a fresh clone only
-npm run dev
-```
+Services can also be run directly without containers, and the whole stack deploys to Azure Container
+Apps. Both are covered in [DEPLOYMENT.md](./DEPLOYMENT.md).
 
-The Vite dev server proxies `/api` calls to the .NET API on port **5262** — set that in `frontend/vite.config.ts`.
- 
-## Stack
- 
-- **Frontend:** React
-- **API / orchestration:** C# .NET — serves the app, exposes the REST API, and runs a daily background job to fetch day-ahead prices.
-- **Calc service:** Python as a persistent **FastAPI** service (not a shelled-out script), called by .NET over HTTP with an agreed JSON contract. The Python teammate owns this end to end and can iterate on the algorithm independently.
-- **Persistence:** Lightweight **Postgres from day one** as source of truth (prices, weather snapshots, later users / devices), with **`IMemoryCache`** in .NET layered on top for the hot path.
-- **Deployment:** Two containers (.NET + FastAPI) composed together, via the existing Docker / CI-CD setup.
-## Data flow
- 
-1. Once per day, fetch day-ahead prices → store in Postgres → warm the memory cache.
-2. Compute the shared, zone-wide part (ranking cheapest hours from the price curve) once when prices land; cache it.
-3. Per user visit, do only the cheap per-user part (fit their pool size, target temp, and available hours into those ranked hours). Weather is cached per location with a short TTL, not fetched on every page load.
-## Key decisions / corrections from the original plan
- 
-- **DB, yes** — reframed as "what state must survive a restart + what history do you want." Price history is useful for trends and backtesting, and persistence is needed the moment accounts / configs / switches arrive.
-- **Don't shell out to Python per request** — cold-start + library imports kill it. Persistent FastAPI service instead.
-- **Don't recalc everything per visit** — separate shared (zone) work from per-user work.
-## Data source caveat
- 
-EPEX SPOT's own feed is typically licensed / paid for retail use. Free alternatives for bidding-zone day-ahead prices:
- 
-- **ENTSO-E Transparency Platform** (token required) - whole eu prefferably
-    - https://transparency.entsoe.eu/
-- **OTE** (CZ) domestic publication
-    - https://www.ote-cr.cz/en/short-term-markets/electricity/day-ahead-market
-- **OKTE** (SK) domestic publication
-    - https://www.okte.sk/sk/kratkodoby-trh/zverejnenie-udajov-dt/celkove-vysledky-dt/
-- **OPEN-METEO** weather api
-    - https://open-meteo.com/
+## Data sources
 
-Verify current terms before building the fetcher.
- 
-## Algorithm note
- 
-Pool heating isn't just "run during the cheapest hours" — heat loss is nonlinear (ambient temp, wind, cover) with comfort constraints. That thermal-scheduling problem is what justifies the Python scientific stack; make sure the shipped version isn't just naive price-ranking, or it won't beat the rigid software being competed against.
+ENTSO-E Transparency Platform for day-ahead prices (token required) and Open-Meteo for weather.
+EPEX SPOT's own feed is licensed for retail use, which is why it is not used here. Verify current
+terms before extending the fetchers.
