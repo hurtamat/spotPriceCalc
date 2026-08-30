@@ -13,8 +13,8 @@ public class PriceDataScheduler : BackgroundService
     // SpotPriceService.QuantileWindowDays.
     private const int QuantileWindowDays = 7;
 
-    // Daily run time, Central European (CET/CEST); IANA id resolves on Linux and Windows.
-    private static readonly TimeOnly DailyRunTime = new(17, 28);
+    // Daily run at 13:21 CET, chose non round time to not clash with other ppl
+    private static readonly TimeOnly DailyRunTime = new(13, 21);
     private static readonly TimeZoneInfo CentralEurope = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
 
     public PriceDataScheduler(IServiceScopeFactory scopeFactory, ILogger<PriceDataScheduler> logger)

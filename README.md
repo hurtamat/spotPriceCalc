@@ -10,7 +10,7 @@ keep your devices; this is the brain that decides when things switch on.
 * **Works with Shelly and Home Assistant.** Shelly scripts ship in the repo, and Home Assistant drives
   the same scheduling endpoint. No hardware to buy, no supplier to switch.
 * **Day-ahead spot prices** for 45 European bidding zones, refreshed daily.
-* **Every hour classified** as cheap, average or expensive, judged against its own zone.
+* **Every 15 minute slot classified** as cheap, average or expensive, judged against its own zone.
 * **Interactive map:** pick a zone, see yesterday, today and tomorrow.
 * **Scheduling API:** ask for "4 hours before 6am", get back the cheapest blocks.
 * Prices in c/kWh in the zone's own local time.
