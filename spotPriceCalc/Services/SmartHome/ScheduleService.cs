@@ -5,8 +5,8 @@ using spotPriceCalc.Infrastructure.Persistence;
 
 namespace spotPriceCalc.Services.SmartHome;
 
-// Price-ranking scheduler (v1): cheapest hours under the given constraints. Thermal/comfort optimisation is
-// planned for the Python calc-service. TODO(timezone): UTC in / UTC out; convert to device-local at the edge.
+// Price-ranking scheduler (v1): cheapest hours under the given constraints.
+// TODO(timezone): UTC in / UTC out; convert to device-local at the edge.
 public class ScheduleService : IScheduleService
 {
     private readonly ISpotPriceService _prices;
@@ -55,8 +55,7 @@ public class ScheduleService : IScheduleService
         };
     }
 
-    // Fetch the stored curve as UTC slots over a ±1-day window (the 24h-before-ready_by window can reach
-    // into the previous day).
+    // Fetch the stored curve as UTC slots over a ±1-day window.
     private async Task<List<Slot>> LoadSlotsAsync(int zoneId, DateOnly date, CancellationToken ct)
     {
         var priced = await _prices.GetPricesAsync(zoneId, date.AddDays(-1), date.AddDays(1), ct);
@@ -76,7 +75,7 @@ public class ScheduleService : IScheduleService
         DateOnly date,
         UnavailableWindow? unavailable)
     {
-        // ready by means 24 horus before otherwise the whole day 
+        // Ready by means 24 hours before, otherwise the whole day.
         DateTime windowStart, anchor;
         if (task.ReadyBy is TimeOnly readyBy)
         {
@@ -144,14 +143,14 @@ public class ScheduleService : IScheduleService
         return best ?? new List<Slot>();
     }
 
-    // Is the slot inside the "do not run" window (by UTC time-of-day)? from > to wraps past midnight.
+    // Is the slot inside the "do not run" window? from > to wraps past midnight.
     private static bool IsExcluded(Slot s, UnavailableWindow? window)
     {
         if (window is null) return false;
         var t = TimeOnly.FromDateTime(s.Start);
         return window.From <= window.To
-            ? t >= window.From && t < window.To          // same-day range
-            : t >= window.From || t < window.To;          // wraps past midnight
+            ? t >= window.From && t < window.To
+            : t >= window.From || t < window.To;
     }
 
     private static bool IsContiguous(IReadOnlyList<Slot> block)
@@ -162,8 +161,7 @@ public class ScheduleService : IScheduleService
         return true;
     }
 
-    // Collapse contiguous chosen slots into single blocks so we don't emit every 15-min/hourly slot
-    // separately. Split (non-continuous) selections naturally yield multiple blocks.
+    // Collapse contiguous chosen slots into single blocks.
     private static List<ScheduledBlock> MergeIntoBlocks(List<Slot> chosen)
     {
         var ordered = chosen.OrderBy(s => s.Start).ToList();
@@ -218,8 +216,8 @@ public class ScheduleService : IScheduleService
 
         if (slot?.Quantile is not { } quantile)
         {
-            // Better dark than a guessed colour. A steady stream of these means populate is behind.
-            _logger.LogWarning("No classified slot for zone {ZoneId} at {At:o} — no colour", biddingZoneId, at);
+            // Better dark than a guessed colour.
+            _logger.LogWarning("No classified slot for zone {ZoneId} at {At:o}: no colour", biddingZoneId, at);
             return null;
         }
 

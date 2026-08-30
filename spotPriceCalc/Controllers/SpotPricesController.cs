@@ -16,9 +16,7 @@ public class SpotPricesController : ControllerBase
         _service = service;
     }
 
-    /// <summary>GET /api/spotprices?biddingZoneId=6&amp;date=2026-07-18 — stored day-ahead prices for one
-    /// zone for a single day. The date is the CET <b>market</b> day (see Domain/MarketDay.cs) — the same day
-    /// ENTSO-E publishes, for every zone — resolved to its UTC window server-side.</summary>
+    /// <summary>Stored day-ahead prices for one zone for a single CET market day.</summary>
     [HttpGet]
     public async Task<IActionResult> GetPrices(
         [FromQuery] int biddingZoneId,
@@ -33,9 +31,7 @@ public class SpotPricesController : ControllerBase
         return Ok(ZoneSpotPricesDto.From(prices, zone.TimeZoneId));
     }
 
-    /// <summary>POST /api/spotprices/populate?date=2026-07-25 — fetches and stores prices for ALL zones for
-    /// the given date (defaults to today, UTC), retrying until every zone is in. Manual trigger; the
-    /// in-process scheduler calls the same service method daily.</summary>
+    /// <summary>Fetches and stores prices for all zones for the given date, retrying until every zone is in.</summary>
     [HttpPost("populate")]
     public async Task<IActionResult> Populate([FromQuery] DateOnly? date, CancellationToken ct = default)
     {

@@ -18,9 +18,7 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
 
     public async Task<ZoneSpotPrices> GetSpotPricesAsync(BiddingZone zone, DateOnly from, DateOnly to, CancellationToken ct)
     {
-        // ENTSO-E periodStart/End are UTC; the delivery day is the CET day (for every zone, not just the
-        // CET ones). Asking for exactly that window keeps the response to a single publication day — the
-        // API rounds a straddling window outward and returns each extra day as its own TimeSeries.
+        // The delivery day is the CET day for every zone, not just the CET ones.
         var (fromUtc, _) = MarketDay.WindowUtc(from);
         var (_, toUtc) = MarketDay.WindowUtc(to);
 
@@ -38,19 +36,15 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
         using var response = await _httpClient.GetAsync(url, ct);
         var xml = await response.Content.ReadAsStringAsync(ct);
 
-        // Read the body first: ENTSO-E returns its Acknowledgement document for "no matching data" with a
-        // 200, so the status code alone can't tell a declined request from a served one.
+        // ENTSO-E returns its Acknowledgement document for "no matching data" with a 200.
         if (EntsoeXml.TryReadAcknowledgement(xml, out var reason))
             throw new EntsoeAcknowledgementException(reason.Code, reason.Text);
 
-        // Anything else non-2xx is a transport/server problem — worth retrying, so let it throw.
         response.EnsureSuccessStatusCode();
 
         var doc = EntsoeXml.Deserialize(xml);
 
-        // One TimeSeries per publication day, so a multi-day range returns several — take them all.
-        // Zones with more than one NEMO repeat a day with identical prices, so dedupe by slot start;
-        // ordering SDAC first (no classificationSequence position) means it wins over EXAA.
+        // One TimeSeries per publication day; dedupe by slot start, preferring SDAC over EXAA.
         var points = doc.TimeSeries
             .Where(t => t.IsDayAhead)
             .OrderBy(t => t.ClassificationSequencePosition.HasValue)

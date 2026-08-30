@@ -33,8 +33,7 @@ const LIVE = [
   },
 ];
 
-// Heights are deliberately well above the design's 64/52 so these read at roughly two thirds
-// of the Home Assistant card's visual weight rather than as small afterthoughts.
+// Heights are well above the design's 64/52 so these don't read as small afterthoughts.
 const SOON = [
   { key: 'google-home', name: 'Google Home', logo: '/assets/logo-google-home.png', logoHeight: 96 },
   { key: 'alexa', name: 'Amazon Alexa', logo: '/assets/logo-alexa.png', logoHeight: 78 },

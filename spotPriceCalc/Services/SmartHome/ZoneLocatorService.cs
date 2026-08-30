@@ -2,8 +2,7 @@ using spotPriceCalc.Infrastructure.Persistence;
 
 namespace spotPriceCalc.Services.SmartHome;
 
-// Coordinates → bidding zone by nearest zone centre. First cut: wrong right at internal borders (only
-// centres, no polygons). TODO(geojson): point-in-polygon, keeping nearest-centre as the no-match fallback.
+// Coordinates → bidding zone by nearest zone centre. TODO(geojson): point-in-polygon.
 public class ZoneLocatorService : IZoneLocatorService
 {
     public int ResolveBiddingZone(decimal latitude, decimal longitude)

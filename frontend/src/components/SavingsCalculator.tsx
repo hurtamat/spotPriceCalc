@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-// Rough local estimator — mirrors the design's numbers. Not wired to the API.
+// Rough local estimator, mirrors the design's numbers. Not wired to the API.
 interface AppMeta {
   key: string;
   label: string;

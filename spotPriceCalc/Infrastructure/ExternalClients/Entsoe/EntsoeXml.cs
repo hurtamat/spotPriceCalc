@@ -22,9 +22,7 @@ public static class EntsoeXml
         return (PublicationMarketDocument)Serializer.Deserialize(reader)!;
     }
 
-    // True when the body is an Acknowledgement rather than prices. Checked before the status code, because
-    // "no matching data" arrives as HTTP 200 and would otherwise blow up in Deserialize. Returns false for
-    // anything unrecognisable (an HTML error page, a truncated body) so the caller falls back to the status.
+    // True when the body is an Acknowledgement rather than prices.
     public static bool TryReadAcknowledgement(string xml, out ReasonXml reason)
     {
         reason = new ReasonXml();

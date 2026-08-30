@@ -63,9 +63,7 @@ export function LegalDialog({
             <CircularProgress size={28} />
           </div>
         ) : (
-          // Our own build-time asset, run through scopeStyleBlocks in api/legal.ts — no
-          // user input reaches this, and the scoping is what keeps Termly's bare `ul` /
-          // `ol li` rules from escaping the dialog.
+          // Our own build-time asset, scoped by scopeStyleBlocks in api/legal.ts; no user input reaches this.
           <div className="sb-legal" dangerouslySetInnerHTML={{ __html: html }} />
         )}
       </DialogContent>

@@ -31,9 +31,7 @@ public class SpotPriceRepository : ISpotPriceRepository
             .ToListAsync(ct);
     }
 
-    // Minimum stored slots for a day to count as populated. Below both a full hourly day (24) and a full
-    // 15-minute day (96), but above the handful a wrong/edge window could contain — so a genuinely missing
-    // day is never mistaken for present.
+    // Minimum stored slots for a day to count as populated.
     private const int MinSlotsForDay = 12;
 
     public async Task<bool> HasDayAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct)
@@ -49,8 +47,7 @@ public class SpotPriceRepository : ISpotPriceRepository
         if (prices.Points.Count == 0)
             return;
 
-        // Skip slots already stored (unique index is BiddingZoneId + From), so re-saving a day is a no-op
-        // rather than a duplicate-key error.
+        // Skip slots already stored, so re-saving a day is a no-op rather than a duplicate-key error.
         var incomingStarts = prices.Points.Select(p => p.From).ToList();
         var existingStarts = await _db.SpotPrices
             .Where(p => p.BiddingZoneId == prices.BiddingZoneId && incomingStarts.Contains(p.From))

@@ -27,7 +27,7 @@ class WeatherPoint(_WireModel):
 class ScheduleRequest(_WireModel):
     bidding_zone_id: int
     date_from: date = Field(alias="from")
-    date_to: date | None = Field(default=None)  # None => single day (== date_from)
+    date_to: date | None = Field(default=None)  # None means a single day
     prices: list[PricePoint]
     weather: list[WeatherPoint]
 
@@ -35,7 +35,6 @@ class ScheduleRequest(_WireModel):
 # --- Helper Functions ---
 
 def zone_flags(residual_value: float, low: float, high: float) -> dict:
-    # Now evaluates based on the residual quantiles rather than absolute price
     return {
         "green": bool(residual_value < low),
         "yellow": bool(low <= residual_value <= high),
@@ -44,10 +43,7 @@ def zone_flags(residual_value: float, low: float, high: float) -> dict:
 
 
 def best_window(df: pd.DataFrame, window_size: int, low_q: float, high_q: float, col_name: str) -> dict:
-    # We still want the absolute cheapest price for the window
     rolling_mean = df[col_name].rolling(window_size).mean()
-
-    # We also calculate the rolling residual to accurately determine the zone of this specific window
     rolling_residual = df["residual"].rolling(window_size).mean()
 
     # Index position of the lowest rolling average
@@ -81,27 +77,19 @@ def health():
 
 @app.post("/schedule")
 def schedule(req: ScheduleRequest):
-    # 1. Convert validated Pydantic model to a dict, keeping the camelCase aliases (eurPerMwh, etc.)
     data = req.model_dump(by_alias=True)
     date_to = req.date_to or req.date_from
 
-    # 2. Load JSON data into DataFrame
     prices_df = pd.DataFrame(data["prices"])
-
-    # The Pydantic model maps `eur_per_mwh` -> `eurPerMwh` when dumped with by_alias=True
     col = "eurPerMwh"
 
-    # Datetimes are already parsed by Pydantic, but converting them to Pandas datetime for safety
     prices_df["from_dt"] = pd.to_datetime(prices_df["from"], utc=True)
     prices_df["to_dt"] = pd.to_datetime(prices_df["to"], utc=True)
 
-    # 3. Calculate Moving Average & Residuals
-    # 672 periods = 7 days (Assuming 15 min intervals: 4 * 24 * 7 = 672)
-    # min_periods=1 prevents returning NaNs if the incoming payload has less than 7 days of data
+    # 672 periods = 7 days at 15 min intervals; min_periods=1 avoids NaNs on shorter payloads
     prices_df['moving_average'] = prices_df[col].rolling(window=672, min_periods=1).mean()
     prices_df['residual'] = prices_df[col] - prices_df['moving_average']
 
-    # 4. Calculate Quantiles & Zones based on the Residuals
     alpha = 0.3
     lower_q = float(prices_df['residual'].quantile(alpha))
     upper_q = float(prices_df['residual'].quantile(1 - alpha))
@@ -110,7 +98,6 @@ def schedule(req: ScheduleRequest):
     prices_df["yellowZone"] = prices_df['residual'].between(lower_q, upper_q, inclusive="both")
     prices_df["redZone"] = prices_df['residual'] > upper_q
 
-    # 5. Generate activities dict
     activities = {
         "ironing": best_window(prices_df, 4, lower_q, upper_q, col),  # 1 hour (4x15m)
         "dryer": best_window(prices_df, 6, lower_q, upper_q, col),  # 90 mins (6x15m)
@@ -118,7 +105,6 @@ def schedule(req: ScheduleRequest):
         "washing_machine": best_window(prices_df, 8, lower_q, upper_q, col),  # 2 hours (8x15m)
     }
 
-    # 6. Format updated prices back to standard dictionary list
     updated_prices = []
     for _, row in prices_df.iterrows():
         updated_prices.append({
@@ -132,7 +118,6 @@ def schedule(req: ScheduleRequest):
             }
         })
 
-    # 7. Combine all data into final output JSON format
     output_json = {
         "biddingZoneId": req.bidding_zone_id,
         "from": req.date_from,
@@ -146,5 +131,4 @@ def schedule(req: ScheduleRequest):
         "weather": data.get("weather", []),
     }
 
-    # FastAPI will automatically serialize this dictionary (and the inner datetime objects) into JSON
     return output_json

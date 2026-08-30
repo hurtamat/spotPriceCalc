@@ -9,8 +9,7 @@ import { Faq } from './components/Faq';
 import { Footer } from './components/Footer';
 import { ConfigurePage } from './components/ConfigurePage';
 
-// Path routing without a router dependency — two static pages is not worth react-router.
-// Both the Vite dev server and nginx (try_files … /index.html) already serve index.html here.
+// Path routing without a router dependency, two static pages is not worth react-router.
 const PAGES: Record<string, string> = {
   '/shelly': 'Configure your Shelly',
   '/home-assistant': 'Configure in Home Assistant',

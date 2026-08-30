@@ -2,8 +2,7 @@ using spotPriceCalc.Domain;
 
 namespace spotPriceCalc.Infrastructure.Persistence.Repositories;
 
-// Persistence for spot prices. Pure storage — the caller resolves the zone-local day to a half-open UTC
-// window [fromUtc, toUtcExclusive) and passes explicit bounds.
+// Persistence for spot prices. Pure storage; the caller passes explicit UTC bounds.
 public interface ISpotPriceRepository
 {
     Task<ZoneSpotPrices> GetAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
@@ -12,7 +11,7 @@ public interface ISpotPriceRepository
     Task<IReadOnlyList<decimal>> GetPriceValuesAsync(
         int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
 
-    // True if the window holds at least MinSlotsForDay slots — a count threshold so a partial day self-heals.
+    // True if the window holds at least MinSlotsForDay slots.
     Task<bool> HasDayAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
 
     Task SaveAsync(ZoneSpotPrices prices, CancellationToken ct);

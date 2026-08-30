@@ -1,19 +1,14 @@
 namespace spotPriceCalc.Services;
 
-// In-process price-data trigger: on startup populate yesterday/today/tomorrow (catch-up), then daily populate
-// tomorrow shortly after the day-ahead auction clears. Only decides *when* — the fetch + retry-until-complete
-// lives in ISpotPriceService.PopulateUntilCompleteAsync. Needs min-replicas >= 1 (a timer needs a running
-// replica); move to a Container Apps cron Job if the API ever scales to zero.
+// On startup populate yesterday/today/tomorrow then daily populate job.
 public class PriceDataScheduler : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<PriceDataScheduler> _logger;
 
-    // Trailing days fetched at startup so the first classification has a full window. Matches
-    // SpotPriceService.QuantileWindowDays.
     private const int QuantileWindowDays = 7;
 
-    // Daily run at 13:21 CET, chose non round time to not clash with other ppl
+    // Daily run at 13:21 CET, chosen to avoid a round time other people might use
     private static readonly TimeOnly DailyRunTime = new(13, 21);
     private static readonly TimeZoneInfo CentralEurope = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
 
@@ -49,14 +44,12 @@ public class PriceDataScheduler : BackgroundService
         }
     }
 
-    // Startup catch-up. History first (one call per zone, unclassified) so that when yesterday classifies
-    // it already has its full trailing window; then the three real days, oldest-first, each classifying
-    // its own zones.
+    // History first, then the three real days oldest first so yesterday has its full trailing window.
     private async Task RunStartupPopulateAsync(CancellationToken ct)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        // Ends the day before yesterday — yesterday itself arrives (classified) in the populate below.
+        // Ends the day before yesterday; yesterday itself arrives classified in the populate below.
         await BackfillHistoryAsync(today.AddDays(-QuantileWindowDays), today.AddDays(-2), ct);
 
         _logger.LogInformation("Startup populate: yesterday, today, tomorrow");
@@ -80,12 +73,12 @@ public class PriceDataScheduler : BackgroundService
         }
         catch (Exception ex)
         {
-            // History is context, not correctness — a failure just means thinner quantile windows.
+            // History is context, not correctness: a failure just means thinner quantile windows.
             _logger.LogError(ex, "History backfill {From}..{To} threw — startup continues", from, to);
         }
     }
 
-    // Runs the retry-until-complete populate for one date in a fresh scope. Never throws — logs and continues.
+    // Never throws; logs and continues.
     private async Task PopulateAsync(DateOnly date, string reason, CancellationToken ct)
     {
         try

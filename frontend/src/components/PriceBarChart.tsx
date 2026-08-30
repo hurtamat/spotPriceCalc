@@ -1,19 +1,6 @@
-// The day-ahead price curve as a MUI X bar chart: one bar per delivery slot, coloured by the
-// quantile the backend stamped on it (green / yellow / red, grey when unclassified).
-//
-// Two things drive the whole file:
-//
-// 1. **Slot resolution varies by zone and by day.** Most zones publish PT15M (96 slots), IE-SEM
-//    publishes PT60M (24). So the bar count is data, not a constant — 96 bars have to render
-//    pencil-thin and can't carry 96 axis labels, 24 can be chunky and labelled every 3 hours.
-//
-// 2. **The API returns a CET *market* day, but we display a *local* day.** The stored window is
-//    22:00Z→22:00Z (23:00Z in winter) for every zone — the CET calendar day — which lines up with
-//    00:00–24:00 local only for zones that are themselves on CET. For the 9 zones that aren't
-//    (GR/BG/RO/FI/EE/LV/LT an hour ahead, PT/IE an hour behind) that window straddles two local
-//    days, so we keep only the slots whose *local* date is the day being viewed and the axis simply
-//    ends up an hour short at one end. That's correct, not missing data: the hour is real, it just
-//    belongs to the neighbouring local day.
+// The day-ahead price curve as a MUI X bar chart: one bar per delivery slot, coloured by quantile.
+// Slot resolution varies by zone (PT15M vs PT60M), and the API returns a CET market day while we
+// display a local day, so slots are filtered down to the local date being viewed.
 import { useMemo } from 'react';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine';
@@ -26,10 +13,9 @@ const QUANTILE_COLOR: Record<PriceQuantile, string> = {
 };
 const UNCLASSIFIED_COLOR = 'var(--color-neutral-400)';
 
-/** A `type`, not an `interface`, on purpose: only type aliases get the implicit index signature that
- *  MUI X's `DatasetType` ({ [key: string]: unknown }[]) requires, so `dataset={slots}` typechecks. */
+/** A `type`, not an `interface`, so it satisfies MUI X's `DatasetType` index signature. */
 export type PriceSlot = {
-  /** "HH:MM" in the zone's local time — also the band-scale category, so it must be unique. */
+  /** "HH:MM" in the zone's local time, also the band-scale category. */
   time: string;
   ct: number;
   quantile: PriceQuantile | null;
@@ -39,25 +25,20 @@ export type PriceSlot = {
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
-/** Local calendar date + wall-clock of an instant, read in a specific IANA timezone (the bidding
- *  zone's, not the viewer's browser). One formatter is reused across all 96 slots. */
+/** Local calendar date + wall-clock of an instant, read in a specific IANA timezone. */
 function zonedParts(fmt: Intl.DateTimeFormat, at: Date) {
   const parts = fmt.formatToParts(at);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '0';
   return {
     date: `${get('year')}-${get('month')}-${get('day')}`,
-    // hour12:false emits "24" at midnight in some engines — normalize, the date part stays right.
+    // hour12:false emits "24" at midnight in some engines, so normalize.
     hour: Number(get('hour')) % 24,
     minute: Number(get('minute')),
   };
 }
 
-/**
- * The slots of `localDate` as seen in `timeZone`, in order.
- *
- * Falls back to the full curve if the filter finds nothing — a zone whose data landed under an
- * unexpected window should still draw something rather than an empty card.
- */
+/** The slots of `localDate` as seen in `timeZone`, in order. Falls back to the full curve if the
+ *  filter finds nothing. */
 export function buildDaySlots(
   points: PricePoint[],
   timeZone: string,
@@ -99,7 +80,7 @@ export function utcOffsetLabel(at: Date, timeZone: string): string {
 }
 
 export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; height?: number }) {
-  // 15-minute zones get pencil bars and sparse labels; hourly zones get chunky bars.
+  // 15-minute zones get pencil bars, hourly zones get chunky bars.
   const dense = slots.length > 48;
 
   const colors = useMemo(
@@ -129,11 +110,9 @@ export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; hei
         {
           dataKey: 'time',
           scaleType: 'band',
-          // Gap as a share of the band. At 96 bands a band is only a few px wide, so a bigger
-          // share is what keeps the bars reading as separate strokes instead of a solid block.
+          // Gap as a share of the band, bigger at high slot counts so bars stay legible.
           categoryGapRatio: dense ? 0.45 : 0.28,
-          // Per-bar colour. An ordinal map keyed on the category is how MUI X colours individual
-          // bars of a single series — the alternative (one series per quantile) would leave gaps.
+          // Per-bar colour via an ordinal map keyed on the category.
           colorMap: { type: 'ordinal', values: categories, colors },
           tickLabelInterval: (_value: unknown, index: number) => index % labelEvery === 0,
           disableTicks: true,

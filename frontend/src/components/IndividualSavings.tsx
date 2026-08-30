@@ -1,8 +1,5 @@
-// "Individual savings" — one card per flexible appliance: when SpotBuddy would start it and what
-// that saves vs. the peak. Follows the zone/day picked on the price map.
-//
-// The scheduling + savings math is NOT implemented — see `planAppliance`. Cards render "—" until
-// it is.
+// "Individual savings": one card per flexible appliance, showing when it would start.
+// The scheduling and savings math isn't implemented yet, see `planAppliance`.
 import { useMemo } from 'react';
 import { DAY_LABELS, dateForDay } from '../api/spotPrices';
 import { buildDaySlots, type PriceSlot } from './PriceBarChart';
@@ -14,7 +11,7 @@ interface Appliance {
   kw: number;
   /** Hours the load needs to run, as a contiguous block. */
   hours: number;
-  /** Material Symbols ligature name — must also be in index.html's (alphabetical) icon_names=. */
+  /** Material Symbols ligature name, must also be in index.html's icon_names=. */
   icon: string;
   /** Dropped from the single-column mobile layout to keep the section short. */
   desktopOnly?: true;
@@ -29,14 +26,7 @@ interface Plan {
 
 const UNKNOWN: Plan = { startTime: null, midPriceCt: null, savingEur: null };
 
-/**
- * TODO(math): pick the start hour and price the saving.
- *
- * Gets the day's slots (15-min or hourly, zone-local) plus the appliance's kW and run length.
- * Open questions before implementing: cheapest contiguous window vs. cheapest N slots, price the
- * saving against the peak window or the daily average, and whether appliances get comfort
- * windows / deadlines.
- */
+/** TODO(math): pick the start hour and price the saving. */
 function planAppliance(_slots: PriceSlot[], _appliance: Appliance): Plan {
   return UNKNOWN;
 }
@@ -53,8 +43,7 @@ const APPLIANCES: Appliance[] = [
 export function IndividualSavings() {
   const { day, zoneName, data } = useSelection();
 
-  // Slice the zone's own local day, same as the chart — not the browser's, not the raw CET
-  // market window the API returns.
+  // Slice the zone's own local day, same as the chart.
   const slots = useMemo(() => {
     if (!data || data.points.length === 0) return null;
     const built = buildDaySlots(data.points, data.timeZoneId, dateForDay(day));

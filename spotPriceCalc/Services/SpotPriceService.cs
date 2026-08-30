@@ -53,10 +53,9 @@ public class SpotPriceService : ISpotPriceService
 
     #endregion
 
-    #region Populate — fetch, store, classify
+    #region Populate: fetch, store, classify
 
-    // Re-runs the pass until every zone lands, then stops. Bounded because "tomorrow" before the auction
-    // clears legitimately has no data — the next scheduled run picks it up.
+    // Re-runs the pass until every zone lands, then stops.
     public async Task<PopulateResult> PopulateUntilCompleteAsync(DateOnly date, CancellationToken ct)
     {
         for (var attempt = 1; ; attempt++)
@@ -94,7 +93,7 @@ public class SpotPriceService : ISpotPriceService
             }
             catch (EntsoeAcknowledgementException ex)
             {
-                // ENTSO-E has nothing for this zone/day. Not a failure to retry — asking again won't help.
+                // ENTSO-E has nothing for this zone/day. Not a failure to retry.
                 declined++;
                 _logger.LogInformation("No data at ENTSO-E for {Zone} on {Date}: {Reason}",
                     zone.Name, date, ex.Message);
@@ -135,8 +134,7 @@ public class SpotPriceService : ISpotPriceService
         return prices.Points.Count;
     }
 
-    // Stamps Green/Yellow/Red on the day's slots, using cut-offs the calc-service derives from the trailing
-    // QuantileWindowDays (this day included) — one country's prices form one distribution.
+    // Stamps Green/Yellow/Red on the day's slots using cut-offs from the trailing QuantileWindowDays.
     private async Task ClassifyDayAsync(BiddingZone zone, DateOnly date, CancellationToken ct)
     {
         var (dayFromUtc, dayToUtc) = MarketDay.WindowUtc(date);
@@ -159,8 +157,7 @@ public class SpotPriceService : ISpotPriceService
 
     #region History backfill
 
-    // Backfills a date range in ONE ENTSO-E call per zone. No quantiles — this is only the trailing history
-    // that ClassifyDayAsync needs a full window of. Not retried: it's best-effort context.
+    // Backfills a date range in one ENTSO-E call per zone. No quantiles, not retried.
     public async Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct)
     {
         var zones = BiddingZoneSeedData.Zones;

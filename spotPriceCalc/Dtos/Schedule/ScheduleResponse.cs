@@ -31,7 +31,7 @@ public record TaskResult
 
 public record ScheduledBlock
 {
-    // UTC DateTime (Kind=Utc) so it serialises as "...Z" with no offset — the device works in that one form.
+    // UTC DateTime (Kind=Utc) so it serialises as "...Z" with no offset.
     [JsonPropertyName("start_utc")]
     public required DateTime StartUtc { get; init; }
 

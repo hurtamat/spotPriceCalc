@@ -1,4 +1,4 @@
-// price-color client — show the current price colour (green/yellow/red) on the device.
+// price-color client: shows the current price colour (green/yellow/red) on the device.
 
 let COLOR_CONFIG = {
   backendUrl: "https://spotbuddy-backend.yellowsea-e9574071.westeurope.azurecontainerapps.io",
@@ -28,7 +28,7 @@ function parseCode(body) {
 // regardless of relay state.
 function rgbFor(code) {
   if (code === 0) return [0, 100, 0];    // green
-  if (code === 1) return [100, 55, 0];   // yellow/amber — green pulled down so it isn't greenish
+  if (code === 1) return [100, 55, 0];   // yellow/amber, green pulled down so it isn't greenish
   if (code === 2) return [100, 0, 0];    // red
   return null;
 }

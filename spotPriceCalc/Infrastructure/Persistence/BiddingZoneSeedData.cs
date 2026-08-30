@@ -2,8 +2,7 @@ using spotPriceCalc.Domain;
 
 namespace spotPriceCalc.Infrastructure.Persistence;
 
-// Canonical bidding zones (source of truth). TimeZoneId drives the ENTSO-E UTC window; lat/lng drive the
-// Open-Meteo weather query. Seeded at runtime by DbInitializer. Some EIC codes are virtual/aggregate zones.
+// Canonical bidding zones (source of truth), seeded at runtime by DbInitializer.
 public static class BiddingZoneSeedData
 {
     public static readonly IReadOnlyList<BiddingZone> Zones = new List<BiddingZone>

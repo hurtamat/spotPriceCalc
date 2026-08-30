@@ -247,9 +247,7 @@ function tick() {
   applyRelay();
 }
 
-// Refetch when the user edits a setting. Only the input components count (not our own today/tomorrow
-// writes, which would loop). Debounced: a slider drag emits a burst of changes, and each fetch is an
-// HTTPS POST (memory-heavy), so we wait until the changes settle, then fetch once and overwrite the plan.
+// Refetch when the user edits a setting, debounced so a slider drag fetches once, not per tick.
 let INPUT_ROLES = ["continuous", "hours", "deadline", "unavailFrom", "unavailTo"];
 let refetchTimer = null;
 

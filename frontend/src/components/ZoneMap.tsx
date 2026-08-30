@@ -1,12 +1,9 @@
 import { useMemo } from 'react';
 import { ZONE_BY_MAPKEY, type Zone } from '../api/zones';
 
-// Interactive bidding-zone map. The map is assembled at BUILD TIME from one GeoJSON file
-// per zone in src/map/zones/*.geojson (Vite glob-imports them — no runtime fetch, no extra
-// HTTP requests). Add or remove a zone by dropping/deleting a file in that folder.
-// Geometry is projected with a small hand-rolled Web-Mercator (no map library) and rendered
-// as one clickable <path> per zone. Zones present in ZONE_BY_MAPKEY are selectable and drive
-// the price chart; the rest render as faint, non-interactive context (Balkans, British Isles…).
+// Interactive bidding-zone map, assembled at build time from one GeoJSON file per zone
+// in src/map/zones/*.geojson. Geometry is projected with a hand-rolled Web-Mercator and
+// rendered as one clickable path per zone; zones in ZONE_BY_MAPKEY are selectable.
 
 // Vite bundles every zone file as a raw string at build time; we JSON.parse once below.
 const ZONE_FILES = import.meta.glob('../map/zones/*.geojson', {
@@ -20,9 +17,7 @@ const W = 560;
 const H = 620;
 const PAD = 12;
 
-// Fixed geographic viewport (degrees lon/lat). Framing stays put no matter which
-// context countries are present — anything outside this window just clips at the SVG
-// edge. Covers Ireland (west) to the Caucasus (east), Mediterranean to northern Norway.
+// Fixed geographic viewport (degrees lon/lat), covers Ireland to the Caucasus.
 const LON0 = -13;
 const LON1 = 47;
 const LAT0 = 34;
@@ -68,7 +63,7 @@ export function ZoneMap({
   selectedZoneId: number | null;
   onSelect: (zoneId: number) => void;
 }) {
-  // Project once into the FIXED viewport (mercator, uniform scale so shapes stay correct).
+  // Project once into the fixed viewport with a uniform mercator scale.
   const shapes = useMemo<Shape[]>(() => {
     const [wx0, wy0] = mercator(LON0, LAT0);
     const [wx1, wy1] = mercator(LON1, LAT1);
@@ -98,7 +93,7 @@ export function ZoneMap({
 
   return (
     <svg className="sb-zonemap" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Bidding zone map">
-      {/* Context zones first (non-selectable), selectable on top so borders read cleanly. */}
+      {/* Context zones first, selectable ones on top so borders read cleanly. */}
       {shapes
         .filter((s) => !s.zone)
         .map((s) => (

@@ -3,12 +3,11 @@ using spotPriceCalc.Dtos.Schedule;
 
 namespace spotPriceCalc.Services.SmartHome;
 
-// Device-agnostic decision engine: resolves the zone, picks each task's hours, and reports the relay state.
-// Pure orchestration over the stored price curve — no HTTP — so any integration controller can reuse it.
+// Device-agnostic decision engine: resolves the zone, picks each task's hours, reports the relay state.
 public interface IScheduleService
 {
     Task<ScheduleResponse> BuildAsync(ScheduleRequest request, CancellationToken ct);
-    
-    // Null when the slot is missing or unclassified — the caller shows no colour rather than guessing.
+
+    // Null when the slot is missing or unclassified.
     Task<PriceColor?> ResolveStatus(StatusSchedule request,  CancellationToken ct);
 }

@@ -5,8 +5,7 @@ namespace spotPriceCalc.Infrastructure.Persistence;
 
 public static class DbInitializer
 {
-    // Startup: apply pending migrations, then seed bidding_zones from the code source of truth. Both are
-    // idempotent, so restarts are safe no-ops when nothing changed.
+    // Startup: apply pending migrations, then seed bidding_zones from the code source of truth.
     public static async Task InitializeAsync(IServiceProvider services, CancellationToken ct = default)
     {
         await using var scope = services.CreateAsyncScope();
@@ -15,9 +14,7 @@ public static class DbInitializer
         await SeedBiddingZonesAsync(db, ct);
     }
 
-    // Idempotent seed of bidding_zones from BiddingZoneSeedData: inserts missing zones and syncs changed
-    // fields, so editing the list is a code change + restart, not a migration. Zones in the DB but absent
-    // from the list are left untouched (removing one could orphan FK references).
+    // Idempotent seed of bidding_zones: inserts missing zones and syncs changed fields.
     private static async Task SeedBiddingZonesAsync(AppDbContext db, CancellationToken ct)
     {
         var existing = await db.BiddingZones.ToDictionaryAsync(z => z.Id, ct);

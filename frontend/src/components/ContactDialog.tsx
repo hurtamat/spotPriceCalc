@@ -20,7 +20,7 @@ export function ContactDialog({ open, onClose }: { open: boolean; onClose: () =>
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {
-      // Clipboard blocked (insecure origin, denied permission) — the mailto link still works.
+      // Clipboard blocked; the mailto link still works.
     }
   };
 
