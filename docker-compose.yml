@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: spotprice-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spotprice
+      POSTGRES_USER: spotprice
+      POSTGRES_PASSWORD: spotprice123!
+    ports:
+      # Host 5433 -> container 5432, so a local/native Postgres can keep 5432 without colliding.
+      - "5433:5432"
+    volumes:
+      - spotprice-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spotprice -d spotprice"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: spotPriceCalc/Dockerfile
+    container_name: spotprice-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      calc-service:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Overrides ConnectionStrings:Postgres from appsettings — talks to the db container over the
+      # compose network (service name "postgres", internal port 5432), NOT the host mapping.
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=spotprice;Username=spotprice;Password=spotprice123!"
+      # Allow the compose frontend origin (host port 3000 below) to call the API.
+      Cors__AllowedOrigins__0: "http://localhost:3000"
+      # Reaches the Python service over the compose network, not the host mapping appsettings uses.
+      CalcService__BaseUrl: "http://calc-service:8000/"
+    ports:
+      - "8080:8080"
+
+  calc-service:
+    build:
+      context: ./calc-service
+    container_name: spotprice-calc
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the bundle at build time. The browser talks to the API via the host mapping.
+        VITE_API_BASE_URL: "http://localhost:8080"
+    container_name: spotprice-frontend
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      # Host 3000 -> nginx on 8080 inside the container.
+      - "3000:8080"
+
+volumes:
+  spotprice-pgdata:

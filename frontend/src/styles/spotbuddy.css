@@ -1,0 +1,1455 @@
+/* ────────────────────────────────────────────────────────────────
+   SpotBuddy design tokens + base + shared styles
+   Ported from the Claude Design "SpotBuddy v2" export.
+   ──────────────────────────────────────────────────────────────── */
+:root {
+  --color-bg: #f4f7fc;
+  --color-surface: #ffffff;
+  --color-text: #0f223b;
+  --color-accent: #2b6cf6;
+  --color-accent-100: #e9f0ff;
+  --color-accent-200: #cfe0ff;
+  --color-accent-300: #a7c4ff;
+  --color-accent-700: #1c4bb8;
+  --color-accent-800: #153a92;
+  --color-accent-900: #0e2547;
+  --color-neutral-400: #c2cddb;
+  --color-neutral-600: #647388;
+  --color-neutral-700: #45566d;
+  --color-divider: #e4eaf3;
+  --color-q-green: #45a06f;
+  --color-q-yellow: #e0b13c;
+  --color-q-red: #d95f52;
+  --color-pop: #94a3b8;
+  --color-pop-100: #eef1f6;
+  --color-pop-700: #5b6b80;
+  --font-heading: 'Sora', system-ui, sans-serif;
+  --font-body: 'Figtree', system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Smooth-slide to sections when clicking the nav anchors. */
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.12;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+input {
+  font-family: inherit;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent-700);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 24%, transparent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-400);
+  border-radius: 8px;
+}
+
+/* ── shared primitives ─────────────────────────────────────────── */
+.sb-shell {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px);
+  position: relative;
+}
+
+.sb-link {
+  cursor: pointer;
+  color: var(--color-text);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.sb-link:hover {
+  color: var(--color-accent);
+}
+
+/* Used on both <button> and <a> (the CTAs are anchors into #prices), hence the
+   explicit display / text-decoration that a <button> would get for free. */
+.sb-btn {
+  cursor: pointer;
+  border: none;
+  border-radius: 999px;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  transition:
+    transform 0.12s,
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.sb-btn:active {
+  transform: translateY(1px);
+}
+
+.sb-primary {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(69, 123, 157, 0.3);
+}
+
+.sb-primary:hover {
+  background: var(--color-accent-700);
+  color: #fff; /* beats the global a:hover colour when .sb-primary is an anchor */
+}
+
+.sb-card {
+  background: var(--color-surface);
+  border-radius: 18px;
+  border: 1px solid var(--color-divider);
+}
+
+.sb-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+/* ── nav ───────────────────────────────────────────────────────── */
+.sb-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 14px clamp(16px, 4vw, 40px);
+  margin: 0 calc(-1 * clamp(16px, 4vw, 40px));
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.sb-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 19px;
+  margin-right: auto;
+}
+
+.sb-brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--color-accent);
+  box-shadow: 0 4px 12px rgba(69, 123, 157, 0.35);
+}
+
+.sb-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+/* ── hero ──────────────────────────────────────────────────────── */
+.sb-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: clamp(24px, 4vw, 52px);
+  align-items: center;
+  padding: clamp(32px, 6vw, 72px) 0;
+}
+
+.sb-hero h1 {
+  font-size: clamp(36px, 5.5vw, 60px);
+  margin: 0 0 18px;
+  line-height: 1.05;
+}
+
+.sb-hero-sub {
+  font-size: clamp(16px, 1.6vw, 19px);
+  max-width: 46ch;
+  color: var(--color-neutral-700);
+  margin-bottom: 26px;
+}
+
+.sb-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.sb-hero-stats {
+  display: flex;
+  gap: 34px;
+  margin-top: 38px;
+  flex-wrap: wrap;
+}
+
+.sb-stat-num {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--color-accent);
+}
+
+.sb-stat-label {
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+}
+
+.sb-accent {
+  color: var(--color-accent);
+}
+
+/* ── calculator ────────────────────────────────────────────────── */
+.sb-calc {
+  padding: clamp(20px, 2.5vw, 30px);
+  box-shadow: 0 20px 50px rgba(15, 34, 59, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sb-field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-neutral-700);
+  margin-bottom: 8px;
+}
+
+.sb-stepper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sb-step-btn {
+  width: 38px;
+  height: 38px;
+  background: var(--color-accent-100);
+  color: var(--color-accent);
+  font-size: 20px;
+}
+
+.sb-step-val {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 26px;
+  min-width: 1.4ch;
+  text-align: center;
+}
+
+.sb-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 15px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-divider);
+  border-radius: 12px;
+  outline: none;
+}
+
+.sb-input:focus {
+  border-color: var(--color-accent-300);
+}
+
+.sb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sb-chip {
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  padding: 8px 15px;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-divider);
+  background: #fff;
+  color: var(--color-text);
+  transition: all 0.15s;
+}
+
+.sb-chip[data-on='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.sb-calc-result {
+  background: var(--color-accent-900);
+  color: #fff;
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+
+.sb-calc-result-euros {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 42px;
+  line-height: 1;
+}
+
+.sb-calc-result-pct {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--color-accent-300);
+}
+
+.sb-fine {
+  font-size: 11.5px;
+  margin: 0;
+  color: var(--color-neutral-600);
+}
+
+/* ── section scaffolding ───────────────────────────────────────── */
+.sb-section {
+  padding: clamp(28px, 5vw, 56px) 0;
+  scroll-margin-top: 74px;
+}
+
+.sb-section-head {
+  text-align: center;
+  max-width: 60ch;
+  margin: 0 auto 38px;
+}
+
+/* ── price section + chart ─────────────────────────────────────── */
+.sb-price-section {
+  position: relative;
+  padding: clamp(28px, 5vw, 60px) 0;
+  scroll-margin-top: 74px;
+  overflow: hidden;
+}
+
+.sb-price-inner {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sb-price-col {
+  width: min(100%, 640px);
+}
+
+.sb-price-head {
+  margin-bottom: 20px;
+}
+
+.sb-price-head h2 {
+  font-size: clamp(24px, 3.2vw, 34px);
+  margin: 0;
+}
+
+.sb-price-head p {
+  margin: 8px 0 0;
+  color: var(--color-neutral-600);
+  max-width: 46ch;
+}
+
+.sb-chart-card {
+  padding: clamp(18px, 2.5vw, 28px);
+  box-shadow: 0 20px 55px rgba(15, 34, 59, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sb-chart-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.sb-chart-stats-group {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.sb-stat-cap {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-neutral-600);
+}
+
+.sb-stat-cap-accent {
+  color: var(--color-accent);
+}
+
+.sb-stat-cap-pop {
+  color: var(--color-pop);
+}
+
+.sb-stat-big {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 23px;
+  white-space: nowrap;
+}
+
+.sb-stat-unit {
+  font-size: 12px;
+  color: var(--color-neutral-600);
+  font-weight: 500;
+}
+
+.sb-day-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--color-accent-100);
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.sb-day-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  background: transparent;
+  color: var(--color-text);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sb-day-tab[data-active='true'] {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(69, 123, 157, 0.32);
+}
+
+.sb-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--color-neutral-600);
+  margin-top: 4px;
+}
+
+.sb-legend {
+  display: flex;
+  gap: 20px;
+  font-size: 12.5px;
+  flex-wrap: wrap;
+  color: var(--color-neutral-600);
+  align-items: center;
+}
+
+.sb-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sb-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.sb-chart-tz {
+  font-size: 11.5px;
+  color: var(--color-neutral-600);
+  margin-top: -12px;
+}
+
+.sb-chart-state {
+  min-height: 210px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--color-neutral-600);
+  font-size: 14px;
+  padding: 20px;
+}
+
+.sb-chart-state code {
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+
+/* interactive bidding-zone map as a full-bleed background layer */
+.sb-price-section {
+  position: relative;
+  /* full-bleed: break out of the shell so the map can reach the window edge */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  overflow: hidden; /* clips the map at the viewport edge, not the shell edge */
+  min-height: 920px; /* room for the taller map so it isn't cropped top/bottom */
+  display: flex;
+  align-items: center;
+  justify-content: center; /* re-center the shell-width content inside 100vw */
+}
+
+.sb-zonemap-bleed {
+  position: absolute;
+  top: 50%;
+  /* Anchor to the CENTERED content, not the viewport. 50% = content centre; the
+     content's left edge is at (50% - 580px) for the 1160px shell. Starting ~80px
+     further left gives a modest bleed that stays tied to the layout on wide screens. */
+  left: calc(50% - 660px);
+  transform: translateY(-50%);
+  width: min(800px, 58vw);
+  z-index: 0;
+  pointer-events: none; /* ocean/empty passes through; zones re-enable below */
+  /* aggressive fade on the right edge, out to nothing (into the chart / background) */
+  -webkit-mask-image: linear-gradient(to right, #000 68%, transparent 94%);
+  mask-image: linear-gradient(to right, #000 68%, transparent 94%);
+}
+
+.sb-price-inner {
+  position: relative;
+  z-index: 1; /* chart card floats above the map */
+  flex: 1; /* fill the flex section so justify-content:flex-end keeps the card right */
+  width: 100%;
+  max-width: 1160px; /* match the shell so the chart stays where it was */
+  padding: 0 clamp(16px, 4vw, 40px); /* match shell horizontal padding */
+  box-sizing: border-box;
+  pointer-events: none; /* its empty left half must not block map clicks... */
+}
+
+.sb-price-col {
+  max-width: 560px; /* chart card on the right; map stays exposed on the left */
+  pointer-events: auto; /* ...but the card itself stays interactive */
+}
+
+/* The nudge pill and the slide-away handle are mobile-only affordances (see the
+   max-width: 900px block). On desktop the map + chart are always side by side, so
+   neither is needed. */
+.sb-map-nudge,
+.sb-chart-handle {
+  display: none;
+}
+
+.sb-zonemap {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── mobile: two-panel slider (map ⇄ chart) ────────────────────── */
+@media (max-width: 900px) {
+  /* TWO-PANEL SLIDER. The section is a horizontal track holding two full-width stages
+     side by side: the CHART (left) and the MAP (right). Nothing is preselected, so the
+     track starts parked on the MAP and the user is nudged to tap a zone — that slides the
+     track to the CHART (React sets data-panel-open="true"). The handle / a swipe slides it
+     back to re-pick. Each stage is its own full-screen panel, so exactly one is visible at
+     a time — never a split — and the heading is never stranded behind the map. */
+  .sb-price-section {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start; /* CRITICAL: anchor the 200vw track left (desktop rule
+                                    sets center, which would show half of each stage) */
+    padding: 0;
+    position: relative;
+    overflow: hidden; /* the off-screen stage is clipped here */
+    height: min(80vh, 620px);
+    min-height: 460px;
+    touch-action: pan-y; /* let vertical scroll through; we handle horizontal swipes */
+  }
+
+  /* Both stages are exactly one viewport wide and slide together as one track.
+     order: chart (price-inner) left, map (zonemap-bleed) right. */
+  .sb-zonemap-bleed,
+  .sb-price-inner {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    /* Default = parked on the MAP (the right stage), so the track is shifted one viewport
+       left. Opening the chart brings it back to 0. */
+    transform: translateX(var(--sb-slide, -100%));
+    transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .sb-price-inner {
+    order: 0;
+  }
+  .sb-zonemap-bleed {
+    order: 1;
+  }
+  .sb-price-section[data-panel-open='true'] .sb-zonemap-bleed,
+  .sb-price-section[data-panel-open='true'] .sb-price-inner {
+    --sb-slide: 0; /* slide the track right → show the chart (left stage) */
+  }
+
+  /* MAP stage: bright, interactive, ZOOMED to fill its panel; the right edge (Russia/
+     Turkey) fades with the exact same mask as the desktop view. */
+  .sb-zonemap-bleed {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin: 0;
+    opacity: 1;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 99%);
+    mask-image: linear-gradient(to right, #000 85%, transparent 99%);
+  }
+
+  .sb-zonemap {
+    width: min(120%, 720px); /* zoom: bleed past the panel so zones are big & tappable */
+    height: auto;
+    max-width: none;
+    flex: none;
+    /* Shift the map RIGHT so the faded eastern edge (Russia) slides off-screen and more
+       of western/central Europe is centered. Higher = further right / less Russia. */
+    transform: translateX(9%);
+  }
+
+  /* Nudge pill floating over the map stage, inviting the first tap. */
+  .sb-map-nudge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    padding: 9px 15px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: #fff;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    box-shadow: 0 8px 22px rgba(43, 108, 246, 0.4);
+    pointer-events: none;
+    transition: opacity 0.3s;
+    animation: sb-nudge-bob 1.8s ease-in-out infinite;
+  }
+
+  .sb-map-nudge-tap {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+    animation: sb-nudge-ping 1.8s ease-out infinite;
+  }
+
+  .sb-price-section[data-panel-open='true'] .sb-map-nudge {
+    opacity: 0;
+  }
+
+  /* CHART stage — a fixed-size box that pins the handle; the column scrolls inside it. */
+  .sb-price-inner {
+    position: relative;
+    z-index: 2;
+    max-width: none;
+    padding: 0;
+    display: block;
+    overflow: hidden;
+    pointer-events: auto;
+    background: var(--color-bg);
+  }
+
+  .sb-price-col {
+    position: static;
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: clamp(18px, 5vw, 26px) clamp(26px, 7vw, 40px) clamp(18px, 5vw, 26px)
+      clamp(16px, 4vw, 22px); /* extra right padding clears the handle tab */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    overflow-y: auto; /* scroll the chart within the stage if it's taller */
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .sb-price-head {
+    display: none; /* on mobile the map already provides the context; save the space */
+  }
+
+  /* Handle on the chart stage's RIGHT edge — the map lives to the right, so a › chevron
+     points back to it. Tap (or swipe left) to slide the track back to the map. */
+  .sb-chart-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 26px;
+    height: 72px;
+    padding: 0;
+    border: none;
+    border-radius: 16px 0 0 16px;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: -3px 4px 14px rgba(43, 108, 246, 0.32);
+  }
+}
+
+@keyframes sb-nudge-bob {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+@keyframes sb-nudge-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-map-nudge,
+  .sb-map-nudge-tap {
+    animation: none;
+  }
+  .sb-zonemap-bleed,
+  .sb-price-inner {
+    transition: none;
+  }
+}
+
+.sb-zone {
+  stroke: var(--color-surface);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+
+/* non-selectable context countries (Balkans, Russia, Turkey, …) — greyed background */
+.sb-zone-context {
+  fill: var(--color-neutral-400);
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+/* selectable bidding zones */
+.sb-zone-pick {
+  fill: var(--color-accent-200);
+  cursor: pointer;
+  transition: fill 0.12s ease;
+  outline: none;
+  pointer-events: auto; /* re-enable clicks (parent layer is pointer-events:none) */
+}
+
+.sb-zone-pick:hover,
+.sb-zone-pick:focus-visible {
+  fill: var(--color-accent-300);
+}
+
+.sb-zone-pick[data-selected='true'] {
+  fill: var(--color-accent);
+}
+
+/* ── how it works / spot prices ────────────────────────────────── */
+.sb-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 38px;
+}
+
+.sb-step {
+  padding: 26px;
+  box-shadow: 0 8px 26px rgba(15, 34, 59, 0.05);
+}
+
+.sb-step-badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--color-accent-100);
+  color: var(--color-accent);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 22px;
+  margin-bottom: 14px;
+}
+
+.sb-step h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.sb-step p {
+  color: var(--color-neutral-700);
+  font-size: 14px;
+}
+
+.sb-tariffs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.sb-tariff {
+  padding: 26px;
+  border-radius: 18px;
+}
+
+.sb-tariff h4 {
+  font-size: 19px;
+  margin-bottom: 8px;
+}
+
+.sb-tariff p {
+  font-size: 14px;
+  margin: 0;
+}
+
+.sb-tariff-fixed {
+  background: var(--color-pop-100);
+  border: 1.5px solid color-mix(in srgb, var(--color-pop) 32%, transparent);
+}
+
+.sb-tariff-fixed h4 {
+  color: var(--color-pop-700);
+}
+
+.sb-tariff-fixed p {
+  color: var(--color-neutral-700);
+}
+
+.sb-tariff-dynamic {
+  background: var(--color-accent-100);
+  border: 1.5px solid var(--color-accent-300);
+}
+
+.sb-tariff-dynamic h4,
+.sb-tariff-dynamic p {
+  color: var(--color-accent-800);
+}
+
+/* ── devices ───────────────────────────────────────────────────── */
+.sb-int-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.sb-int-card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: 20px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 10px 30px rgba(15, 34, 59, 0.06);
+}
+
+/* Home Assistant is the headline integration — navy, so it reads first. */
+.sb-int-card[data-dark] {
+  background: var(--color-accent-900);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 18px 44px rgba(14, 37, 71, 0.28);
+}
+
+.sb-int-card img {
+  width: auto;
+  object-fit: contain;
+}
+
+/* The HA logo ships as solid navy; flatten it to pure white for the dark card. */
+.sb-logo-white {
+  filter: brightness(0) invert(1);
+}
+
+.sb-int-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sb-int-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sb-int-card[data-dark] .sb-int-badge {
+  background: var(--color-accent-300);
+  color: var(--color-accent-900);
+}
+
+.sb-int-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.sb-int-card[data-dark] .sb-int-dot {
+  background: var(--color-accent-900);
+}
+
+.sb-int-rule {
+  height: 1px;
+  background: var(--color-divider);
+}
+
+.sb-int-card[data-dark] .sb-int-rule {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sb-int-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sb-int-bullet {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-neutral-700);
+}
+
+.sb-int-card[data-dark] .sb-int-bullet {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.sb-int-check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.sb-int-cta {
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 12px 24px;
+  font-size: 14px;
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(69, 123, 157, 0.3);
+}
+
+.sb-int-cta:hover {
+  background: var(--color-accent-700);
+  color: #fff;
+}
+
+.sb-int-card[data-dark] .sb-int-cta {
+  background: #fff;
+  color: var(--color-accent-900);
+}
+
+.sb-int-card[data-dark] .sb-int-cta:hover {
+  background: var(--color-accent-100);
+  color: var(--color-accent-900);
+}
+
+/* Planned integrations: logo stays recognisable but clearly inactive
+   (greyed + blurred), with the label sharp on top of it. */
+.sb-int-soon {
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+  padding: 40px 30px;
+  overflow: hidden;
+}
+
+.sb-int-card[data-soon] img {
+  filter: grayscale(1) blur(1.6px);
+  opacity: 0.4;
+}
+
+.sb-logo-soon {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  color: var(--color-pop-700);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sb-int-note {
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-neutral-600);
+  margin-top: 26px;
+}
+
+@media (max-width: 720px) {
+  .sb-int-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── faq ───────────────────────────────────────────────────────── */
+.sb-faq-list {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sb-faq {
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(15, 34, 59, 0.04);
+}
+
+.sb-faq-q {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--color-text);
+}
+
+.sb-faq-icon {
+  font-family: var(--font-body);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--color-accent);
+  transition: transform 0.2s;
+}
+
+/* Animated open/close: grid-rows 0fr -> 1fr slides the panel to its natural
+   height without hard-coding it; the inner wrapper clips the overflow. */
+.sb-faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.sb-faq-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.sb-faq-panel > div {
+  overflow: hidden;
+}
+
+.sb-faq-a {
+  margin: 0;
+  padding: 0 24px 22px;
+  color: var(--color-neutral-700);
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+}
+
+.sb-faq-panel[data-open='true'] .sb-faq-a {
+  opacity: 1;
+}
+
+.sb-faq-link {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-faq-panel,
+  .sb-faq-a {
+    transition: none;
+  }
+}
+
+/* ── cta strip ─────────────────────────────────────────────────── */
+.sb-cta {
+  background: var(--color-accent-900);
+  color: #fff;
+  border-radius: 24px;
+  padding: clamp(32px, 5vw, 60px);
+  margin: 24px 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.sb-cta-glow {
+  position: absolute;
+  top: -80px;
+  right: -40px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.sb-cta h2 {
+  color: #fff;
+  font-size: clamp(26px, 4vw, 42px);
+  margin: 0 auto 12px;
+  max-width: 22ch;
+}
+
+.sb-cta-sub {
+  opacity: 0.72;
+  max-width: 44ch;
+  margin: 0 auto 26px;
+}
+
+.sb-cta-btn {
+  padding: 14px 30px;
+  background: #fff;
+  color: var(--color-accent-900);
+  font-size: 15px;
+}
+
+.sb-cta-btn:hover {
+  background: var(--color-accent-100);
+  color: var(--color-accent-900);
+}
+
+/* ── footer ────────────────────────────────────────────────────── */
+.sb-footer {
+  border-top: 1px solid var(--color-divider);
+  padding: 40px 0 32px;
+  margin-top: 20px;
+}
+
+.sb-footer-top {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 28px;
+}
+
+/* Looks like the neighbouring footer spans, behaves like the button it is. */
+.sb-footer-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sb-footer-link:hover {
+  color: var(--color-accent);
+}
+
+.sb-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-accent-100);
+}
+
+.sb-contact-email {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+  word-break: break-all;
+}
+
+.sb-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid var(--color-divider);
+  margin-top: 34px;
+  padding-top: 18px;
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+
+/* ── individual savings (per-appliance cards) ──────────────────── */
+.sb-indiv {
+  padding: clamp(28px, 5vw, 56px) 0 0;
+  scroll-margin-top: 74px;
+}
+
+.sb-indiv-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.sb-indiv-head h3 {
+  font-size: clamp(28px, 4vw, 42px);
+  margin: 0;
+}
+
+.sb-indiv-head span {
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+}
+
+.sb-indiv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.sb-indiv-card {
+  overflow: hidden;
+  box-shadow: 0 8px 26px rgba(15, 34, 59, 0.05);
+}
+
+.sb-indiv-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.sb-indiv-icon {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--color-accent-100);
+  color: var(--color-accent);
+  display: grid;
+  place-items: center;
+}
+
+/* Material Symbols is a ligature font (see the <link> in index.html): the glyph name is the
+   element's text, so it must not wrap, break or get letter-spaced. */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.sb-indiv-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-indiv-name {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.sb-indiv-spec {
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+
+.sb-indiv-when {
+  text-align: right;
+  flex: none;
+}
+
+.sb-indiv-cap {
+  font-size: 11px;
+  color: var(--color-neutral-600);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sb-indiv-time {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 26px;
+  color: var(--color-accent);
+  line-height: 1;
+}
+
+.sb-indiv-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  background: var(--color-accent-100);
+}
+
+.sb-indiv-detail {
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+
+.sb-indiv-mid {
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+}
+
+.sb-indiv-mid strong {
+  color: var(--color-accent-800);
+}
+
+.sb-indiv-saving-box {
+  text-align: right;
+}
+
+.sb-indiv-saving-box .sb-indiv-cap {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.sb-indiv-saving {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .sb-indiv-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Single column gets long fast — keep only the four big flexible loads. */
+  .sb-indiv-card[data-desktop-only='true'] {
+    display: none;
+  }
+}
+
+/* Termly legal documents rendered inside LegalDialog. Their own stylesheet is prefixed
+   with .sb-legal at runtime (see api/legal.ts), so this only sets what Termly doesn't. */
+.sb-legal {
+  overflow-wrap: anywhere;
+}
+
+.sb-legal table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}

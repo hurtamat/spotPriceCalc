@@ -1,6 +1,38 @@
-@spotPriceCalc_HostAddress = http://localhost:5262
+### Direct ENTSO-E upstream call — Slovakia, today (delivery day 2026-07-18, CEST window)
+@entsoeHost = https://web-api.tp.entsoe.eu/api
+@token = 8b728f83-6aad-4943-b6a8-460fe4e692b8
+@domain = 10YSK-SEPS-----K
+@documentType = A25
+@businessType = B10
+@contractType = A01
+@periodStart = 202607172200
+@periodEnd = 202607182200
 
-GET {{spotPriceCalc_HostAddress}}/weatherforecast/
+GET {{entsoeHost}}?securityToken={{token}}&documentType={{documentType}}&businessType={{businessType}}&contract_MarketAgreement.Type={{contractType}}&out_Domain={{domain}}&in_Domain={{domain}}&periodStart={{periodStart}}&periodEnd={{periodEnd}}
+Accept: application/xml
+
+### Our API
+@spotPriceCalc_HostAddress = http://localhost:5262
+@biddingZoneId = 6
+
+### Populate ALL zones for today (writes to the DB) — run this first. Omit ?date to default to today (UTC).
+POST {{spotPriceCalc_HostAddress}}/api/spotprices/populate
+Accept: application/json
+
+### Populate ALL zones for a specific date (e.g. tomorrow, after the day-ahead auction ~13:00 CET)
+POST {{spotPriceCalc_HostAddress}}/api/spotprices/populate?date=2026-07-28
+Accept: application/json
+
+### Read stored prices for one zone for a single LOCAL delivery day (Slovakia = id 6)
+GET {{spotPriceCalc_HostAddress}}/api/spotprices?biddingZoneId={{biddingZoneId}}&date=2026-07-20
+Accept: application/json
+
+### Price zones (green/yellow/red thresholds) over 7 days — needs the calc-service running on :8000
+GET {{spotPriceCalc_HostAddress}}/api/spotprices/zones?biddingZoneId={{biddingZoneId}}&from=2026-08-04&to=2026-08-10
+Accept: application/json
+
+### Price zones over a year
+GET {{spotPriceCalc_HostAddress}}/api/spotprices/zones?biddingZoneId={{biddingZoneId}}&from=2025-08-11&to=2026-08-10
 Accept: application/json
 
 ###

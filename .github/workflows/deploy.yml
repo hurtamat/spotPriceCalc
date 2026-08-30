@@ -1,0 +1,82 @@
+name: Deploy to Azure
+
+# Build the three images in ACR, then roll them out via terraform apply.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+# Queue deploys rather than letting two applies fight over the state lock.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    env:
+      ARM_USE_OIDC: true
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_entsoe_token: ${{ secrets.ENTSOE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Compute image tag
+        id: tag
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # For `az acr build`. Terraform authenticates separately via ARM_USE_OIDC.
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.15.9"
+          terraform_wrapper: false
+
+      - run: terraform init
+
+      # Read what the last apply produced: the registry to push to, and the
+      # backend URL the frontend bundle needs baked in at build time.
+      - name: Read terraform outputs
+        id: tf
+        run: |
+          echo "acr=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
+          echo "backend_url=$(terraform output -raw backend_url)" >> "$GITHUB_OUTPUT"
+
+      # Built server-side in ACR - no local docker or registry login needed.
+      # Must happen before apply: Terraform points the apps at these exact tags.
+      - name: Build images
+        working-directory: .
+        env:
+          ACR: ${{ steps.tf.outputs.acr }}
+          TAG: ${{ steps.tag.outputs.sha }}
+        run: |
+          az acr build -r "$ACR" -t "spotprice-backend:$TAG" -f spotPriceCalc/Dockerfile .
+          az acr build -r "$ACR" -t "spotprice-calc:$TAG" ./calc-service
+          az acr build -r "$ACR" -t "spotprice-frontend:$TAG" \
+            --build-arg VITE_API_BASE_URL="${{ steps.tf.outputs.backend_url }}" ./frontend
+
+      - name: Apply
+        run: terraform apply -auto-approve -input=false -var="image_tag=${{ steps.tag.outputs.sha }}"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Deployed \`${{ steps.tag.outputs.sha }}\`"
+            echo ""
+            echo "- Frontend: $(terraform output -raw frontend_url)"
+            echo "- Backend: $(terraform output -raw backend_url)"
+          } >> "$GITHUB_STEP_SUMMARY"
