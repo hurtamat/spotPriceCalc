@@ -55,6 +55,10 @@ STATUS_UNAVAILABLE = "backend_unavailable"
 # Price levels, mirroring the backend PriceQuantile enum (0/1/2).
 PRICE_LEVELS = ["green", "yellow", "red"]
 
+# Backend
+SCHEDULE_PATH = "/api/homeassistant/schedule"
+API_TIMEOUT_SECONDS = 30
+
 # Defaults
 DEFAULT_BASE_URL = "http://localhost:8080"
 DEFAULT_DURATION_HOURS = 3.0

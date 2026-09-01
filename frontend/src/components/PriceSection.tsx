@@ -240,9 +240,6 @@ function Chart({
         <div className="sb-chart-state">
           No prices stored for {DAY_LABELS[day].toLowerCase()} yet.
           <br />
-          <span style={{ fontSize: 12.5 }}>
-            Populate the backend first: <code>POST /api/spotprices/populate?day={day}</code>
-          </span>
         </div>
       )}
 

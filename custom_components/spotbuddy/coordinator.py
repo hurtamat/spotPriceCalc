@@ -8,16 +8,20 @@ deliberately thin.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_change
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .api import SpotBuddyApiClient, SpotBuddyApiError, SpotBuddyAuthError
 from .const import (
+    CONF_API_KEY,
     CONF_BASE_URL,
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -26,15 +30,24 @@ from .const import (
     DOMAIN,
     PLAN_REFRESH_HOURS_UTC,
     PLAN_REFRESH_MINUTE,
+    PRICE_LEVELS,
     STATUS_DISABLED,
     STATUS_NO_PLAN,
     STATUS_RUNNING,
+    STATUS_UNAVAILABLE,
     STATUS_WAITING_FOR_PLAN,
     STATUS_WAITING_TO_START,
 )
 from .helpers.general import get_parameter
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _level_name(level: int | None) -> str | None:
+    """Map the backend PriceColor int (0/1/2) onto a slug. None stays None."""
+    if level is None or not 0 <= level < len(PRICE_LEVELS):
+        return None
+    return PRICE_LEVELS[level]
 
 
 @dataclass
@@ -59,6 +72,7 @@ class SpotBuddyPlan:
     blocks: list[ScheduledBlock] = field(default_factory=list)
     current_price: float | None = None
     price_level: str | None = None
+    curve: list[dict] = field(default_factory=list)
     fetched_at: datetime | None = None
 
     def block_at(self, moment: datetime) -> ScheduledBlock | None:
@@ -99,6 +113,11 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         self.longitude: float = float(
             get_parameter(config_entry, CONF_LONGITUDE, hass.config.longitude)
         )
+        self.client = SpotBuddyApiClient(
+            async_get_clientsession(hass),
+            self.base_url,
+            get_parameter(config_entry, CONF_API_KEY, "") or None,
+        )
 
         # Task settings, owned by the config entities and restored by them on
         # startup. These are the fields of one task in the schedule request.
@@ -133,14 +152,74 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         self.listeners = []
 
     async def _async_update_data(self) -> SpotBuddyPlan:
-        """Fetch the committed plan from the backend.
+        """Fetch the committed plan and the price curve from the backend."""
+        try:
+            body = await self.client.async_get_schedule(
+                device_id=self.config_entry.entry_id,
+                latitude=self.latitude,
+                longitude=self.longitude,
+                for_date=self._target_date(),
+                duration_hours=self.duration_hours,
+                ready_by=self.ready_by,
+                continuous_block=self.continuous_block,
+                unavailable_from=self.unavailable_from,
+                unavailable_to=self.unavailable_to,
+            )
+        except SpotBuddyAuthError as err:
+            # Sends the user to the reconfigure flow rather than retrying forever.
+            raise ConfigEntryAuthFailed(str(err)) from err
+        except SpotBuddyApiError as err:
+            raise UpdateFailed(str(err)) from err
 
-        TODO: call POST /api/schedule with the task built from the config
-        entities, and GET /api/schedule/status for the price colour. Until the
-        API client lands, an empty plan keeps the entities alive and honest.
+        return self._parse_plan(body)
+
+    def _target_date(self) -> date:
+        """The day to schedule for.
+
+        The backend anchors the window on the deadline and looks back 24h, so
+        once today's deadline has passed the interesting plan is tomorrow's.
         """
-        _LOGGER.debug("SpotBuddyCoordinator._async_update_data (not implemented)")
-        return SpotBuddyPlan(fetched_at=dt_util.utcnow())
+        now = dt_util.utcnow()
+        today = now.date()
+        if self.ready_by is not None and now.time() >= self.ready_by:
+            return today + timedelta(days=1)
+        return today
+
+    def _parse_plan(self, body: dict) -> SpotBuddyPlan:
+        """Map the response body onto a SpotBuddyPlan.
+
+        One config entry drives one appliance, so it always sends one task and
+        reads tasks[0] — the same single-task convention as the Shelly script.
+        """
+        tasks = body.get("tasks") or []
+        task = tasks[0] if tasks else {}
+
+        blocks = []
+        for raw in task.get("blocks") or []:
+            start = dt_util.parse_datetime(raw.get("start_utc") or "")
+            end = dt_util.parse_datetime(raw.get("end_utc") or "")
+            if start is None or end is None:
+                _LOGGER.warning("Skipping block with unparsable times: %s", raw)
+                continue
+            blocks.append(
+                ScheduledBlock(
+                    start_utc=dt_util.as_utc(start),
+                    end_utc=dt_util.as_utc(end),
+                    eur_per_mwh=raw.get("eur_per_mwh"),
+                )
+            )
+
+        price = body.get("price") or {}
+
+        return SpotBuddyPlan(
+            zone_name=body.get("zone_name"),
+            scheduled=bool(task.get("scheduled")),
+            blocks=sorted(blocks, key=lambda b: b.start_utc),
+            current_price=price.get("current_eur_per_mwh"),
+            price_level=_level_name(price.get("current_level")),
+            curve=price.get("curve") or [],
+            fetched_at=dt_util.utcnow(),
+        )
 
     async def _async_scheduled_refresh(self, date_time: datetime | None = None) -> None:
         """Time-triggered plan refresh."""
@@ -167,6 +246,9 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         """A coarse, language-independent state for automations."""
         if not self.enabled:
             return STATUS_DISABLED
+
+        if not self.last_update_success:
+            return STATUS_UNAVAILABLE
 
         plan = self.data
         if plan is None or plan.fetched_at is None:

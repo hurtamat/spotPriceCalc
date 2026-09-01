@@ -221,13 +221,59 @@ public class ScheduleService : IScheduleService
             return null;
         }
 
-        return quantile switch
+        return ToColor(quantile);
+    }
+
+    // The curve for the instant's day and the next, so an integration can render prices without
+    // a second call. Null only when nothing is stored for the zone at all.
+    public async Task<PriceSnapshot?> ResolvePriceSnapshotAsync(StatusSchedule request, CancellationToken ct)
+    {
+        var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
+        if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
+            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
+
+        var at = DateTime.SpecifyKind(request.StatusTime, DateTimeKind.Utc);
+        var day = DateOnly.FromDateTime(at);
+
+        // Today and tomorrow. Tomorrow is simply absent until the day-ahead prices publish.
+        var prices = await _prices.GetPricesAsync(biddingZoneId, day, day.AddDays(1), ct);
+
+        var curve = prices.Points
+            .OrderBy(p => p.From)
+            .Select(p => new PriceCurvePoint
+            {
+                StartUtc = DateTime.SpecifyKind(p.From, DateTimeKind.Utc),
+                EndUtc = DateTime.SpecifyKind(p.To, DateTimeKind.Utc),
+                EurPerMwh = p.Price,
+                Level = ToColor(p.Quantile),
+            })
+            .ToList();
+
+        if (curve.Count == 0)
         {
-            PriceQuantile.Green => PriceColor.Green,
-            PriceQuantile.Red => PriceColor.Red,
-            _ => PriceColor.Yellow,
+            _logger.LogWarning("No stored prices for zone {ZoneId} on {Day}: no snapshot", biddingZoneId, day);
+            return null;
+        }
+
+        // Half-open [Start, End) as everywhere else.
+        var current = curve.FirstOrDefault(p => at >= p.StartUtc && at < p.EndUtc);
+
+        return new PriceSnapshot
+        {
+            CurrentEurPerMwh = current?.EurPerMwh,
+            CurrentLevel = current?.Level,
+            Curve = curve,
         };
     }
+
+    // Null quantile stays null: better no colour than a guessed one.
+    private static PriceColor? ToColor(PriceQuantile? quantile) => quantile switch
+    {
+        PriceQuantile.Green => PriceColor.Green,
+        PriceQuantile.Red => PriceColor.Red,
+        null => null,
+        _ => PriceColor.Yellow,
+    };
 
     #endregion
 }

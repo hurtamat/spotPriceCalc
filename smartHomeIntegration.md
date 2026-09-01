@@ -110,6 +110,14 @@ described at the end of this doc, at the cost of the device needing a clock.
 The response is **deliberately lean** — it's consumed by a device script, not a human. No display strings, no
 labels, no reasons. Everything is UTC.
 
+### `POST /api/homeassistant/schedule`
+
+The same request, the same `ScheduleService`, a wider response: the committed plan **plus** the price
+curve and the current price level in one payload. Home Assistant publishes price sensors as well as a
+run-block sensor, so folding them together turns three calls per refresh into one. This is what the
+abstract base controller's virtual `BuildScheduleAsync` step was for — the concrete controller
+overrides only the mapping. See [homeAssistantIntegration.md](./homeAssistantIntegration.md).
+
 ### `GET /api/schedule/status?lat=&lon=&time=`
 
 A second, much simpler endpoint for ambient display: what colour is the price at this instant?
@@ -137,8 +145,10 @@ controller layer is for.
 Controllers/
 ├─ SmartHomeIntegrationController.cs   abstract base: the shared HTTP adapter.
 │                                       Holds the scheduler, exposes one virtual step (BuildScheduleAsync).
-└─ SmartHomeShellyController.cs        concrete: POST /api/schedule + GET /api/schedule/status. Inherits
-                                        the base; a vendor controller would override only the mapping.
+├─ SmartHomeShellyController.cs        concrete: POST /api/schedule + GET /api/schedule/status. Inherits
+│                                       the base; a vendor controller overrides only the mapping.
+└─ SmartHomeHomeAssistantController.cs concrete: POST /api/homeassistant/schedule. Same plan, plus the
+                                        price curve, so the integration needs one call per refresh.
 Services/SmartHome/
 ├─ IZoneLocatorService.cs             coordinates → bidding zone (own responsibility).
 ├─ ZoneLocatorService.cs             nearest zone centre (Haversine). Works; wrong right at internal borders.
@@ -146,7 +156,8 @@ Services/SmartHome/
 └─ ScheduleService.cs                the brain. Regions: Schedule building / Slot selection / Price colour.
 Dtos/Schedule/
 ├─ ScheduleRequest.cs                request + UnavailableWindow + TaskRequest.
-└─ ScheduleResponse.cs               response + TaskResult + ScheduledBlock.
+├─ ScheduleResponse.cs               response + TaskResult + ScheduledBlock.
+└─ HomeAssistantScheduleResponse.cs  the HA response + PriceSnapshot + PriceCurvePoint.
 StatusSchedule.cs                 the colour query (lat, lon, dateTime).
 ```
 

@@ -5,9 +5,9 @@ The **layer-3 control** path for Home Assistant, alongside the Shelly scripts in
 but where a Shelly drives one relay, this publishes state that *any* device HA controls can act on.
 For the endpoint it consumes see [`smartHomeIntegration.md`](./smartHomeIntegration.md).
 
-> **Status in one line:** the integration installs, configures and creates every entity, but the
-> backend client is **not written yet** — `SpotBuddyCoordinator._async_update_data` returns an empty
-> plan. Everything below the API boundary works; the API boundary is the next task.
+> **Status in one line:** end to end. The integration calls
+> `POST /api/homeassistant/schedule`, stores the committed blocks, and drives
+> `binary_sensor.spotbuddy_running` and the price sensors off them. Untested against a live backend.
 
 ---
 
@@ -51,6 +51,7 @@ change the hours in the HA UI and the plan re-fetches. No re-pasting.
 ```
 custom_components/spotbuddy/
 ├─ __init__.py        setup/unload/reload lifecycle, device-name sync
+├─ api.py             HTTP client for the backend; the only place aiohttp appears
 ├─ coordinator.py     SpotBuddyCoordinator + the SpotBuddyPlan/ScheduledBlock model
 ├─ config_flow.py     initial setup + options flow (backend URL, API key, coordinates)
 ├─ entity.py          shared identity: unique_id, device_info, translation key
@@ -77,16 +78,51 @@ clock and pushes state out — it never re-optimizes. That is the same "commit, 
 Shelly script uses, and it is why the drift problem at the end of `smartHomeIntegration.md` does not
 appear here.
 
+## The backend endpoint
+
+`POST /api/homeassistant/schedule`, served by `SmartHomeHomeAssistantController`. It takes the same
+device-agnostic `ScheduleRequest` as the Shelly endpoint and runs the same `ScheduleService` — only
+the response differs, which is exactly what the abstract base controller's virtual step exists for.
+
+**Why a second endpoint rather than reusing the Shelly one.** A Shelly drives one relay and needs
+nothing but the blocks. Home Assistant also publishes price sensors, so reusing `/api/schedule` would
+mean three calls per refresh (plan, colour, curve). This endpoint returns all three in one payload:
+
+```json
+{
+  "device_id": "01J...", "zone_name": "Czech Republic",
+  "generated_at_utc": "2026-09-01T12:00:00Z",
+  "tasks": [ { "task_id": 1, "scheduled": true, "blocks": [ ... ] } ],
+  "price": {
+    "current_eur_per_mwh": 42.1,
+    "current_level": 0,
+    "curve": [ { "start_utc": ..., "end_utc": ..., "eur_per_mwh": ..., "level": 0 } ]
+  }
+}
+```
+
+`current_level` and each point's `level` are the `PriceColor` enum **as an int** — 0 green, 1 yellow,
+2 red — matching `GET /api/schedule/status`, which the Shelly script already depends on. Null means
+unclassified, and the integration then shows no level rather than guessing. The curve backs the price
+sensor's `curve` attribute, which is marked `_unrecorded_attributes` so ~200 points per state write
+never reach the recorder database.
+
+The service-side addition is `IScheduleService.ResolvePriceSnapshotAsync` — the curve for the
+instant's day and the next, plus the slot the instant falls in. Logic in the service, glue in the
+controller, as elsewhere.
+
+`_target_date` picks which day to ask for: today, unless today's `ready_by` has already passed, in
+which case tomorrow. The backend anchors the eligible window on the deadline and looks back 24h, so
+after the deadline the only interesting plan is the next one.
+
 ## What is not built
 
-- **The API client.** `_async_update_data` is a stub. It needs to POST the task built from the config
-  entities to `/api/schedule` and read `/api/schedule/status` for the colour.
-- **Auth.** The config flow collects an API key; the backend does not check one yet. See the auth gap
-  noted in [DESIGN.md](./DESIGN.md) — this integration is the reason to close it, since it exposes the
-  endpoint to arbitrary clients.
-- **A price-curve endpoint keyed by lat/lon**, to fill the price sensor's curve attribute.
-  `GET /api/spotprices` currently needs a `biddingZoneId` and one date.
+- **Auth.** The config flow collects an API key and the client sends it as `X-Api-Key`, but the
+  backend does not check it yet. See the auth gap in [DESIGN.md](./DESIGN.md) — this integration is
+  the reason to close it, since it exposes the endpoint to arbitrary clients. On a 401/403 the client
+  raises `ConfigEntryAuthFailed`, so the reauth path is already wired.
 - **Tests.** `requirements_test.txt` pins the HA test harness; there is no `tests/` directory yet.
+- **Verification against a live backend.** Nothing here has been run against a running API.
 
 ## Development
 

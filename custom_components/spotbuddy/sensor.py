@@ -75,14 +75,23 @@ class SpotBuddySensorPrice(SpotBuddySensor):
     _attr_icon = ICON_CASH
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "EUR/MWh"
-    # The full curve is large and changes every slot; keep it out of the recorder.
-    _unrecorded_attributes = frozenset(["blocks"])
+    # The curve is ~200 points and changes every slot; keep it out of the recorder
+    # database, or every state write would store the whole array again.
+    _unrecorded_attributes = frozenset(["curve"])
 
     @property
     def native_value(self) -> float | None:
         """Current price, or None when no plan has been fetched."""
         plan = self.coordinator.data
         return plan.current_price if plan is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """The full curve, for chart cards and price-aware automations."""
+        plan = self.coordinator.data
+        if plan is None:
+            return {}
+        return {"zone_name": plan.zone_name, "curve": plan.curve}
 
 
 class SpotBuddySensorPriceLevel(SpotBuddySensor):
