@@ -1,0 +1,54 @@
+name: HA integration
+
+# Validates the Home Assistant custom integration in custom_components/spotbuddy.
+# Scoped by paths so .NET / frontend changes don't trigger it.
+on:
+  pull_request:
+    paths:
+      - "custom_components/**"
+      - "hacs.json"
+      - ".github/workflows/ha-integration.yml"
+  push:
+    branches: [main, dev]
+    paths:
+      - "custom_components/**"
+      - "hacs.json"
+      - ".github/workflows/ha-integration.yml"
+  schedule:
+    # Hassfest and HACS track Home Assistant releases, so re-run weekly to catch
+    # a rule that started failing without us touching anything.
+    - cron: "0 4 * * 1"
+
+jobs:
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    # Expected to fail while the integration lives in this monorepo: the HACS
+    # action also checks repository-level metadata (description, topics) and
+    # assumes the repo is the integration. It becomes required once the
+    # integration is split into its own repository for distribution.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hacs/action@main
+        with:
+          category: integration
+          ignore: brands
+
+  style:
+    name: Style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install black
+      - run: black --check custom_components
