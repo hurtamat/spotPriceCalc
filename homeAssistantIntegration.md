@@ -1,9 +1,14 @@
-# Home Assistant integration — `custom_components/spotbuddy`
+# Home Assistant integration
 
 The **layer-3 control** path for Home Assistant, alongside the Shelly scripts in
 [`scripts/shelly/`](./scripts/shelly/README.md). Same model — the backend decides, the client acts —
 but where a Shelly drives one relay, this publishes state that *any* device HA controls can act on.
 For the endpoint it consumes see [`smartHomeIntegration.md`](./smartHomeIntegration.md).
+
+> **The integration lives in its own repository**, `spotbuddy-homeassistant`, because HACS installs
+> from a repository root and its validation assumes the repo *is* the integration. This document
+> stays here: the endpoint it consumes is defined in this repo, and the two have to move together.
+> Everything below describes code in that repository.
 
 > **Status in one line:** end to end. The integration calls
 > `POST /api/homeassistant/schedule`, stores the committed blocks, and drives
@@ -49,7 +54,7 @@ change the hours in the HA UI and the plan re-fetches. No re-pasting.
 ## Architecture
 
 ```
-custom_components/spotbuddy/
+custom_components/spotbuddy/           (in the spotbuddy-homeassistant repo)
 ├─ __init__.py        setup/unload/reload lifecycle, device-name sync
 ├─ api.py             HTTP client for the backend; the only place aiohttp appears
 ├─ coordinator.py     SpotBuddyCoordinator + the SpotBuddyPlan/ScheduledBlock model
@@ -126,14 +131,14 @@ after the deadline the only interesting plan is the next one.
 
 ## Development
 
-CI is [`.github/workflows/ha-integration.yml`](./.github/workflows/ha-integration.yml) — hassfest,
-HACS validation and `black`, path-filtered so .NET and frontend changes don't trigger it. The HACS
-job is `continue-on-error` on purpose: it also validates repository-level metadata and assumes the
-repo *is* the integration, so it only goes green once this is split into its own repository for
-distribution. That split is also what HACS needs to install it.
+CI in the integration repo runs hassfest, HACS validation and `black`.
 
 To try it locally, symlink or copy `custom_components/spotbuddy/` into your HA config directory and
 restart HA, then add the integration from Settings → Devices & Services.
+
+**Changing the wire format touches both repos.** The response shape is defined by
+`HomeAssistantScheduleResponse.cs` here and parsed by `coordinator.py::_parse_plan` there; nothing
+enforces that they agree.
 
 ## Attribution
 
