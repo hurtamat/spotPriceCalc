@@ -8,15 +8,18 @@ import { Faq } from './components/Faq';
 // CtaStrip ("Ready to let cheap hours pay your bill?") is kept but not rendered.
 import { Footer } from './components/Footer';
 import { ConfigurePage } from './components/ConfigurePage';
+import { HomeAssistantPage } from './components/HomeAssistantPage';
 
-// Path routing without a router dependency, two static pages is not worth react-router.
+// Path routing without a router dependency, a handful of static pages is not worth react-router.
 const PAGES: Record<string, string> = {
   '/shelly': 'Configure your Shelly',
-  '/home-assistant': 'Configure in Home Assistant',
 };
 
 export default function App() {
-  const page = PAGES[window.location.pathname.replace(/\/+$/, '') || '/'];
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/home-assistant') return <HomeAssistantPage />;
+
+  const page = PAGES[path];
   if (page) return <ConfigurePage title={page} />;
 
   return (

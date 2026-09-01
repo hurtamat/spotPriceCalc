@@ -188,6 +188,13 @@ a:hover {
   font-weight: 800;
   font-size: 19px;
   margin-right: auto;
+  /* It is an <a> back to the landing page; keep the wordmark's own colours. */
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.sb-brand:hover {
+  color: var(--color-text);
 }
 
 .sb-brand-mark {
@@ -1452,4 +1459,619 @@ a:hover {
   display: block;
   max-width: 100%;
   overflow-x: auto;
+}
+
+/* ── Home Assistant setup guide (/home-assistant) ─────────────────────────────
+   Ported from the Claude Design canvas. Sections stack in one narrow column, so
+   the shared .sb-section padding is trimmed rather than repeated per block. */
+/* A guide reads better at a narrower measure than the 1160px marketing shell. */
+.sb-ha-head,
+.sb-ha-tight {
+  max-width: 1000px;
+  margin-inline: auto;
+}
+
+.sb-ha-tight {
+  padding-top: 0;
+}
+
+.sb-ha-back {
+  font-size: 13px;
+  color: var(--color-neutral-600);
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.sb-ha-title-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.sb-ha-title-row img {
+  width: auto;
+  object-fit: contain;
+}
+
+.sb-ha-pill {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent-800);
+  background: var(--color-accent-100);
+  padding: 5px 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sb-ha-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.sb-ha-lede {
+  font-size: clamp(16px, 1.7vw, 20px);
+  color: var(--color-neutral-700);
+  max-width: 56ch;
+}
+
+.sb-ha-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 22px;
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+}
+
+.sb-ha-sep {
+  color: var(--color-neutral-400);
+}
+
+.sb-ha-h2 {
+  font-size: clamp(22px, 3.4vw, 34px);
+  margin: 0 0 8px;
+}
+
+.sb-ha-sub {
+  color: var(--color-neutral-700);
+  margin: 0 0 24px;
+  max-width: 58ch;
+}
+
+/* Before you start */
+.sb-ha-prereq {
+  padding: clamp(18px, 2.5vw, 26px);
+}
+
+.sb-ha-prereq h2 {
+  font-size: 19px;
+  margin: 0 0 14px;
+}
+
+.sb-ha-prereq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.sb-ha-prereq-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.sb-ha-prereq-item svg {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  color: var(--color-accent);
+}
+
+.sb-ha-prereq-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.sb-ha-prereq-note {
+  font-size: 13px;
+  color: var(--color-neutral-600);
+}
+
+/* Steps */
+.sb-ha-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: clamp(20px, 3vw, 30px);
+  margin-bottom: 16px;
+}
+
+.sb-ha-step-n {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--color-accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.sb-ha-step-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-ha-step-body h3 {
+  font-size: 21px;
+  margin: 0 0 6px;
+}
+
+.sb-ha-step-body > p {
+  font-size: 14.5px;
+  color: var(--color-neutral-700);
+  max-width: 52ch;
+  margin: 0;
+}
+
+.sb-ha-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.sb-ha-cta {
+  padding: 14px 28px;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.sb-ha-textbtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--color-neutral-600);
+  text-decoration: underline;
+  padding: 0;
+}
+
+.sb-ha-manual {
+  margin-top: 16px;
+  border: 1px solid var(--color-divider);
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: var(--color-pop-100);
+}
+
+.sb-ha-manual-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.sb-ha-manual ol {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb-ha-manual code,
+.sb-ha-copyrow code,
+.sb-ha-ref-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+/* The configure field list. Plain rows on purpose: a screenshot of the real
+   dialog belongs here later, and a hand-drawn mock would only go stale. */
+.sb-ha-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 22px;
+  border-top: 1px solid var(--color-divider);
+  padding-top: 18px;
+}
+
+.sb-ha-field-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sb-ha-field-label {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.sb-ha-optional {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-neutral-600);
+  background: var(--color-pop-100);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.sb-ha-field-note {
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+  margin: 4px 0 0;
+  max-width: 60ch;
+}
+
+/* That's it */
+.sb-ha-done {
+  background: var(--color-accent-900);
+  color: #fff;
+  border-radius: 20px;
+  padding: clamp(24px, 3.5vw, 34px);
+  box-shadow: 0 18px 44px rgba(14, 37, 71, 0.26);
+  position: relative;
+  overflow: hidden;
+}
+
+.sb-ha-done-glow {
+  position: absolute;
+  top: -70px;
+  right: -30px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent) 42%, transparent);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.sb-ha-done-inner {
+  position: relative;
+}
+
+.sb-ha-done-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sb-ha-done-head h2 {
+  color: #fff;
+  font-size: clamp(22px, 3vw, 30px);
+  margin: 0;
+}
+
+.sb-ha-done-check {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--color-accent-300);
+  color: var(--color-accent-900);
+  display: grid;
+  place-items: center;
+}
+
+.sb-ha-done-check svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sb-ha-done-inner p {
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 62ch;
+  margin: 0;
+}
+
+/* Want more control */
+.sb-ha-more {
+  border: 1px dashed var(--color-neutral-400);
+  border-radius: 16px;
+  padding: clamp(18px, 2.5vw, 26px);
+}
+
+.sb-ha-more-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.sb-ha-more-head h2 {
+  font-size: 19px;
+  margin: 0;
+}
+
+.sb-ha-more-head span {
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+
+.sb-ha-more-lede {
+  font-size: 13.5px;
+  color: var(--color-neutral-600);
+  max-width: 60ch;
+  margin: 0 0 16px;
+}
+
+.sb-ha-more-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.sb-ha-more-card {
+  padding: 18px;
+}
+
+.sb-ha-more-card p {
+  font-size: 13px;
+  color: var(--color-neutral-700);
+  margin: 0 0 14px;
+}
+
+.sb-ha-more-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.sb-ha-ghost {
+  padding: 9px 18px;
+  font-size: 13px;
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+  display: inline-block;
+}
+
+.sb-ha-ghost:hover {
+  background: var(--color-accent-200);
+  color: var(--color-accent-800);
+}
+
+.sb-ha-copyrow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--color-pop-100);
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+
+.sb-ha-copyrow code {
+  color: var(--color-accent-800);
+  overflow: auto;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.sb-ha-copybtn {
+  flex: none;
+  padding: 6px 12px;
+  font-size: 11.5px;
+}
+
+/* Disclosures: entity reference and troubleshooting */
+.sb-ha-disclosure,
+.sb-ha-trouble > button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+.sb-ha-disclosure {
+  padding: 16px 20px;
+  border: 1px solid var(--color-divider);
+  border-radius: 14px;
+  font-size: 15px;
+  color: var(--color-neutral-700);
+}
+
+.sb-ha-plus {
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--color-accent);
+  transition: transform 0.2s;
+}
+
+.sb-ha-plus[data-open='true'] {
+  transform: rotate(45deg);
+}
+
+.sb-ha-ref-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 14px;
+  padding-top: 14px;
+}
+
+.sb-ha-ref {
+  padding: 20px;
+}
+
+.sb-ha-ref-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent-800);
+  background: var(--color-accent-100);
+  padding: 4px 11px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.sb-ha-ref-tag-muted {
+  color: var(--color-neutral-700);
+  background: var(--color-pop-100);
+}
+
+.sb-ha-ref-lede {
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+  margin: 0 0 10px;
+}
+
+.sb-ha-ref-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.sb-ha-ref-row:last-child {
+  border-bottom: none;
+}
+
+.sb-ha-ref-name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.sb-ha-ref-desc {
+  font-size: 12.5px;
+  color: var(--color-neutral-700);
+  margin-top: 3px;
+}
+
+.sb-ha-ref-row code {
+  color: var(--color-neutral-600);
+  word-break: break-all;
+}
+
+.sb-ha-troubles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sb-ha-trouble {
+  overflow: hidden;
+}
+
+.sb-ha-trouble > button {
+  padding: 17px 22px;
+  border: none;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+/* Same open/close animation as the FAQ on the landing page: a 0fr → 1fr grid row
+   so the panel measures its own content, with the text fading in just behind it. */
+.sb-ha-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.sb-ha-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.sb-ha-panel > div {
+  overflow: hidden;
+}
+
+.sb-ha-trouble-a,
+.sb-ha-ref-grid {
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+}
+
+.sb-ha-panel[data-open='true'] .sb-ha-trouble-a,
+.sb-ha-panel[data-open='true'] .sb-ha-ref-grid {
+  opacity: 1;
+}
+
+.sb-ha-trouble-a {
+  margin: 0;
+  padding: 0 22px 20px;
+  color: var(--color-neutral-700);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Close */
+.sb-ha-close {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.sb-ha-close-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-text);
+}
+
+.sb-ha-close-card:hover {
+  color: var(--color-text);
+  border-color: var(--color-accent-200);
+}
+
+.sb-ha-close-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+}
+
+.sb-ha-close-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 19px;
+}
+
+.sb-ha-close-note {
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-ha-panel,
+  .sb-ha-trouble-a,
+  .sb-ha-ref-grid,
+  .sb-ha-plus {
+    transition: none;
+  }
 }

@@ -5,7 +5,7 @@ The **layer-3 control** path for Home Assistant, alongside the Shelly scripts in
 but where a Shelly drives one relay, this publishes state that *any* device HA controls can act on.
 For the endpoint it consumes see [`smartHomeIntegration.md`](./smartHomeIntegration.md).
 
-> **The integration lives in its own repository**, `spotbuddy-homeassistant`, because HACS installs
+> **The integration lives in its own repository**, `spotprice-ha`, because HACS installs
 > from a repository root and its validation assumes the repo *is* the integration. This document
 > stays here: the endpoint it consumes is defined in this repo, and the two have to move together.
 > Everything below describes code in that repository.
@@ -54,7 +54,7 @@ change the hours in the HA UI and the plan re-fetches. No re-pasting.
 ## Architecture
 
 ```
-custom_components/spotbuddy/           (in the spotbuddy-homeassistant repo)
+custom_components/spotbuddy/           (in the spotprice-ha repo)
 ├─ __init__.py        setup/unload/reload lifecycle, device-name sync
 ├─ api.py             HTTP client for the backend; the only place aiohttp appears
 ├─ coordinator.py     SpotBuddyCoordinator + the SpotBuddyPlan/ScheduledBlock model

@@ -8,7 +8,7 @@ keep your devices; this is the brain that decides when things switch on.
 ## What it does
 
 * **Works with Shelly and Home Assistant.** Shelly scripts ship in the repo; the Home Assistant
-  integration has [its own repository](https://github.com/matejhurta/spotbuddy-homeassistant) and
+  integration has [its own repository](https://github.com/hurtamat/spotprice-ha) and
   calls the endpoint served here. No hardware to buy, no supplier to switch.
 * **Day-ahead spot prices** for 45 European bidding zones, refreshed daily.
 * **Every 15 minute slot classified** as cheap, average or expensive, judged against its own zone.
@@ -36,7 +36,7 @@ device-agnostic request and get back the run blocks; neither optimises anything 
 | Client | Endpoint | Where it lives |
 | --- | --- | --- |
 | Shelly (Gen2+) | `POST /api/schedule`, `GET /api/schedule/status` | [`scripts/shelly/`](./scripts/shelly/README.md) |
-| Home Assistant | `POST /api/homeassistant/schedule` | [`spotbuddy-homeassistant`](https://github.com/matejhurta/spotbuddy-homeassistant) |
+| Home Assistant | `POST /api/homeassistant/schedule` | [`spotprice-ha`](https://github.com/hurtamat/spotprice-ha) |
 
 The Home Assistant integration is a separate repository because HACS installs from a repository root
 and its validation assumes the repo *is* the integration. The endpoint it depends on is defined here,
