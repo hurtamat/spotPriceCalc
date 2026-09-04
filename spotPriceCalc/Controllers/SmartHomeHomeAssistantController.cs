@@ -26,7 +26,7 @@ public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
 
         // Anchored on now, not request.Date: the curve is for display, and the plan is asked for early.
         var now = DateTime.UtcNow;
-        var price = await _schedule.ResolvePriceSnapshotAsync(
+        var curve = await _schedule.ResolvePriceCurveAsync(
             new StatusSchedule { Lat = request.Lat, Lon = request.Lon, StatusTime = now }, ct);
 
         return Ok(new HomeAssistantScheduleResponse
@@ -35,7 +35,7 @@ public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
             ZoneName = schedule.ZoneName,
             GeneratedAtUtc = now,
             Tasks = schedule.Tasks,
-            Price = price,
+            Curve = curve,
         });
     }
 }

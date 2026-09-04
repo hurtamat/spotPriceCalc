@@ -36,8 +36,10 @@ supplier/hardware-agnostic pitch in [IDEA.md](./IDEA.md).
 | --- | --- | --- |
 | `binary_sensor.spotbuddy_running` | binary_sensor | **The contract.** On inside a run block. Attributes carry `zone_name` and the full `blocks` list. |
 | `sensor.spotbuddy_status` | sensor (enum) | `disabled`, `waiting_for_plan`, `no_plan`, `waiting_to_start`, `running`, `backend_unavailable`. Slugs, so automations are language-independent. |
-| `sensor.spotbuddy_current_price` | sensor | EUR/MWh for the current slot. |
-| `sensor.spotbuddy_price_level` | sensor (enum) | `green` / `yellow` / `red`, from `GET /api/schedule/status`. |
+| `sensor.spotbuddy_current_price` | sensor | EUR/MWh for the current slot, read off the curve at each tick. `state_class: measurement`, so Home Assistant's built-in history graph plots it with no card. |
+| `sensor.spotbuddy_price_level` | sensor (enum) | `green` / `yellow` / `red` for the current slot, read off the curve. |
+| `sensor.spotbuddy_next_start` | sensor (timestamp) | When the appliance next switches on; the *following* block while one is running. Rendered in the user's timezone by Home Assistant. |
+| `sensor.spotbuddy_next_end` | sensor (timestamp) | End of the running block, or of the next one when idle. |
 | `switch.spotbuddy_enabled` | switch | Master off switch. |
 | `switch.spotbuddy_continuous_block` | switch | Hours back-to-back, or split for the cheapest slots. |
 | `number.spotbuddy_duration` | number | Hours of power needed. The one always-required task field. |
@@ -98,23 +100,25 @@ mean three calls per refresh (plan, colour, curve). This endpoint returns all th
   "device_id": "01J...", "zone_name": "Czech Republic",
   "generated_at_utc": "2026-09-01T12:00:00Z",
   "tasks": [ { "task_id": 1, "scheduled": true, "blocks": [ ... ] } ],
-  "price": {
-    "current_eur_per_mwh": 42.1,
-    "current_level": 0,
-    "curve": [ { "start_utc": ..., "end_utc": ..., "eur_per_mwh": ..., "level": 0 } ]
-  }
+  "curve": [ { "start_utc": ..., "end_utc": ..., "eur_per_mwh": ..., "level": 0 } ]
 }
 ```
 
-`current_level` and each point's `level` are the `PriceColor` enum **as an int** — 0 green, 1 yellow,
-2 red — matching `GET /api/schedule/status`, which the Shelly script already depends on. Null means
-unclassified, and the integration then shows no level rather than guessing. The curve backs the price
-sensor's `curve` attribute, which is marked `_unrecorded_attributes` so ~200 points per state write
-never reach the recorder database.
+Each point's `level` is the `PriceColor` enum **as an int** — 0 green, 1 yellow, 2 red — matching
+`GET /api/schedule/status`, which the Shelly script already depends on. Null means unclassified, and
+the integration then shows no level rather than guessing. The curve backs the price sensor's `curve`
+attribute, which is marked `_unrecorded_attributes` so ~200 points per state write never reach the
+recorder database.
 
-The service-side addition is `IScheduleService.ResolvePriceSnapshotAsync` — the curve for the
-instant's day and the next, plus the slot the instant falls in. Logic in the service, glue in the
-controller, as elsewhere.
+**There is no "current price" field, deliberately.** The curve is the single representation: the
+coordinator finds the slot containing its own `utcnow()` on every quarter-hourly tick, so
+`sensor.spotbuddy_current_price` and `sensor.spotbuddy_price_level` track the slot. A value computed
+server-side at request time would be stale within the hour, since the plan is only fetched twice a
+day — and it would be derived from this same curve anyway.
+
+The service-side addition is `IScheduleService.ResolvePriceCurveAsync` — the curve for the instant's
+day and the next, returned as a plain list. Logic in the service, glue in the controller, as
+elsewhere. `curve` is null when the zone has no stored prices at all.
 
 `_target_date` picks which day to ask for: today, unless today's `ready_by` has already passed, in
 which case tomorrow. The backend anchors the eligible window on the deadline and looks back 24h, so

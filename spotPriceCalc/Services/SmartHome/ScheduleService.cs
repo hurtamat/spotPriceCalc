@@ -226,7 +226,7 @@ public class ScheduleService : IScheduleService
 
     // The curve for the instant's day and the next, so an integration can render prices without
     // a second call. Null only when nothing is stored for the zone at all.
-    public async Task<PriceSnapshot?> ResolvePriceSnapshotAsync(StatusSchedule request, CancellationToken ct)
+    public async Task<IReadOnlyList<PriceCurvePoint>?> ResolvePriceCurveAsync(StatusSchedule request, CancellationToken ct)
     {
         var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
         if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
@@ -251,19 +251,11 @@ public class ScheduleService : IScheduleService
 
         if (curve.Count == 0)
         {
-            _logger.LogWarning("No stored prices for zone {ZoneId} on {Day}: no snapshot", biddingZoneId, day);
+            _logger.LogWarning("No stored prices for zone {ZoneId} on {Day}: no curve", biddingZoneId, day);
             return null;
         }
 
-        // Half-open [Start, End) as everywhere else.
-        var current = curve.FirstOrDefault(p => at >= p.StartUtc && at < p.EndUtc);
-
-        return new PriceSnapshot
-        {
-            CurrentEurPerMwh = current?.EurPerMwh,
-            CurrentLevel = current?.Level,
-            Curve = curve,
-        };
+        return curve;
     }
 
     // Null quantile stays null: better no colour than a guessed one.
