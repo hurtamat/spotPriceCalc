@@ -35,7 +35,6 @@ supplier/hardware-agnostic pitch in [IDEA.md](./IDEA.md).
 | Entity | Platform | Role |
 | --- | --- | --- |
 | `binary_sensor.spotbuddy_running` | binary_sensor | **The contract.** On inside a run block. Attributes carry `zone_name` and the full `blocks` list. |
-| `sensor.spotbuddy_status` | sensor (enum) | `disabled`, `waiting_for_plan`, `no_plan`, `waiting_to_start`, `running`, `backend_unavailable`. Slugs, so automations are language-independent. |
 | `sensor.spotbuddy_current_price` | sensor | EUR/MWh for the current slot, read off the curve at each tick. `state_class: measurement`, so Home Assistant's built-in history graph plots it with no card. |
 | `sensor.spotbuddy_price_level` | sensor (enum) | `green` / `yellow` / `red` for the current slot, read off the curve. |
 | `sensor.spotbuddy_next_start` | sensor (timestamp) | When the appliance next switches on; the *following* block while one is running. Rendered in the user's timezone by Home Assistant. |
@@ -44,7 +43,8 @@ supplier/hardware-agnostic pitch in [IDEA.md](./IDEA.md).
 | `switch.spotbuddy_continuous_block` | switch | Hours back-to-back, or split for the cheapest slots. |
 | `number.spotbuddy_duration` | number | Hours of power needed. The one always-required task field. |
 | `time.spotbuddy_ready_by` | time | The deadline. The eligible window is the 24h before it. |
-| `time.spotbuddy_unavailable_from` / `_to` | time | The optional do-not-run window. |
+| `switch.spotbuddy_unavailable_window` | switch | Whether the do-not-run window applies. Off ⇒ the two times below are ignored and no `unavailable` is sent. |
+| `time.spotbuddy_unavailable_from` / `_to` | time | The do-not-run window itself. |
 | `button.spotbuddy_refresh_plan` | button | Fetch the plan again now. |
 
 The config entities map one-to-one onto the fields of `ScheduleRequest.cs`, which is flat: one
@@ -64,8 +64,8 @@ custom_components/spotbuddy/           (in the spotprice-ha repo)
 ├─ config_flow.py     initial setup + options flow (backend URL, zone, controlled switch)
 ├─ entity.py          shared identity: unique_id, device_info, translation key
 ├─ binary_sensor.py   the run-block sensor
-├─ sensor.py          status / price / price level
-├─ switch.py          enabled, continuous_block          ┐
+├─ sensor.py          price / price level / next start / next end
+├─ switch.py          enabled, continuous_block, window   ┐
 ├─ number.py          duration_hours                     ├ the task parameters
 ├─ time.py            ready_by, unavailable_from/to      ┘
 ├─ button.py          manual refresh
