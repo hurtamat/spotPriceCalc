@@ -15,8 +15,8 @@ public record ScheduleRequest
     public decimal Lon { get; init; }
 
     // The day to schedule for. The window is this whole day, or the 24h before a task's ready_by.
-    [JsonPropertyName("date")]
-    public required DateOnly Date { get; init; }
+    [JsonPropertyName("date_utc")]
+    public required DateOnly DateUtc { get; init; }
 
     // Time-of-day only; may wrap past midnight (from > to).
     [JsonPropertyName("unavailable")]

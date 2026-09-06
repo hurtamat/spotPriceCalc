@@ -24,7 +24,7 @@ public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
 
         var schedule = await BuildScheduleAsync(request, ct);
 
-        // Anchored on now, not request.Date: the curve is for display, and the plan is asked for early.
+        // Anchored on now, not request.DateUtc: the curve is for display, and the plan is asked for early.
         var now = DateTime.UtcNow;
         var curve = await _schedule.ResolvePriceCurveAsync(
             new StatusSchedule { Lat = request.Lat, Lon = request.Lon, StatusTime = now }, ct);

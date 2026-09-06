@@ -5,8 +5,7 @@ using spotPriceCalc.Infrastructure.Persistence;
 
 namespace spotPriceCalc.Services.SmartHome;
 
-// Price-ranking scheduler (v1): cheapest hours under the given constraints.
-// TODO(timezone): UTC in / UTC out; convert to device-local at the edge.
+// Price-ranking scheduler, cheapest hours under the given constraints.
 public class ScheduleService : IScheduleService
 {
     private readonly ISpotPriceService _prices;
@@ -33,12 +32,12 @@ public class ScheduleService : IScheduleService
         if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out var zone))
             throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
 
-        var slots = await LoadSlotsAsync(biddingZoneId, request.Date, ct);
+        var slots = await LoadSlotsAsync(biddingZoneId, request.DateUtc, ct);
 
         var taskResults = new List<TaskResult>();
         foreach (var task in request.Tasks)
         {
-            var chosen = EvaluateTask(task, slots, request.Date, request.Unavailable);
+            var chosen = EvaluateTask(task, slots, request.DateUtc, request.Unavailable);
             taskResults.Add(new TaskResult
             {
                 TaskId = task.TaskId,

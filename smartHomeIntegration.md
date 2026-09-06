@@ -49,7 +49,7 @@ this periodically, reads the result, and sets its relay.
   "device_id": "shelly-1",
   "lat": 50.08,
   "lon": 14.44,
-  "date": "2026-08-13",
+  "date_utc": "2026-08-13",
   "unavailable": { "from": "07:00:00", "to": "09:00:00" },
   "tasks": [
     { "task_id": 1, "duration_hours": 3, "ready_by": "06:00:00", "continuous_block": false }

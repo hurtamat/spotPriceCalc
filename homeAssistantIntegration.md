@@ -120,9 +120,24 @@ The service-side addition is `IScheduleService.ResolvePriceCurveAsync` — the c
 day and the next, returned as a plain list. Logic in the service, glue in the controller, as
 elsewhere. `curve` is null when the zone has no stored prices at all.
 
-`_target_date` picks which day to ask for: today, unless today's `ready_by` has already passed, in
-which case tomorrow. The backend anchors the eligible window on the deadline and looks back 24h, so
-after the deadline the only interesting plan is the next one.
+`_target_local_date` picks which day to ask for: today, unless today's `ready_by` has already passed,
+in which case tomorrow. The backend anchors the eligible window on the deadline and looks back 24h,
+so after the deadline the only interesting plan is the next one.
+
+## Timezones
+
+**The wire is UTC; the user types local; the integration converts.** `date_utc`, `ready_by` and the
+`unavailable` window all reach the backend as UTC, because only the client knows which timezone the
+user's wall clock belongs to — `ScheduleService` would otherwise have to guess, and guessing UTC is
+what made "ready by 06:00" mean 08:00 in Prague.
+
+`_deadline_utc` derives the date and the time of day from **one instant**, not separately: 00:30 in
+Prague is 22:30 UTC on the *previous* day, so converting the two apart would ask for the wrong day.
+`_to_utc_time` does the same for each end of the unavailable window, reading the offset on the
+target date so the window does not drift an hour across a DST change.
+
+The plan refresh uses `async_track_utc_time_change`. The plain `async_track_time_change` matches
+**local** time, which had the afternoon refresh firing before the day-ahead prices published.
 
 ## What is not built
 
