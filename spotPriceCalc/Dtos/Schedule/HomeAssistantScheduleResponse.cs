@@ -17,8 +17,12 @@ public record HomeAssistantScheduleResponse
     [JsonPropertyName("generated_at_utc")]
     public required DateTime GeneratedAtUtc { get; init; }
 
-    [JsonPropertyName("tasks")]
-    public required IReadOnlyList<TaskResult> Tasks { get; init; }
+    // False ⇒ the job could not be placed (e.g. window too short).
+    [JsonPropertyName("scheduled")]
+    public required bool Scheduled { get; init; }
+
+    [JsonPropertyName("blocks")]
+    public required IReadOnlyList<ScheduledBlock> Blocks { get; init; }
     
     // HA displays the whole curve
     [JsonPropertyName("curve")]

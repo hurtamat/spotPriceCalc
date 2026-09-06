@@ -47,36 +47,27 @@ this periodically, reads the result, and sets its relay.
 ```json
 {
   "device_id": "shelly-1",
-  "lat": 50.08,
-  "lon": 14.44,
-  "date_utc": "2026-08-13",
-  "unavailable": { "from": "07:00:00", "to": "09:00:00" },
-  "tasks": [
-    { "task_id": 1, "duration_hours": 3, "ready_by": "06:00:00", "continuous_block": false }
-  ]
+  "zone_code": "10YCZ-CEPS-----N",
+  "duration_hours": 3,
+  "ready_by_utc": "2026-08-13T04:00:00Z",
+  "continuous_block": false,
+  "unavailable": { "from": "07:00:00", "to": "09:00:00" }
 }
 ```
-
-**Global (device context):**
 
 | Field | Meaning |
 | --- | --- |
 | `device_id` | Identifies the device (logging, later rate-limiting / state). |
-| `lat` / `lon` | GPS. Resolved server-side to a bidding zone. **`decimal`**, matching the exact-value lat/lng convention used everywhere else. |
-| `date` | **Required.** The day to schedule for. The eligible window is this whole day, or the 24h before a task's `ready_by`. |
-| `unavailable` | *Optional.* A single "do not run" window, **time-of-day only** (no date). Applies to every task. May wrap past midnight (`from > to`, e.g. `22:00–06:00`). |
-
-**Tasks (the jobs):** an array so a user can express several needs at once ("1h wash by 14:00" *and* "4h EV
-charge by 07:00").
-
-| Field | Meaning |
-| --- | --- |
-| `task_id` | **`int`**, always supplied by the device script. |
-| `duration_hours` | The one field that's always required — total hours of power the task needs. |
-| `ready_by` | *Optional.* **The anchor** — deadline **time-of-day (UTC)** on `date` that the task must finish by; the window is the 24h before it. Null ⇒ the whole of `date`. |
+| `zone_code` | **Required.** ENTSO-E area code, e.g. `10YCZ-CEPS-----N`. A string, so no client depends on our own zone ids. `GET /api/zones` lists them. |
+| `duration_hours` | The one field that's always required — total hours of power the job needs. |
+| `ready_by_utc` | *Optional.* **The anchor** — the **instant (UTC)** the job must finish by; the window is the 24h before it. One instant rather than a date plus a wall clock, because only the client knows which timezone the user's clock belongs to. Null ⇒ 24h from now (`ResolveDeadlineUtc`), so "no deadline" means the cheapest hours in the coming day. Not a midnight: that cuts the window at a fixed hour, and a plan made in the evening could not reach the cheap night hours past it. |
 | `continuous_block` | `true` ⇒ hours must run back-to-back (boiler, washer). `false` (default) ⇒ split for the absolute cheapest hours (EV charging, the "don't care" case). |
+| `unavailable` | *Optional.* A "do not run" window, **time-of-day only** (no date). May wrap past midnight (`from > to`, e.g. `22:00–06:00`). |
 
-The minimal valid request is just a device id, coordinates, and one task with a `duration_hours`.
+**One request is one job.** The body was a `tasks[]` array; both clients only ever sent one entry, so it is
+flat. Reintroducing the array later is additive.
+
+The minimal valid request is a device id, a zone code, and `duration_hours`.
 
 ### Response
 
@@ -84,23 +75,18 @@ The minimal valid request is just a device id, coordinates, and one task with a 
 {
   "device_id": "shelly-1",
   "zone_name": "Czech Republic",
-  "tasks": [
-    {
-      "task_id": 1,
-      "scheduled": true,
-      "blocks": [
-        { "start_utc": "2026-08-13T23:00:00Z", "end_utc": "2026-08-14T02:00:00Z", "eur_per_mwh": 42.1 }
-      ]
-    }
+  "scheduled": true,
+  "blocks": [
+    { "start_utc": "2026-08-13T23:00:00Z", "end_utc": "2026-08-14T02:00:00Z", "eur_per_mwh": 42.1 }
   ]
 }
 ```
 
 | Field | Meaning |
 | --- | --- |
-| `zone_name` | Which bidding zone the coordinates resolved to — the only human-readable field, for sanity-checking. |
-| `tasks[].scheduled` | `false` ⇒ the task couldn't be placed (e.g. window too short, or no prices stored). |
-| `tasks[].blocks` | The chosen run-time as **merged contiguous blocks** (UTC, sorted), not individual slots. `eur_per_mwh` is the duration-weighted average across the block. |
+| `zone_name` | The zone `zone_code` named — the only human-readable field, for sanity-checking. |
+| `scheduled` | `false` ⇒ the job couldn't be placed (e.g. window too short, or no prices stored). |
+| `blocks` | The chosen run-time as **merged contiguous blocks** (UTC, sorted), not individual slots. `eur_per_mwh` is the duration-weighted average across the block. |
 
 **There is no `relay_state` / `now_utc` / `next_toggle_utc`.** The model changed: the device is handed the
 blocks and runs its relay locally against them, rather than asking "on or off right now?" on every poll. That
@@ -179,16 +165,15 @@ things (`BiddingZoneSeedData`, the private math helpers).
 
 For each task, independently:
 
-1. **Anchor on the deadline.** The eligible window is the 24h *before* `ready_by`, or the whole day if there
-   isn't one:
+1. **Anchor on the deadline.** The eligible window is always the 24h *before* it:
    ```
-   ready_by given:  anchor = date @ ready_by (UTC);  windowStart = anchor − 24h
-   ready_by null:   windowStart = date @ 00:00 UTC;  anchor = windowStart + 24h
-   eligible = price slots fully inside [windowStart, anchor]  minus  the unavailable window
+   anchor      = ready_by_utc, or the zone's next local midnight when it is null
+   windowStart = anchor − 24h
+   eligible    = price slots fully inside [windowStart, anchor]  minus  the unavailable window
    ```
-   With a deadline this is deliberately **not** a calendar day: anchoring on it and looking back keeps the cheap
-   overnight block (e.g. 23:00→05:00) whole instead of slicing it at midnight. `LoadSlotsAsync` therefore reads
-   `date ± 1` so the look-back can reach into the previous day.
+   This is deliberately **not** a calendar day: anchoring on the deadline and looking back keeps the cheap
+   overnight block (e.g. 23:00→05:00) whole instead of slicing it at midnight. `LoadSlotsAsync` reads a day
+   either side of the task deadlines so the look-back can reach into the previous day.
 
 2. **Exclude the unavailable window** — any slot whose UTC time-of-day falls inside it is dropped (wrap-around
    past midnight supported).

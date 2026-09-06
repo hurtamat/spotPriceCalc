@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using spotPriceCalc.Dtos.Schedule;
+using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Services.SmartHome;
 
 namespace spotPriceCalc.Controllers;
@@ -19,22 +20,24 @@ public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Post([FromBody] ScheduleRequest request, CancellationToken ct)
     {
-        if (request.Tasks is null || request.Tasks.Count == 0)
-            return BadRequest("At least one task is required.");
+        if (request.DurationHours <= 0)
+            return BadRequest("duration_hours must be greater than zero.");
+        if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
+            return BadRequest($"Unknown bidding zone code {request.ZoneCode}.");
 
         var schedule = await BuildScheduleAsync(request, ct);
 
-        // Anchored on now, not request.DateUtc: the curve is for display, and the plan is asked for early.
+        // Anchored on now, not the deadline: the curve is for display, and the plan is asked for early.
         var now = DateTime.UtcNow;
-        var curve = await _schedule.ResolvePriceCurveAsync(
-            new StatusSchedule { Lat = request.Lat, Lon = request.Lon, StatusTime = now }, ct);
+        var curve = await _schedule.ResolvePriceCurveAsync(zone.Id, now, ct);
 
         return Ok(new HomeAssistantScheduleResponse
         {
             DeviceId = schedule.DeviceId,
             ZoneName = schedule.ZoneName,
             GeneratedAtUtc = now,
-            Tasks = schedule.Tasks,
+            Scheduled = schedule.Scheduled,
+            Blocks = schedule.Blocks,
             Curve = curve,
         });
     }

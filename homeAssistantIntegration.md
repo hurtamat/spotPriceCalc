@@ -47,8 +47,9 @@ supplier/hardware-agnostic pitch in [IDEA.md](./IDEA.md).
 | `time.spotbuddy_unavailable_from` / `_to` | time | The optional do-not-run window. |
 | `button.spotbuddy_refresh_plan` | button | Fetch the plan again now. |
 
-The config entities map one-to-one onto a single `TaskRequest` in `ScheduleRequest.cs`. As with the
-Shelly script, **one task per config entry** — add a second entry for a second appliance.
+The config entities map one-to-one onto the fields of `ScheduleRequest.cs`, which is flat: one
+request is one job. As with the Shelly script, **one appliance per config entry** — add a second
+entry for a second appliance.
 
 This is the piece that removes the "generate a pre-filled script to paste" wizard for HA users: they
 change the hours in the HA UI and the plan re-fetches. No re-pasting.
@@ -60,7 +61,7 @@ custom_components/spotbuddy/           (in the spotprice-ha repo)
 ├─ __init__.py        setup/unload/reload lifecycle, device-name sync
 ├─ api.py             HTTP client for the backend; the only place aiohttp appears
 ├─ coordinator.py     SpotBuddyCoordinator + the SpotBuddyPlan/ScheduledBlock model
-├─ config_flow.py     initial setup + options flow (backend URL, API key, coordinates)
+├─ config_flow.py     initial setup + options flow (backend URL, zone, controlled switch)
 ├─ entity.py          shared identity: unique_id, device_info, translation key
 ├─ binary_sensor.py   the run-block sensor
 ├─ sensor.py          status / price / price level
@@ -99,7 +100,7 @@ mean three calls per refresh (plan, colour, curve). This endpoint returns all th
 {
   "device_id": "01J...", "zone_name": "Czech Republic",
   "generated_at_utc": "2026-09-01T12:00:00Z",
-  "tasks": [ { "task_id": 1, "scheduled": true, "blocks": [ ... ] } ],
+  "scheduled": true, "blocks": [ ... ],
   "curve": [ { "start_utc": ..., "end_utc": ..., "eur_per_mwh": ..., "level": 0 } ]
 }
 ```
@@ -126,25 +127,30 @@ so after the deadline the only interesting plan is the next one.
 
 ## Timezones
 
-**The wire is UTC; the user types local; the integration converts.** `date_utc`, `ready_by` and the
-`unavailable` window all reach the backend as UTC, because only the client knows which timezone the
-user's wall clock belongs to — `ScheduleService` would otherwise have to guess, and guessing UTC is
-what made "ready by 06:00" mean 08:00 in Prague.
+**The wire is UTC; the user types local; the integration converts.** Each task carries
+`ready_by_utc` as a single **instant**, not a date plus a time-of-day — a wall clock only becomes a
+moment once you know the timezone, and the client is the only side that does. Guessing UTC on the
+backend is what made "ready by 06:00" mean 08:00 in Prague.
 
-`_deadline_utc` derives the date and the time of day from **one instant**, not separately: 00:30 in
-Prague is 22:30 UTC on the *previous* day, so converting the two apart would ask for the wrong day.
-`_to_utc_time` does the same for each end of the unavailable window, reading the offset on the
-target date so the window does not drift an hour across a DST change.
+`_deadline_utc` combines the local date and the user's `ready_by` and converts once, which keeps a
+deadline near local midnight on the right day: 00:30 in Prague is 22:30 UTC the *previous* day.
+
+Clearing **Ready by** sends `null`, and the backend schedules against the next 24h
+(`ScheduleRequest.ResolveDeadlineUtc`). Its `nowUtc` is a parameter rather than a `DateTime.UtcNow`
+call inside, so a test pins the clock instead of working around it.
+
+The `unavailable` window stays a time-of-day pair, converted by `_to_utc_time` using the offset **on
+the deadline's date** so it does not drift an hour across a DST change.
 
 The plan refresh uses `async_track_utc_time_change`. The plain `async_track_time_change` matches
 **local** time, which had the afternoon refresh firing before the day-ahead prices published.
 
 ## What is not built
 
-- **Auth.** The config flow collects an API key and the client sends it as `X-Api-Key`, but the
-  backend does not check it yet. See the auth gap in [DESIGN.md](./DESIGN.md) — this integration is
-  the reason to close it, since it exposes the endpoint to arbitrary clients. On a 401/403 the client
-  raises `ConfigEntryAuthFailed`, so the reauth path is already wired.
+- **Auth.** The API key field was removed from the config flow: the plan is rate limiting rather than
+  a per-user credential. `api.py` keeps the `X-Api-Key` plumbing and raises `ConfigEntryAuthFailed`
+  on a 401/403, so adding one later is a config-flow field and nothing else. See the auth gap in
+  [DESIGN.md](./DESIGN.md).
 - **Tests.** `requirements_test.txt` pins the HA test harness; there is no `tests/` directory yet.
 - **Verification against a live backend.** Nothing here has been run against a running API.
 

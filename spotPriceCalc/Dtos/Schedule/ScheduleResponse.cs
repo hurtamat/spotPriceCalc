@@ -11,16 +11,7 @@ public record ScheduleResponse
     [JsonPropertyName("zone_name")]
     public required string ZoneName { get; init; }
 
-    [JsonPropertyName("tasks")]
-    public required IReadOnlyList<TaskResult> Tasks { get; init; }
-}
-
-public record TaskResult
-{
-    [JsonPropertyName("task_id")]
-    public required int TaskId { get; init; }
-
-    // False ⇒ the task couldn't be placed (e.g. window too short).
+    // False ⇒ the job could not be placed.
     [JsonPropertyName("scheduled")]
     public required bool Scheduled { get; init; }
 

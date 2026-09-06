@@ -59,4 +59,7 @@ public static class BiddingZoneSeedData
 
     public static readonly IReadOnlyDictionary<int, BiddingZone> ById =
         Zones.ToDictionary(z => z.Id);
+    
+    public static readonly IReadOnlyDictionary<string, BiddingZone> ByCode =
+        Zones.ToDictionary(z => z.Code, StringComparer.OrdinalIgnoreCase);
 }

@@ -16,8 +16,8 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] ScheduleRequest request, CancellationToken ct)
     {
-        if (request.Tasks is null || request.Tasks.Count == 0)
-            return BadRequest("At least one task is required.");
+        if (request.DurationHours <= 0)
+            return BadRequest("duration_hours must be greater than zero.");
 
         var response = await BuildScheduleAsync(request, ct);
         return Ok(response);

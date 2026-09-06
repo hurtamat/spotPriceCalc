@@ -5,7 +5,7 @@ using spotPriceCalc.Infrastructure.Persistence;
 
 namespace spotPriceCalc.Services.SmartHome;
 
-// Price-ranking scheduler, cheapest hours under the given constraints.
+// Price-ranking scheduler, cheapest hours under the given constraints. UTC in, UTC out.
 public class ScheduleService : IScheduleService
 {
     private readonly ISpotPriceService _prices;
@@ -28,36 +28,27 @@ public class ScheduleService : IScheduleService
 
     public async Task<ScheduleResponse> BuildAsync(ScheduleRequest request, CancellationToken ct)
     {
-        var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
-        if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out var zone))
-            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
+        if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
+            throw new ArgumentException($"Unknown bidding zone code {request.ZoneCode}.", nameof(request));
 
-        var slots = await LoadSlotsAsync(biddingZoneId, request.DateUtc, ct);
-
-        var taskResults = new List<TaskResult>();
-        foreach (var task in request.Tasks)
-        {
-            var chosen = EvaluateTask(task, slots, request.DateUtc, request.Unavailable);
-            taskResults.Add(new TaskResult
-            {
-                TaskId = task.TaskId,
-                Scheduled = chosen.Count > 0,
-                Blocks = MergeIntoBlocks(chosen),
-            });
-        }
+        var deadline = request.ResolveDeadlineUtc();
+        var slots = await LoadSlotsAsync(zone.Id, deadline, ct);
+        var chosen = Evaluate(request, slots, deadline);
 
         return new ScheduleResponse
         {
             DeviceId = request.DeviceId,
             ZoneName = zone.Name,
-            Tasks = taskResults,
+            Scheduled = chosen.Count > 0,
+            Blocks = MergeIntoBlocks(chosen),
         };
     }
 
-    // Fetch the stored curve as UTC slots over a ±1-day window.
-    private async Task<List<Slot>> LoadSlotsAsync(int zoneId, DateOnly date, CancellationToken ct)
+    // The stored curve as UTC slots, padded a day each side so the 24h look-back is covered.
+    private async Task<List<Slot>> LoadSlotsAsync(int zoneId, DateTime deadlineUtc, CancellationToken ct)
     {
-        var priced = await _prices.GetPricesAsync(zoneId, date.AddDays(-1), date.AddDays(1), ct);
+        var day = DateOnly.FromDateTime(deadlineUtc);
+        var priced = await _prices.GetPricesAsync(zoneId, day.AddDays(-1), day.AddDays(1), ct);
 
         return priced.Points
             .Select(p => new Slot(
@@ -68,60 +59,45 @@ public class ScheduleService : IScheduleService
             .ToList();
     }
 
-    private static List<Slot> EvaluateTask(
-        TaskRequest task,
-        List<Slot> slots,
-        DateOnly date,
-        UnavailableWindow? unavailable)
+    private static List<Slot> Evaluate(ScheduleRequest request, List<Slot> slots, DateTime deadlineUtc)
     {
-        // Ready by means 24 hours before, otherwise the whole day.
-        DateTime windowStart, anchor;
-        if (task.ReadyBy is TimeOnly readyBy)
-        {
-            anchor = date.ToDateTime(readyBy, DateTimeKind.Utc);
-            windowStart = anchor.AddHours(-24);
-        }
-        else
-        {
-            windowStart = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            anchor = windowStart.AddDays(1);
-        }
+        var windowStart = deadlineUtc.AddHours(-24);
 
         var eligible = slots
-            .Where(s => s.Start >= windowStart && s.End <= anchor)
-            .Where(s => !IsExcluded(s, unavailable))
+            .Where(s => s.Start >= windowStart && s.End <= deadlineUtc)
+            .Where(s => !IsExcluded(s, request.Unavailable))
             .OrderBy(s => s.Start)
             .ToList();
 
-        return task.ContinuousBlock
-            ? SelectContiguous(eligible, task)
-            : SelectCheapest(eligible, task);
+        return request.ContinuousBlock
+            ? SelectContiguous(eligible, request.DurationHours)
+            : SelectCheapest(eligible, request.DurationHours);
     }
 
     #endregion
 
     #region Slot selection
 
-    private static List<Slot> SelectCheapest(List<Slot> eligible, TaskRequest task)
+    private static List<Slot> SelectCheapest(List<Slot> eligible, double durationHours)
     {
         var chosen = new List<Slot>();
         var covered = 0.0;
         foreach (var s in eligible.OrderBy(s => s.Price).ThenBy(s => s.Start))
         {
-            if (covered >= task.DurationHours) break;
+            if (covered >= durationHours) break;
             chosen.Add(s);
             covered += s.Hours;
         }
         return chosen.OrderBy(s => s.Start).ToList();
     }
 
-    private static List<Slot> SelectContiguous(List<Slot> eligible, TaskRequest task)
+    private static List<Slot> SelectContiguous(List<Slot> eligible, double durationHours)
     {
         var byTime = eligible.OrderBy(s => s.Start).ToList();
         if (byTime.Count == 0) return new List<Slot>();
 
         var slotHours = byTime[0].Hours;
-        var needed = Math.Max(1, (int)Math.Ceiling(task.DurationHours / slotHours - 1e-9));
+        var needed = Math.Max(1, (int)Math.Ceiling(durationHours / slotHours - 1e-9));
 
         List<Slot>? best = null;
         decimal bestCost = decimal.MaxValue;
@@ -223,15 +199,14 @@ public class ScheduleService : IScheduleService
         return ToColor(quantile);
     }
 
-    // The curve for the instant's day and the next, so an integration can render prices without
-    // a second call. Null only when nothing is stored for the zone at all.
-    public async Task<IReadOnlyList<PriceCurvePoint>?> ResolvePriceCurveAsync(StatusSchedule request, CancellationToken ct)
+    // The curve for the instant's day and the next. Null when the zone has nothing stored.
+    public async Task<IReadOnlyList<PriceCurvePoint>?> ResolvePriceCurveAsync(
+        int biddingZoneId, DateTime atUtc, CancellationToken ct)
     {
-        var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
         if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
-            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
+            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(biddingZoneId));
 
-        var at = DateTime.SpecifyKind(request.StatusTime, DateTimeKind.Utc);
+        var at = DateTime.SpecifyKind(atUtc, DateTimeKind.Utc);
         var day = DateOnly.FromDateTime(at);
 
         // Today and tomorrow. Tomorrow is simply absent until the day-ahead prices publish.
