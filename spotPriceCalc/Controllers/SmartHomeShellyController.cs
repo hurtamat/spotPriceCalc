@@ -4,16 +4,16 @@ using spotPriceCalc.Services.SmartHome;
 
 namespace spotPriceCalc.Controllers;
 
-/// <summary>Shelly integration endpoint: POST /api/schedule and GET /api/schedule/status.</summary>
+/// <summary>Shelly integration endpoints: POST /api/shelly/schedule and GET /api/shelly/schedule/status.</summary>
 [ApiController]
-[Route("api/schedule")]
+[Route("api/shelly")]
 public class SmartHomeShellyController : SmartHomeIntegrationController
 {
     public SmartHomeShellyController(IScheduleService schedule) : base(schedule)
     {
     }
 
-    [HttpPost]
+    [HttpPost("schedule")]
     public async Task<IActionResult> Post([FromBody] ScheduleRequest request, CancellationToken ct)
     {
         if (request.DurationHours <= 0)
@@ -23,7 +23,7 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
         return Ok(response);
     }
 
-    [HttpGet("status")]
+    [HttpGet("schedule/status")]
     public async Task<IActionResult> Status([FromQuery] decimal lat, decimal lon, DateTime time, CancellationToken ct)
     {
         var response = await _schedule.ResolveStatus(

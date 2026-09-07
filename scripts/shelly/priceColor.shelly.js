@@ -1,8 +1,9 @@
 // price-color client: shows the current price colour (green/yellow/red) on the device.
 
+// Plain http:// to the dev machine on the LAN — the TLS handshake OOMs this device. See README.md.
 let COLOR_CONFIG = {
-  backendUrl: "https://spotbuddy-backend.yellowsea-e9574071.westeurope.azurecontainerapps.io",
-  endpoint: "/api/schedule/status",
+  backendUrl: "http://10.12.2.133:5262",
+  endpoint: "/api/shelly/schedule/status",
   timeoutSec: 15,
   fetchSec: 300,
   lat: 50.08,   // location fallback

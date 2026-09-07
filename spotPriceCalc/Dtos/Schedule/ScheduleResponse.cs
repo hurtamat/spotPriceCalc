@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace spotPriceCalc.Dtos.Schedule;
 
-// Response of POST /api/schedule. The device stores the blocks and runs its relay locally.
+// Response of POST /api/shelly/schedule. The device stores the blocks and runs its relay locally.
 public record ScheduleResponse
 {
     [JsonPropertyName("device_id")]

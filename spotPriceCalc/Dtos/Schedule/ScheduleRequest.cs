@@ -2,7 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace spotPriceCalc.Dtos.Schedule;
 
-// Body of POST /api/schedule. One device, one job: a device id, its zone, and the hours it needs.
+// Body of POST /api/shelly/schedule and /api/homeassistant/schedule — both integrations post the same job.
+// One device, one job: a device id, its zone, and the hours it needs.
 public record ScheduleRequest
 {
     [JsonPropertyName("device_id")]

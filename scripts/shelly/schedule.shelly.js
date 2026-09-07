@@ -1,14 +1,19 @@
+// Plain http:// on purpose: the TLS handshake needs a transient buffer this device cannot spare and
+// fails with "out of memory" before any response. So this points at the dev machine on the LAN, not
+// at the deployed backend (whose ingress redirects http:// to https://). Run the `http` profile —
+// it binds 0.0.0.0:5262 — and put your machine's LAN address here.
 let CONFIG = {
-  backendUrl: "https://spotbuddy-backend.yellowsea-e9574071.westeurope.azurecontainerapps.io",
-  endpoint: "/api/schedule",
+  backendUrl: "http://10.12.2.133:5262",
+  endpoint: "/api/shelly/schedule",
 
   switchId: 0,
 
   tickSec: 300,
   fetchHourUtc: 13,
 
-  lat: 50.08,
-  lon: 14.44,
+  // ENTSO-E area code, baked in when the script is generated. GET /api/zones lists them and
+  // GET /api/zones/resolve?lat=&lon= names the one covering a location.
+  zoneCode: "10YCZ-CEPS-----N",
   deviceId: "shelly-1",
 };
 
@@ -21,8 +26,6 @@ let ROLES = [
   ["deadline", "number"],
   ["unavailFrom", "number"],
   ["unavailTo", "number"],
-  ["today", "text"],
-  ["tomorrow", "text"],
 ];
 
 let VC = {};
@@ -40,8 +43,6 @@ function configFor(role) {
   if (role === "deadline")    return { name: "Charged by (hour UTC)", default_value: 6, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
   if (role === "unavailFrom") return { name: "Unavailable from (hour UTC)", default_value: 0, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
   if (role === "unavailTo")   return { name: "Unavailable to (hour UTC)", default_value: 0, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
-  if (role === "today")       return { name: "Charging today", default_value: "—", meta: { ui: { view: "label" } } };
-  if (role === "tomorrow")    return { name: "Charging tomorrow", default_value: "—", meta: { ui: { view: "label" } } };
   return null;
 }
 
@@ -115,13 +116,6 @@ function readInputs() {
   };
 }
 
-function setText(role, str) {
-  let key = VC[role];
-  if (!key) return;
-  let id = Number(key.slice(key.indexOf(":") + 1));
-  Shelly.call("Text.Set", { id: id, value: str }, null);
-}
-
 function pad2(n) { return (n < 10 ? "0" : "") + n; }
 function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }
 function todayStr() { return nowIso().slice(0, 10); }
@@ -134,28 +128,16 @@ function nextDeadlineIso(hour) {
   return cand;
 }
 
-function deviceLocation() {
-  let sys = Shelly.getComponentConfig("sys");
-  if (sys && sys.location && typeof sys.location.lat === "number") return sys.location;
-  return null;
-}
-
+// One request is one job, so the body is flat. The zone is the baked-in code, never coordinates —
+// the backend resolves nothing on our behalf.
 function buildBody(inputs) {
   let info = Shelly.getDeviceInfo();
-  let loc = deviceLocation();
-  // Backend wants date (the deadline's day) + ready_by as time-of-day. Derive both from one deadline.
-  let dl = nextDeadlineIso(inputs.deadline);   // e.g. "2026-08-09T06:00:00Z"
   let body = {
     device_id: info ? info.id : CONFIG.deviceId,
-    lat: loc ? loc.lat : CONFIG.lat,
-    lon: loc ? loc.lon : CONFIG.lon,
-    date: dl.slice(0, 10),
-    tasks: [{
-      task_id: 1,
-      duration_hours: inputs.hours,
-      ready_by: dl.slice(11, 19),
-      continuous_block: inputs.continuous,
-    }],
+    zone_code: CONFIG.zoneCode,
+    duration_hours: inputs.hours,
+    ready_by_utc: nextDeadlineIso(inputs.deadline),   // an instant, e.g. "2026-08-09T06:00:00Z"
+    continuous_block: inputs.continuous,
   };
   // from == to means "no unavailable window".
   if (inputs.unavailFrom !== inputs.unavailTo) {
@@ -168,9 +150,11 @@ function fetchPlan() {
   let inputs = readInputs();
   if (inputs.hours <= 0) { print("hours needed = 0 — nothing to schedule"); return; }
 
+  let body = JSON.stringify(buildBody(inputs));
+
   Shelly.call("HTTP.POST", {
     url: CONFIG.backendUrl + CONFIG.endpoint,
-    body: JSON.stringify(buildBody(inputs)),
+    body: body,
     content_type: "application/json",
     timeout: 15,
   }, function (res, ec, em) {
@@ -183,18 +167,17 @@ function fetchPlan() {
 }
 
 function onPlan(resp) {
-  let task = (resp.tasks && resp.tasks.length > 0) ? resp.tasks[0] : null;
   let slots = [];
-  if (task && task.blocks) {
-    for (let i = 0; i < task.blocks.length; i++) slots.push([task.blocks[i].start_utc, task.blocks[i].end_utc]);
+  if (resp.blocks) {
+    for (let i = 0; i < resp.blocks.length; i++) slots.push([resp.blocks[i].start_utc, resp.blocks[i].end_utc]);
   }
+  if (resp.scheduled === false) print("backend could not place the job");
 
   PLAN = { day: todayStr(), afterPublish: nowHourUtc() >= CONFIG.fetchHourUtc, slots: slots };
   Shelly.call("KVS.Set", { key: KVS_PLAN, value: JSON.stringify(PLAN) }, null);
 
-  updateDisplays();
   applyRelay();
-  print("plan stored: " + slots.length + " on-slot(s)");
+  print("plan stored: " + slots.length + " block(s)");
 }
 
 function isNowWithin(slot) {
@@ -214,23 +197,6 @@ function applyRelay() {
   });
 }
 
-function formatDay(dayStr) {
-  let s = "";
-  if (PLAN && PLAN.slots) {
-    for (let i = 0; i < PLAN.slots.length; i++) {
-      if (PLAN.slots[i][0].slice(0, 10) === dayStr) {
-        s += (s === "" ? "" : ", ") + PLAN.slots[i][0].slice(11, 16) + "-" + PLAN.slots[i][1].slice(11, 16);
-      }
-    }
-  }
-  return s === "" ? "—" : s;
-}
-
-function updateDisplays() {
-  setText("today", formatDay(todayStr()));
-  setText("tomorrow", formatDay(tomorrowStr()));
-}
-
 function maybeDailyFetch() {
   let today = todayStr();
   let hourUtc = nowHourUtc();
@@ -243,26 +209,7 @@ function maybeDailyFetch() {
 
 function tick() {
   maybeDailyFetch();
-  updateDisplays();
   applyRelay();
-}
-
-// Refetch when the user edits a setting, debounced so a slider drag fetches once, not per tick.
-let INPUT_ROLES = ["continuous", "hours", "deadline", "unavailFrom", "unavailTo"];
-let refetchTimer = null;
-
-function isInputComponent(comp) {
-  for (let i = 0; i < INPUT_ROLES.length; i++) if (VC[INPUT_ROLES[i]] === comp) return true;
-  return false;
-}
-
-function scheduleRefetch() {
-  if (refetchTimer !== null) Timer.clear(refetchTimer);
-  refetchTimer = Timer.set(3000, false, function () {
-    refetchTimer = null;
-    print("inputs changed — refetching");
-    fetchPlan();   // onPlan overwrites PLAN + sched_plan
-  });
 }
 
 // Boot: ensure components, load the stored plan, then run.
@@ -274,9 +221,8 @@ loadOrCreateComponents(function () {
     }
     applyRelay();
     maybeDailyFetch();
+    // Edits to the Virtual Components apply on the next tick, not instantly — the status handler
+    // that made them immediate cost more heap than the 5-minute wait is worth.
     Timer.set(CONFIG.tickSec * 1000, true, tick);
-    Shelly.addStatusHandler(function (e) {
-      if (e && e.component && isInputComponent(e.component)) scheduleRefetch();
-    });
   });
 });
