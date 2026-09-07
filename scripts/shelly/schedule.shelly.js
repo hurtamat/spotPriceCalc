@@ -2,20 +2,39 @@
 // fails with "out of memory" before any response. So this points at the dev machine on the LAN, not
 // at the deployed backend (whose ingress redirects http:// to https://). Run the `http` profile —
 // it binds 0.0.0.0:5262 — and put your machine's LAN address here.
+// The placeholder values below are filled in by the setup wizard (frontend ConfigurePage) before the
+// user pastes this. They are all strings: the minifier mangles identifiers and folds literal
+// expressions, but never touches the contents of a string. See minify.sh, which enforces it.
 let CONFIG = {
-  backendUrl: "http://10.12.2.133:5262",
+  backendUrl: "__BACKEND_URL__",
   endpoint: "/api/shelly/schedule",
 
-  switchId: 0,
+  switchId: 0,   // 0 on a single-channel plug; multi-channel devices number theirs 0, 1, 2
 
   tickSec: 300,
   fetchHourUtc: 13,
 
-  // ENTSO-E area code, baked in when the script is generated. GET /api/zones lists them and
-  // GET /api/zones/resolve?lat=&lon= names the one covering a location.
-  zoneCode: "10YCZ-CEPS-----N",
+  // ENTSO-E area code, resolved from the user's coordinates at wizard time. It also tells the backend
+  // which timezone the hours below are in — the zone catalog carries that, so we never send one.
+  zoneCode: "__ZONE_CODE__",
   deviceId: "shelly-1",
+
+  // Starting values for the Virtual Components below. The user changes them on the device afterwards;
+  // these only decide what the sliders read on first run.
+  hours: "__HOURS__",
+  deadline: "__DEADLINE__",
+  continuous: "__CONTINUOUS__",   // "1" or "0"
+  unavailFrom: "__UNAVAIL_FROM__",
+  unavailTo: "__UNAVAIL_TO__",
 };
+
+// Every token is a string because the minifier folds Number("literal") straight to NaN, which would
+// erase the placeholder before the wizard ever saw it. Coerce here instead, once.
+CONFIG.hours = Number(CONFIG.hours);
+CONFIG.deadline = Number(CONFIG.deadline);
+CONFIG.unavailFrom = Number(CONFIG.unavailFrom);
+CONFIG.unavailTo = Number(CONFIG.unavailTo);
+CONFIG.continuous = CONFIG.continuous === "1";
 
 let KVS_VC = "sched_vc";
 let KVS_PLAN = "sched_plan";
@@ -26,6 +45,8 @@ let ROLES = [
   ["deadline", "number"],
   ["unavailFrom", "number"],
   ["unavailTo", "number"],
+  ["today", "text"],
+  ["tomorrow", "text"],
 ];
 
 let VC = {};
@@ -38,11 +59,14 @@ function typeForRole(role) {
 
 // Built on demand only during creation, so these strings/objects aren't held in RAM the rest of the time.
 function configFor(role) {
-  if (role === "continuous")  return { name: "Continuous block", default_value: false, meta: { ui: { view: "toggle" } } };
-  if (role === "hours")       return { name: "Hours needed", default_value: 3, min: 0, max: 24, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
-  if (role === "deadline")    return { name: "Charged by (hour UTC)", default_value: 6, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
-  if (role === "unavailFrom") return { name: "Unavailable from (hour UTC)", default_value: 0, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
-  if (role === "unavailTo")   return { name: "Unavailable to (hour UTC)", default_value: 0, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  // Hours are the user's own local clock — the backend converts them using CONFIG.timeZone.
+  if (role === "continuous")  return { name: "Continuous block", default_value: CONFIG.continuous, meta: { ui: { view: "toggle" } } };
+  if (role === "hours")       return { name: "Hours needed", default_value: CONFIG.hours, min: 0, max: 24, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "deadline")    return { name: "Ready by (hour)", default_value: CONFIG.deadline, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "unavailFrom") return { name: "Unavailable from (hour)", default_value: CONFIG.unavailFrom, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "unavailTo")   return { name: "Unavailable to (hour)", default_value: CONFIG.unavailTo, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "today")       return { name: "Running today", default_value: "—", meta: { ui: { view: "label" } } };
+  if (role === "tomorrow")    return { name: "Running tomorrow", default_value: "—", meta: { ui: { view: "label" } } };
   return null;
 }
 
@@ -81,6 +105,7 @@ function anyComponentExists(ids) {
 }
 function createAndStore(done) {
   createAllComponents(function (newIds) {
+    print("Added the SpotBuddy settings to this device. Change them on the device's own page.");
     VC = newIds;
     Shelly.call("KVS.Set", { key: KVS_VC, value: JSON.stringify(newIds) }, function () { done(); });
   });
@@ -108,35 +133,46 @@ function getBool(key, dflt) {
 }
 function readInputs() {
   return {
-    continuous: getBool(VC.continuous, false),
-    hours: getNum(VC.hours, 0),
-    deadline: getNum(VC.deadline, 0),
-    unavailFrom: getNum(VC.unavailFrom, 0),
-    unavailTo: getNum(VC.unavailTo, 0),
+    continuous: getBool(VC.continuous, CONFIG.continuous),
+    hours: getNum(VC.hours, CONFIG.hours),
+    deadline: getNum(VC.deadline, CONFIG.deadline),
+    unavailFrom: getNum(VC.unavailFrom, CONFIG.unavailFrom),
+    unavailTo: getNum(VC.unavailTo, CONFIG.unavailTo),
   };
+}
+
+function setText(role, str) {
+  let key = VC[role];
+  if (!key) return;
+  let id = Number(key.slice(key.indexOf(":") + 1));
+  Shelly.call("Text.Set", { id: id, value: str }, null);
+}
+
+// The backend sends these already formatted in local time — the device has no timezone database, so it
+// could not build them itself, and this way it carries no formatting code either.
+function updateDisplays() {
+  if (!PLAN) return;
+  // A plan stored by an older version of this script has no strings; show a dash until the next fetch.
+  setText("today", PLAN.today || "—");
+  setText("tomorrow", PLAN.tomorrow || "—");
 }
 
 function pad2(n) { return (n < 10 ? "0" : "") + n; }
 function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }
 function todayStr() { return nowIso().slice(0, 10); }
-function tomorrowStr() { return new Date(Date.now() + 86400000).toISOString().slice(0, 10); }
 function nowHourUtc() { return Number(nowIso().slice(11, 13)); }
-// Next future deadline as canonical UTC ISO (today if the hour is still ahead, else tomorrow).
-function nextDeadlineIso(hour) {
-  let cand = todayStr() + "T" + pad2(hour) + ":00:00Z";
-  if (cand <= nowIso()) cand = tomorrowStr() + "T" + pad2(hour) + ":00:00Z";
-  return cand;
-}
-
-// One request is one job, so the body is flat. The zone is the baked-in code, never coordinates —
-// the backend resolves nothing on our behalf.
+// One request is one job, so the body is flat. The zone is the baked-in code, never coordinates.
+//
+// Hours go out as the zone's local wall clock and the backend turns them into instants. The device
+// cannot: mJS has no timezone database, and a UTC hour baked in at wizard time would drift an hour at
+// every DST switch.
 function buildBody(inputs) {
   let info = Shelly.getDeviceInfo();
   let body = {
     device_id: info ? info.id : CONFIG.deviceId,
     zone_code: CONFIG.zoneCode,
     duration_hours: inputs.hours,
-    ready_by_utc: nextDeadlineIso(inputs.deadline),   // an instant, e.g. "2026-08-09T06:00:00Z"
+    ready_by_local: pad2(inputs.deadline) + ":00:00",
     continuous_block: inputs.continuous,
   };
   // from == to means "no unavailable window".
@@ -148,7 +184,7 @@ function buildBody(inputs) {
 
 function fetchPlan() {
   let inputs = readInputs();
-  if (inputs.hours <= 0) { print("hours needed = 0 — nothing to schedule"); return; }
+  if (inputs.hours <= 0) { print("Hours needed is 0, so there is nothing to schedule."); return; }
 
   let body = JSON.stringify(buildBody(inputs));
 
@@ -158,10 +194,10 @@ function fetchPlan() {
     content_type: "application/json",
     timeout: 15,
   }, function (res, ec, em) {
-    if (ec !== 0) { print("schedule POST failed: " + em); return; }
-    if (res.code !== 200) { print("schedule HTTP " + res.code + ": " + res.body); return; }
+    if (ec !== 0) { print("Could not reach SpotBuddy: " + em); return; }
+    if (res.code !== 200) { print("SpotBuddy replied with an error (" + res.code + "): " + res.body); return; }
     let resp;
-    try { resp = JSON.parse(res.body); } catch (e) { print("Failed to parse response"); return; }
+    try { resp = JSON.parse(res.body); } catch (e) { print("SpotBuddy's reply could not be read."); return; }
     onPlan(resp);
   });
 }
@@ -171,13 +207,24 @@ function onPlan(resp) {
   if (resp.blocks) {
     for (let i = 0; i < resp.blocks.length; i++) slots.push([resp.blocks[i].start_utc, resp.blocks[i].end_utc]);
   }
-  if (resp.scheduled === false) print("backend could not place the job");
 
-  PLAN = { day: todayStr(), afterPublish: nowHourUtc() >= CONFIG.fetchHourUtc, slots: slots };
+  PLAN = {
+    day: todayStr(),
+    afterPublish: nowHourUtc() >= CONFIG.fetchHourUtc,
+    slots: slots,
+    today: resp.today_local || "—",
+    tomorrow: resp.tomorrow_local || "—",
+  };
   Shelly.call("KVS.Set", { key: KVS_PLAN, value: JSON.stringify(PLAN) }, null);
 
+  if (resp.scheduled === false) {
+    print("No cheap hours found for those settings. Check the hours and the ready-by time.");
+  } else {
+    print("Today: " + PLAN.today + " | Tomorrow: " + PLAN.tomorrow);
+  }
+
+  updateDisplays();
   applyRelay();
-  print("plan stored: " + slots.length + " block(s)");
 }
 
 function isNowWithin(slot) {
@@ -193,7 +240,7 @@ function applyRelay() {
     }
   }
   Shelly.call("Switch.Set", { id: CONFIG.switchId, on: on }, function (res, ec, em) {
-    if (ec !== 0) print("Switch.Set failed: " + em);
+    if (ec !== 0) print("Could not switch the relay: " + em);
   });
 }
 
@@ -209,11 +256,11 @@ function maybeDailyFetch() {
 
 function tick() {
   maybeDailyFetch();
+  updateDisplays();
   applyRelay();
 }
 
 // Boot: ensure components, load the stored plan, then run.
-print("spot-price scheduler starting");
 loadOrCreateComponents(function () {
   Shelly.call("KVS.Get", { key: KVS_PLAN }, function (res, ec) {
     if (ec === 0 && res && res.value) {

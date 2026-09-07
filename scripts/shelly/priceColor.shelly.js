@@ -1,14 +1,16 @@
 // price-color client: shows the current price colour (green/yellow/red) on the device.
 
 // Plain http:// to the dev machine on the LAN — the TLS handshake OOMs this device. See README.md.
+// The placeholder values below are filled in by the setup wizard before the user pastes this. Strings
+// only, so the minifier cannot fold them away — see minify.sh.
 let COLOR_CONFIG = {
-  backendUrl: "http://10.12.2.133:5262",
+  backendUrl: "__BACKEND_URL__",
   endpoint: "/api/shelly/schedule/status",
   timeoutSec: 15,
   fetchSec: 300,
-  // ENTSO-E area code, baked in when the script is generated — same contract as schedule.shelly.js,
-  // so the device never resolves geography. GET /api/zones/resolve?lat=&lon= names it once at setup.
-  zoneCode: "10YCZ-CEPS-----N",
+  // ENTSO-E area code, resolved from the user's coordinates at wizard time — same contract as
+  // schedule.shelly.js, so neither script resolves geography on the device.
+  zoneCode: "__ZONE_CODE__",
 };
 
 function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }

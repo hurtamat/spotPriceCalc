@@ -29,5 +29,10 @@ for src in "${SOURCES[@]}"; do
   # Everything else mJS rejects. Fail loudly rather than shipping a script that dies at runtime.
   if grep -qE '=>|\bconst\b|catch\s*\{' "$out"; then echo "$src: output uses syntax mJS rejects"; exit 1; fi
 
+  # Every wizard placeholder must survive minification, or the generated script silently keeps a default.
+  for tok in $(grep -oE '__[A-Z_]+__' "$src" | sort -u); do
+    grep -q -- "$tok" "$out" || { echo "$src: placeholder $tok did not survive minification"; exit 1; }
+  done
+
   printf '%-22s %6s B -> %6s B\n' "$name" "$(wc -c < "$src")" "$(wc -c < "$out")"
 done
