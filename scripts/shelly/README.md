@@ -46,8 +46,7 @@ calls.
 - A local **tick (5 min)** drives the relay from the stored plan and refreshes the displays.
 - It re-fetches when: a new day starts, after the day-ahead prices publish (~13:00 UTC), or when the user
   **edits a Virtual Component** (debounced status handler → overwrites the plan).
-- **Single task by design:** the API accepts many tasks, but a Shelly drives one relay, so it always sends
-  one task (`task_id` 1) and reads `tasks[0]`.
+- **One job per device:** the request is flat — one `duration_hours`, one deadline — which is all a relay needs.
 - **All UTC**, one canonical form (`YYYY-MM-DDTHH:MM:SSZ`); times compared as plain strings.
 
 ## `priceColor.shelly.js` — the price-colour indicator
@@ -80,11 +79,16 @@ Some devices sit right at the edge, so:
 - **Don't call `Shelly.GetComponents` on-device** — the full dump is large enough to OOM. Use targeted calls.
 - To inspect free RAM: `Shelly.getComponentStatus("sys").ram_free`.
 
+> **The script is behind the API.** It still sends `lat`/`lon`, `date` and a `tasks[]` array, which the
+> endpoint no longer accepts: the request is now flat and keyed by `zone_code`, with the deadline as a single
+> `ready_by_utc` instant. Updating it is mostly deletion — the script already derives one deadline before
+> splitting it into a date and a time-of-day.
+
 ## The contract
 
 Request/response shapes mirror the backend DTOs in `spotPriceCalc/Dtos/Schedule/` — keep them in sync:
 
-- `ScheduleRequest.cs` / `ScheduleResponse.cs` — the schedule POST (`date` + `ready_by` time-of-day in; per-task
+- `ScheduleRequest.cs` / `ScheduleResponse.cs` — the schedule POST (`zone_code` + `ready_by_utc` instant in;
   `blocks` of `start_utc`/`end_utc` out, all UTC `...Z`).
 - `StatusSchedule.cs` / `PriceColor.cs` — the status GET (lat/lon/time in; a `PriceColor` number out).
 

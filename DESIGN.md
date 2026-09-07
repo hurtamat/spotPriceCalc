@@ -197,16 +197,26 @@ Other things the live responses confirm, worth knowing before touching this code
   bars from it and renders `null` grey rather than guessing.
 - Populate is *also* driven automatically by `PriceDataScheduler` — the manual POST is for ad-hoc backfilling.
 
-### Smart home (`SmartHomeShellyController`, route `api/schedule`)
+### Smart home (`SmartHomeShellyController`, route `api/schedule`; `SmartHomeHomeAssistantController`, route `api/homeassistant`)
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/schedule` | Device sends tasks ("N hours by X"), gets back the chosen run blocks. See [smartHomeIntegration.md](./smartHomeIntegration.md). |
+| `POST` | `/api/schedule` | Device sends one job ("N hours by X" in a zone), gets back the chosen run blocks. See [smartHomeIntegration.md](./smartHomeIntegration.md). |
 | `GET` | `/api/schedule/status?lat=&lon=&time=` | Current price colour for a location: `200` + `0`/`1`/`2` (Green/Yellow/Red), or **`204 No Content`** when the slot is missing or unclassified. |
 
 The 204 is deliberate: the Shelly script clears its LEDs on anything that isn't a 200, so an unclassified slot
 shows nothing rather than a guessed colour. `ResolveStatus` returns `PriceColor?` and the controller maps null
 to 204.
+
+### Bidding zones (`BiddingZonesController`, route `api/zones`)
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/zones` | Every zone as `{code, name}`, so a client offers a picker without shipping its own list. |
+| `GET` | `/api/zones/resolve?lat=&lon=` | The zone covering a location, for preselecting it. Nearest zone centre, same as the scheduler used to do internally. |
+
+Clients name their zone by **ENTSO-E code**, never by our `Id` — the ids are a storage detail, the codes are
+the industry's own identifiers.
 
 ---
 

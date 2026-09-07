@@ -36,7 +36,10 @@ device-agnostic request and get back the run blocks; neither optimises anything 
 | Client | Endpoint | Where it lives |
 | --- | --- | --- |
 | Shelly (Gen2+) | `POST /api/schedule`, `GET /api/schedule/status` | [`scripts/shelly/`](./scripts/shelly/README.md) |
-| Home Assistant | `POST /api/homeassistant/schedule` | [`spotprice-ha`](https://github.com/hurtamat/spotprice-ha) |
+| Home Assistant | `POST /api/homeassistant/schedule`, `GET /api/zones` | [`spotprice-ha`](https://github.com/hurtamat/spotprice-ha) |
+
+Both name their bidding zone by ENTSO-E code; `GET /api/zones` lists them and `/api/zones/resolve`
+names the one covering a location.
 
 The Home Assistant integration is a separate repository because HACS installs from a repository root
 and its validation assumes the repo *is* the integration. The endpoint it depends on is defined here,

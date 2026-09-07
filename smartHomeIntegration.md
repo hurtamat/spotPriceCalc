@@ -4,10 +4,11 @@ How the smart-home control endpoint works today, the reasoning behind its shape,
 problem left to solve. For the broader product vision see [IDEA.md](./IDEA.md); for the price-data layer this
 sits on top of see [DESIGN.md](./DESIGN.md).
  
-> **Status in one line:** a stateless `POST /api/schedule` takes a thin device's tasks (each: "I need N hours of
-> power by deadline X"), ranks the stored spot-price curve, and returns the **merged run blocks** per task;
-> `GET /api/schedule/status` returns the current price colour for a location. Coordinate→zone resolution works
-> (nearest zone centre). The daily commit model (see the end) is not built yet.
+> **Status in one line:** a stateless `POST /api/schedule` takes one job ("I need N hours of power by
+> deadline X"), ranks the stored spot-price curve, and returns the **merged run blocks**;
+> `GET /api/schedule/status` returns the current price colour for a location, and `GET /api/zones`
+> lists the zones a client can pick from. Coordinate→zone resolution works (nearest zone centre).
+> The daily commit model (see the end) is not built yet.
 
 ---
 
@@ -133,17 +134,19 @@ Controllers/
 │                                       Holds the scheduler, exposes one virtual step (BuildScheduleAsync).
 ├─ SmartHomeShellyController.cs        concrete: POST /api/schedule + GET /api/schedule/status. Inherits
 │                                       the base; a vendor controller overrides only the mapping.
-└─ SmartHomeHomeAssistantController.cs concrete: POST /api/homeassistant/schedule. Same plan, plus the
-                                        price curve, so the integration needs one call per refresh.
+├─ SmartHomeHomeAssistantController.cs concrete: POST /api/homeassistant/schedule. Same plan, plus the
+│                                       price curve, so the integration needs one call per refresh.
+└─ BiddingZonesController.cs           GET /api/zones and /api/zones/resolve, so a client can offer a
+                                        zone picker without shipping its own copy of the list.
 Services/SmartHome/
 ├─ IZoneLocatorService.cs             coordinates → bidding zone (own responsibility).
 ├─ ZoneLocatorService.cs             nearest zone centre (Haversine). Works; wrong right at internal borders.
 ├─ IScheduleService.cs               the decision engine's contract.
 └─ ScheduleService.cs                the brain. Regions: Schedule building / Slot selection / Price colour.
 Dtos/Schedule/
-├─ ScheduleRequest.cs                request + UnavailableWindow + TaskRequest.
-├─ ScheduleResponse.cs               response + TaskResult + ScheduledBlock.
-└─ HomeAssistantScheduleResponse.cs  the HA response + PriceSnapshot + PriceCurvePoint.
+├─ ScheduleRequest.cs                request + UnavailableWindow, and ResolveDeadlineUtc.
+├─ ScheduleResponse.cs               response + ScheduledBlock.
+└─ HomeAssistantScheduleResponse.cs  the HA response + PriceCurvePoint.
 StatusSchedule.cs                 the colour query (lat, lon, dateTime).
 ```
 
@@ -163,17 +166,15 @@ things (`BiddingZoneSeedData`, the private math helpers).
 
 ## The scheduling logic (`ScheduleService`)
 
-For each task, independently:
-
 1. **Anchor on the deadline.** The eligible window is always the 24h *before* it:
    ```
-   anchor      = ready_by_utc, or the zone's next local midnight when it is null
+   anchor      = ready_by_utc, or now + 24h when it is null
    windowStart = anchor − 24h
    eligible    = price slots fully inside [windowStart, anchor]  minus  the unavailable window
    ```
    This is deliberately **not** a calendar day: anchoring on the deadline and looking back keeps the cheap
    overnight block (e.g. 23:00→05:00) whole instead of slicing it at midnight. `LoadSlotsAsync` reads a day
-   either side of the task deadlines so the look-back can reach into the previous day.
+   either side of the deadline so the look-back can reach into the previous day.
 
 2. **Exclude the unavailable window** — any slot whose UTC time-of-day falls inside it is dropped (wrap-around
    past midnight supported).
@@ -183,15 +184,14 @@ For each task, independently:
    - `continuous_block = true` → slide a back-to-back block of the required length over the eligible slots and
      pick the cheapest valid position.
 
-The per-task evaluation is factored into its own `EvaluateTask` helper (self-contained, static, testable).
-`relay_state` is then the OR of "is now inside any chosen slot" across all tasks.
+The evaluation is factored into its own static `Evaluate` helper (self-contained, testable).
 
-### Everything is UTC (for now)
+### Everything is UTC
 
-The whole computation is UTC in / UTC out; we assume the client sends UTC and we return UTC. Slot granularity
-follows the stored price curve (hourly today, but 15-minute is handled if the data has it). There's a
-`TODO(timezone)` throughout: the proper design resolves the zone's IANA `TimeZoneId`, keeps the math in UTC,
-and converts to the device's local time at the controller edge for display.
+UTC in / UTC out. The deadline arrives as an **instant**, so nothing here has to guess what a wall clock
+meant — a client whose user picks a local time converts at its own edge, where the timezone is known. The
+one wall-clock value left is the unavailable window, a UTC time-of-day pair. Slot granularity follows the
+stored price curve (hourly today, 15-minute handled if the data has it).
 
 ---
 
@@ -201,8 +201,9 @@ and converts to the device's local time at the controller edge for display.
   centre by Haversine distance. Good enough away from borders, **wrong right at internal ones** (and inside
   multi-zone countries like Italy, Sweden and Norway it's essentially a guess). `TODO(geojson)`: point-in-polygon,
   keeping nearest-centre as the no-match fallback.
-- **Timezone handling is deferred** — UTC assumed end to end. Note the *market* day is CET (see DESIGN.md), so
-  for the 9 non-CET zones a "day" of prices doesn't start at the user's local midnight.
+- **Timezones are the client's job** — the deadline arrives as an instant, so the API never guesses. Note the
+  *market* day is CET (see DESIGN.md), so for the 9 non-CET zones a "day" of prices doesn't start at the
+  user's local midnight.
 - **The read depends on populated prices** — the scheduler only sees what's in the DB. `PriceDataScheduler`
   handles that automatically now (startup catch-up + a daily run), so this is only a problem on a fresh DB.
 - **`/status` returns 204 until prices are classified**, which needs the calc-service running during populate.

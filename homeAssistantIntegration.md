@@ -10,9 +10,10 @@ For the endpoint it consumes see [`smartHomeIntegration.md`](./smartHomeIntegrat
 > stays here: the endpoint it consumes is defined in this repo, and the two have to move together.
 > Everything below describes code in that repository.
 
-> **Status in one line:** end to end. The integration calls
-> `POST /api/homeassistant/schedule`, stores the committed blocks, and drives
-> `binary_sensor.spotbuddy_running` and the price sensors off them. Untested against a live backend.
+> **Status in one line:** working against a live backend. The integration calls
+> `POST /api/homeassistant/schedule`, stores the committed blocks, drives
+> `binary_sensor.spotbuddy_running` and the price sensors off them, and ships its own Lovelace card.
+> Verified end to end with the backend running locally; not yet against the deployed one.
 
 ---
 
@@ -34,14 +35,14 @@ supplier/hardware-agnostic pitch in [IDEA.md](./IDEA.md).
 
 | Entity | Platform | Role |
 | --- | --- | --- |
-| `binary_sensor.spotbuddy_running` | binary_sensor | **The contract.** On inside a run block. Attributes carry `zone_name` and the full `blocks` list. |
+| `binary_sensor.spotbuddy_running` | binary_sensor | **The contract.** On inside a run block. Attributes carry `zone_name`, `scheduled`, the full `blocks` list, and `schedule` (the same blocks as an on/off step series, for charting cards). |
 | `sensor.spotbuddy_current_price` | sensor | EUR/MWh for the current slot, read off the curve at each tick. `state_class: measurement`, so Home Assistant's built-in history graph plots it with no card. |
 | `sensor.spotbuddy_price_level` | sensor (enum) | `green` / `yellow` / `red` for the current slot, read off the curve. |
 | `sensor.spotbuddy_next_start` | sensor (timestamp) | When the appliance next switches on; the *following* block while one is running. Rendered in the user's timezone by Home Assistant. |
 | `sensor.spotbuddy_next_end` | sensor (timestamp) | End of the running block, or of the next one when idle. |
 | `switch.spotbuddy_enabled` | switch | Master off switch. |
 | `switch.spotbuddy_continuous_block` | switch | Hours back-to-back, or split for the cheapest slots. |
-| `number.spotbuddy_duration` | number | Hours of power needed. The one always-required task field. |
+| `number.spotbuddy_duration` | number | Hours of power needed. The one always-required field. |
 | `time.spotbuddy_ready_by` | time | The deadline. The eligible window is the 24h before it. |
 | `switch.spotbuddy_unavailable_window` | switch | Whether the do-not-run window applies. Off ⇒ the two times below are ignored and no `unavailable` is sent. |
 | `time.spotbuddy_unavailable_from` / `_to` | time | The do-not-run window itself. |
@@ -69,19 +70,21 @@ custom_components/spotbuddy/           (in the spotprice-ha repo)
 ├─ number.py          duration_hours                     ├ the task parameters
 ├─ time.py            ready_by, unavailable_from/to      ┘
 ├─ button.py          manual refresh
+├─ www/               the bundled Lovelace card, served by async_setup
 └─ helpers/general.py get_parameter, DeviceNameCreator
 ```
 
 **Read state is coordinator-driven, config state is restored.** The read-only entities subclass
 `CoordinatorEntity` and derive everything from `coordinator.data`. The config entities are
 `RestoreEntity` / `RestoreNumber`: they restore their value on startup, push it onto the coordinator,
-and call `async_config_updated()` on change, which re-plans. `is_running` and `status` are
-**computed properties** on the coordinator, not stored fields, so there is no ordering problem
-between a refresh landing and the entities reading it.
+and call `async_config_updated()` on change, which re-plans. `is_running`, `current_price`,
+`price_level`, `next_start` and `next_end` are **computed properties** on the coordinator, not stored
+fields, so there is no ordering problem between a refresh landing and the entities reading it.
 
 **Refresh cadence mirrors the commit model.** No polling loop (`update_interval=None`). The plan is
-fetched after midnight and again at 13:05 UTC once the day-ahead prices publish, plus whenever a
-config entity changes. A separate quarter-hourly tick only re-evaluates the *stored* plan against the
+fetched at 00:05 and 13:05 UTC — after midnight, and once the day-ahead prices publish — plus whenever
+a config entity changes. Both listeners use `async_track_utc_time_change`; the plain variant matches
+local time, which had the afternoon refresh firing before the prices existed. A separate quarter-hourly tick only re-evaluates the *stored* plan against the
 clock and pushes state out — it never re-optimizes. That is the same "commit, not track" model the
 Shelly script uses, and it is why the drift problem at the end of `smartHomeIntegration.md` does not
 appear here.
@@ -91,6 +94,11 @@ appear here.
 `POST /api/homeassistant/schedule`, served by `SmartHomeHomeAssistantController`. It takes the same
 device-agnostic `ScheduleRequest` as the Shelly endpoint and runs the same `ScheduleService` — only
 the response differs, which is exactly what the abstract base controller's virtual step exists for.
+
+It is the only call made at runtime. The config flow additionally calls `GET /api/zones` to fill the
+zone dropdown — which doubles as the reachability check, so an unreachable backend is reported in the
+dialog — and `GET /api/zones/resolve?lat=&lon=` with Home Assistant's own coordinates to preselect the
+right zone. The user picks a zone by name; what is stored and sent is its ENTSO-E code.
 
 **Why a second endpoint rather than reusing the Shelly one.** A Shelly drives one relay and needs
 nothing but the blocks. Home Assistant also publishes price sensors, so reusing `/api/schedule` would
@@ -142,17 +150,31 @@ call inside, so a test pins the clock instead of working around it.
 The `unavailable` window stays a time-of-day pair, converted by `_to_utc_time` using the offset **on
 the deadline's date** so it does not drift an hour across a DST change.
 
-The plan refresh uses `async_track_utc_time_change`. The plain `async_track_time_change` matches
-**local** time, which had the afternoon refresh firing before the day-ahead prices published.
+## The card
+
+The integration ships a Lovelace card, `www/spotbuddy-card.js`, registered in `async_setup` with
+`async_register_static_paths` plus `add_extra_js_url` (versioned, so a browser cache does not serve
+an old copy). It appears in the card picker, so nobody installs a frontend repository or writes YAML.
+
+It takes the Running binary sensor and finds the price sensor on the **same device**, which is what
+keeps two appliances apart. It draws the curve coloured by level, shades each planned block — several
+bands when the hours are split — and converts every time to the viewer's timezone. The card is the
+only place that conversion happens.
+
+For people who prefer their own chart, `binary_sensor.spotbuddy_running` also carries `schedule`, the
+blocks as an on/off step series, which is the shape a stepline chart wants.
 
 ## What is not built
 
 - **Auth.** The API key field was removed from the config flow: the plan is rate limiting rather than
   a per-user credential. `api.py` keeps the `X-Api-Key` plumbing and raises `ConfigEntryAuthFailed`
-  on a 401/403, so adding one later is a config-flow field and nothing else. See the auth gap in
-  [DESIGN.md](./DESIGN.md).
+  on a 401/403, so adding one later is a config-flow field and nothing else. The backend checks
+  nothing today — see the "No auth" note at the top of [DESIGN.md](./DESIGN.md).
 - **Tests.** `requirements_test.txt` pins the HA test harness; there is no `tests/` directory yet.
-- **Verification against a live backend.** Nothing here has been run against a running API.
+- **The production backend URL.** `DEFAULT_BASE_URL` in `const.py` is still a local development
+  address; it needs the deployed host before release.
+- **A config-entry migration.** Entries created before the `zone_code` change store `latitude` /
+  `longitude` and must be re-added by hand.
 
 ## Development
 
