@@ -15,6 +15,9 @@ node_modules/
 dist/
 .vite/
 
+# script generated minified versions served to users. 
+!/scripts/shelly/dist/
+
 # IDE
 .idea/
 .claude/

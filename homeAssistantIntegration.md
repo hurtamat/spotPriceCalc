@@ -101,7 +101,7 @@ dialog — and `GET /api/zones/resolve?lat=&lon=` with Home Assistant's own coor
 right zone. The user picks a zone by name; what is stored and sent is its ENTSO-E code.
 
 **Why a second endpoint rather than reusing the Shelly one.** A Shelly drives one relay and needs
-nothing but the blocks. Home Assistant also publishes price sensors, so reusing `/api/schedule` would
+nothing but the blocks. Home Assistant also publishes price sensors, so reusing `/api/shelly/schedule` would
 mean three calls per refresh (plan, colour, curve). This endpoint returns all three in one payload:
 
 ```json
@@ -114,7 +114,7 @@ mean three calls per refresh (plan, colour, curve). This endpoint returns all th
 ```
 
 Each point's `level` is the `PriceColor` enum **as an int** — 0 green, 1 yellow, 2 red — matching
-`GET /api/schedule/status`, which the Shelly script already depends on. Null means unclassified, and
+`GET /api/shelly/schedule/status`, which the Shelly script already depends on. Null means unclassified, and
 the integration then shows no level rather than guessing. The curve backs the price sensor's `curve`
 attribute, which is marked `_unrecorded_attributes` so ~200 points per state write never reach the
 recorder database.

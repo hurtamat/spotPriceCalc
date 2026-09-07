@@ -17,7 +17,7 @@ weather+COP optimization) see [README.md](./README.md) — that part is **not bu
 | **.NET API** | `spotPriceCalc/` | **This doc.** Price ingestion, classification, read API, smart-home endpoints. |
 | Calc service (Python/FastAPI) | `calc-service/` | `POST /price-zones` is **wired up and called during populate** — but the algorithm behind it is a deliberate placeholder (sort + cut at 1/3 and 2/3). `POST /schedule` exists and is not called by .NET. |
 | Frontend (React/Vite) | `frontend/` | Landing page + **working interactive zone map** driving a live price chart. |
-| Shelly scripts | `scripts/shelly/` | Two device scripts: `priceColor` (LED ring from `/api/schedule/status`) and `schedule`. |
+| Shelly scripts | `scripts/shelly/` | Two device scripts: `priceColor` (LED ring from `/api/shelly/schedule/status`) and `schedule`. |
 
 ---
 
@@ -30,7 +30,7 @@ spotPriceCalc/
 ├─ Controllers/
 │   ├─ SpotPricesController.cs           read + manual populate
 │   ├─ SmartHomeIntegrationController.cs abstract adapter shared by integrations
-│   └─ SmartHomeShellyController.cs      POST /api/schedule, GET /api/schedule/status
+│   └─ SmartHomeShellyController.cs      POST /api/shelly/schedule, GET /api/shelly/schedule/status
 ├─ Services/
 │   ├─ SpotPriceService.cs               fetch → store → classify; regions: Reads / Populate / History backfill
 │   ├─ PriceDataScheduler.cs             BackgroundService: startup catch-up + daily run
@@ -197,12 +197,12 @@ Other things the live responses confirm, worth knowing before touching this code
   bars from it and renders `null` grey rather than guessing.
 - Populate is *also* driven automatically by `PriceDataScheduler` — the manual POST is for ad-hoc backfilling.
 
-### Smart home (`SmartHomeShellyController`, route `api/schedule`; `SmartHomeHomeAssistantController`, route `api/homeassistant`)
+### Smart home (`SmartHomeShellyController`, route `api/shelly`; `SmartHomeHomeAssistantController`, route `api/homeassistant`)
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/schedule` | Device sends one job ("N hours by X" in a zone), gets back the chosen run blocks. See [smartHomeIntegration.md](./smartHomeIntegration.md). |
-| `GET` | `/api/schedule/status?lat=&lon=&time=` | Current price colour for a location: `200` + `0`/`1`/`2` (Green/Yellow/Red), or **`204 No Content`** when the slot is missing or unclassified. |
+| `POST` | `/api/shelly/schedule` | Device sends one job ("N hours by X" in a zone), gets back the chosen run blocks. See [smartHomeIntegration.md](./smartHomeIntegration.md). |
+| `GET` | `/api/shelly/schedule/status?lat=&lon=&time=` | Current price colour for a location: `200` + `0`/`1`/`2` (Green/Yellow/Red), or **`204 No Content`** when the slot is missing or unclassified. |
 
 The 204 is deliberate: the Shelly script clears its LEDs on anything that isn't a 200, so an unclassified slot
 shows nothing rather than a guessed colour. `ResolveStatus` returns `PriceColor?` and the controller maps null

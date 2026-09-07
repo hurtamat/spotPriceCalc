@@ -4,9 +4,9 @@ How the smart-home control endpoint works today, the reasoning behind its shape,
 problem left to solve. For the broader product vision see [IDEA.md](./IDEA.md); for the price-data layer this
 sits on top of see [DESIGN.md](./DESIGN.md).
  
-> **Status in one line:** a stateless `POST /api/schedule` takes one job ("I need N hours of power by
+> **Status in one line:** a stateless `POST /api/shelly/schedule` takes one job ("I need N hours of power by
 > deadline X"), ranks the stored spot-price curve, and returns the **merged run blocks**;
-> `GET /api/schedule/status` returns the current price colour for a location, and `GET /api/zones`
+> `GET /api/shelly/schedule/status` returns the current price colour for a location, and `GET /api/zones`
 > lists the zones a client can pick from. Coordinate→zone resolution works (nearest zone centre).
 > The daily commit model (see the end) is not built yet.
 
@@ -37,7 +37,7 @@ acceptable for set-and-forget appliances. Decided, but not implemented yet. See
 ## The endpoint
 
 ```
-POST /api/schedule
+POST /api/shelly/schedule
 ```
 
 POST (not GET) so the device can send a structured JSON body instead of a long query string. The device polls
@@ -105,7 +105,7 @@ run-block sensor, so folding them together turns three calls per refresh into on
 abstract base controller's virtual `BuildScheduleAsync` step was for — the concrete controller
 overrides only the mapping. See [homeAssistantIntegration.md](./homeAssistantIntegration.md).
 
-### `GET /api/schedule/status?lat=&lon=&time=`
+### `GET /api/shelly/schedule/status?lat=&lon=&time=`
 
 A second, much simpler endpoint for ambient display: what colour is the price at this instant?
 
@@ -132,7 +132,7 @@ controller layer is for.
 Controllers/
 ├─ SmartHomeIntegrationController.cs   abstract base: the shared HTTP adapter.
 │                                       Holds the scheduler, exposes one virtual step (BuildScheduleAsync).
-├─ SmartHomeShellyController.cs        concrete: POST /api/schedule + GET /api/schedule/status. Inherits
+├─ SmartHomeShellyController.cs        concrete: POST /api/shelly/schedule + GET /api/shelly/schedule/status. Inherits
 │                                       the base; a vendor controller overrides only the mapping.
 ├─ SmartHomeHomeAssistantController.cs concrete: POST /api/homeassistant/schedule. Same plan, plus the
 │                                       price curve, so the integration needs one call per refresh.
