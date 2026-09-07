@@ -15,13 +15,28 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
     }
 
     [HttpPost("schedule")]
-    public async Task<IActionResult> Post([FromBody] ScheduleRequest request, CancellationToken ct)
+    public async Task<IActionResult> Post([FromBody] ShellyScheduleRequest request, CancellationToken ct)
     {
         if (request.DurationHours <= 0)
             return BadRequest("duration_hours must be greater than zero.");
+        if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
+            return BadRequest($"Unknown bidding zone code {request.ZoneCode}.");
 
-        var response = await BuildScheduleAsync(request, ct);
-        return Ok(response);
+        // The device sends a wall clock in its zone's local time; the scheduler only sees instants.
+        var resolved = ShellyLocalTime.Resolve(request, zone.TimeZoneId);
+
+        var schedule = await BuildScheduleAsync(resolved, ct);
+
+        return Ok(new ShellyScheduleResponse
+        {
+            DeviceId = schedule.DeviceId,
+            ZoneName = schedule.ZoneName,
+            Scheduled = schedule.Scheduled,
+            Blocks = schedule.Blocks,
+            // The device shows these verbatim; it cannot convert UTC to local itself.
+            TodayLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 0),
+            TomorrowLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 1),
+        });
     }
 
     [HttpGet("schedule/status")]

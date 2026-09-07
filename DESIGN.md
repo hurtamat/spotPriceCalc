@@ -16,8 +16,8 @@ weather+COP optimization) see [README.md](./README.md) — that part is **not bu
 | --- | --- | --- |
 | **.NET API** | `spotPriceCalc/` | **This doc.** Price ingestion, classification, read API, smart-home endpoints. |
 | Calc service (Python/FastAPI) | `calc-service/` | `POST /price-zones` is **wired up and called during populate** — but the algorithm behind it is a deliberate placeholder (sort + cut at 1/3 and 2/3). `POST /schedule` exists and is not called by .NET. |
-| Frontend (React/Vite) | `frontend/` | Landing page + **working interactive zone map** driving a live price chart. |
-| Shelly scripts | `scripts/shelly/` | Two device scripts: `priceColor` (LED ring from `/api/shelly/schedule/status`) and `schedule`. |
+| Frontend (React/Vite) | `frontend/` | Landing page + **working interactive zone map** driving a live price chart, and the **Shelly setup wizard** at `/shelly` that generates a pre-filled device script. |
+| Shelly scripts | `scripts/shelly/` | Two device scripts: `priceColor` (LED ring from `/api/shelly/schedule/status`) and `schedule`. Minified by `minify.sh` into a committed `dist/` the wizard fills in — an mJS script gets ~8 KB of heap, so source size is a hard constraint. |
 
 ---
 
@@ -30,7 +30,8 @@ spotPriceCalc/
 ├─ Controllers/
 │   ├─ SpotPricesController.cs           read + manual populate
 │   ├─ SmartHomeIntegrationController.cs abstract adapter shared by integrations
-│   └─ SmartHomeShellyController.cs      POST /api/shelly/schedule, GET /api/shelly/schedule/status
+│   ├─ SmartHomeShellyController.cs      POST /api/shelly/schedule, GET /api/shelly/schedule/status
+│   └─ ShellyLocalTime.cs                wall clock -> instant, Shelly only (see smartHomeIntegration.md)
 ├─ Services/
 │   ├─ SpotPriceService.cs               fetch → store → classify; regions: Reads / Populate / History backfill
 │   ├─ PriceDataScheduler.cs             BackgroundService: startup catch-up + daily run

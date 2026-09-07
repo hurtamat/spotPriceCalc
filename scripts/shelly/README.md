@@ -40,8 +40,14 @@ The console only streams while it's open, and boot lines fire once — restart w
 calls.
 
 - On boot it ensures the user's **Virtual Components** exist (created only if none are present, so a user can
-  delete ones they don't want): `continuous` toggle plus `hours`, `deadline`, `unavailFrom`, `unavailTo`
-  sliders.
+  delete ones they don't want): `continuous` toggle, `hours`, `deadline`, `unavailFrom`, `unavailTo` sliders,
+  plus two read-only labels (`today` / `tomorrow`) showing when it will run.
+- **The labels' text comes from the backend**, as `today_local` / `tomorrow_local` on the response. The
+  device has no timezone database, so it cannot render UTC blocks in local time — and formatting them
+  server-side means it carries no formatting code either. The blocks stay UTC, because that is what the
+  relay compares against.
+- **It narrates itself in plain language** — what it is doing, what it got back, and when the relay actually
+  changes state (a tick that switches nothing stays quiet). Open the script console to watch it.
 - It `POST`s the inputs to `/api/shelly/schedule` and stores the returned ON-blocks in KVS (`sched_plan`).
 - A local **tick (5 min)** drives the relay from the stored plan and refreshes the displays.
 - It re-fetches when a new day starts or after the day-ahead prices publish (~13:00 UTC). **An edit to a
@@ -52,7 +58,12 @@ calls.
   Resolution is a setup-time question, not a per-request one, so the wizard answers it once with
   `GET /api/zones/resolve?lat=&lon=` and writes the code into the generated script. Same contract Home
   Assistant uses; the device stays out of the geography business.
-- **All UTC**, one canonical form (`YYYY-MM-DDTHH:MM:SSZ`); times compared as plain strings.
+- **Hours are the zone's local time, converted server-side.** The sliders are plain hours and go out as
+  `ready_by_local`; `SmartHomeShellyController` resolves them against the zone's own IANA timezone, which
+  the zone catalog already carries — so no timezone travels on the wire either. mJS has no timezone
+  database, and a UTC hour baked in at wizard time would drift an hour at every DST switch.
+- **Everything from the backend is UTC**, one canonical form (`YYYY-MM-DDTHH:MM:SSZ`); block times are
+  compared as plain strings, which works only because that form is fixed-width and sorts chronologically.
 
 ## `priceColor.shelly.js` — the price-colour indicator
 
@@ -104,8 +115,8 @@ bytes with no behaviour change:
 
 | Script | Source | `dist/` |
 | --- | --- | --- |
-| `schedule` | 8103 B | 4151 B |
-| `priceColor` | 2627 B | 1301 B |
+| `schedule` | 10990 B | 5354 B |
+| `priceColor` | 2671 B | 1149 B |
 
 Two mJS quirks it handles: template literals are unsupported and the minifier rewrites every string as
 one, so they are converted back to quotes; and it fails loudly if the output ever contains an arrow
@@ -144,12 +155,26 @@ Request/response shapes mirror the backend DTOs in `spotPriceCalc/Dtos/Schedule/
   `blocks` of `start_utc`/`end_utc` out, all UTC `...Z`).
 - `StatusSchedule.cs` / `PriceColor.cs` — the status GET (`zoneCode`/`time` in; a `PriceColor` number out).
 
-## Planned onboarding: the config wizard (not built yet)
+## Onboarding: the config wizard
 
-Editing `CONFIG` by hand is the developer path. The intended end-user onboarding is a **frontend wizard** that
-collects the user's parameters and **outputs a ready-to-paste script with values pre-filled** — no code
-editing, no on-device settings. Values are baked in at generation time (changing a setting = re-run the wizard
-and re-paste). Decided, not implemented.
+Editing `CONFIG` by hand is the developer path. End users go to **`/shelly`** in the frontend
+(`ShellyWizard.tsx`), which asks their browser for coordinates, resolves the zone with
+`GET /api/zones/resolve`, and **fills the answers into the minified script** for them to copy.
+
+The wizard bakes in only what cannot change on the device: the backend URL and the zone code. The job
+itself — hours, deadline, continuous, unavailable window — stays editable through the Virtual Components,
+so changing your mind does not mean re-pasting a script. The wizard's answers are just their starting
+values.
+
+**How the filling works.** `frontend/src/shelly/generate.ts` imports `dist/*.js?raw` and replaces
+placeholder tokens. They are `__LIKE_THIS__` **strings**, because the minifier mangles identifiers and folds
+literal expressions but never touches the contents of a string — `Number("__HOURS__")` gets folded straight
+to `NaN`, so every token is a string and coerced afterwards. `minify.sh` fails the build if a token stops
+surviving, and `generate.ts` throws rather than emitting a script with an unreplaced token in it.
+
+The backend URL comes from `VITE_DEVICE_API_BASE_URL`, separate from `VITE_API_BASE_URL`: the browser and
+the device do not reach the API at the same address during local testing, since a Shelly's `localhost` is
+itself.
 
 ## Documentation
 

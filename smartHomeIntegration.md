@@ -22,15 +22,18 @@ The design goal throughout is a **thin client**: the device should read one bool
 real thinking (price ranking, windowing, exclusions) happens server-side, once, and is reusable across every
 integration (Shelly first, Home Assistant and others later).
 
-### Device onboarding (planned, not built)
+### Device onboarding (built)
 
-The end-user onboarding is a **separate frontend screen — a step-by-step wizard**. It collects the user's
-parameters (location/zone, hours needed, ready-by time, continuous vs. split, unavailable window,
-switch/channel) and then **outputs a ready-to-paste device script with those values pre-filled**; the user
-copies it into the Shelly Scripts UI. No hand-editing of config, no on-device settings screen. Values are
-**baked in at generation time**, so changing a setting later means re-running the wizard and re-pasting —
-acceptable for set-and-forget appliances. Decided, but not implemented yet. See
-[`scripts/shelly/README.md`](./scripts/shelly/README.md).
+The end-user onboarding is a **separate frontend screen at `/shelly`** — `ShellyWizard.tsx`. It asks the
+browser for coordinates, resolves the zone with `GET /api/zones/resolve`, prefills a dropdown of every zone
+from `GET /api/zones`, and **outputs a ready-to-paste device script** with the answers filled in.
+
+Only what the device cannot change is baked in: the backend URL and the zone code. **The job stays editable
+on the device** through the Virtual Components, so a user changing their deadline does not re-run the wizard
+and re-paste — the wizard's answers are only the starting values. That is the difference from the original
+plan, and it exists because re-pasting a script to move a slider is not something anyone will do.
+
+See [`scripts/shelly/README.md`](./scripts/shelly/README.md) for how the values get into the script.
 
 ---
 
@@ -61,9 +64,15 @@ this periodically, reads the result, and sets its relay.
 | `device_id` | Identifies the device (logging, later rate-limiting / state). |
 | `zone_code` | **Required.** ENTSO-E area code, e.g. `10YCZ-CEPS-----N`. A string, so no client depends on our own zone ids. `GET /api/zones` lists them, and `GET /api/zones/resolve?lat=&lon=` names the one covering a location so a client can preselect it. |
 | `duration_hours` | The one field that's always required — total hours of power the job needs. |
+| `ready_by_local` | *Optional, Shelly only.* The deadline as a **wall clock** in the zone's own local time, e.g. `"06:00:00"`. `SmartHomeShellyController` turns it into an instant against the zone's IANA timezone, taken from the zone catalog — so no timezone is sent. It exists because a Shelly cannot convert: mJS has no timezone database, and a UTC hour baked in by the wizard would drift an hour at every DST switch. `ready_by_utc` wins when both are given. The same conversion shifts `unavailable` from local hours to UTC. |
 | `ready_by_utc` | *Optional.* **The anchor** — the **instant (UTC)** the job must finish by; the window is the 24h before it. One instant rather than a date plus a wall clock, because only the client knows which timezone the user's clock belongs to. Null ⇒ 24h from now (`ResolveDeadlineUtc`), so "no deadline" means the cheapest hours in the coming day. Not a midnight: that cuts the window at a fixed hour, and a plan made in the evening could not reach the cheap night hours past it. |
 | `continuous_block` | `true` ⇒ hours must run back-to-back (boiler, washer). `false` (default) ⇒ split for the absolute cheapest hours (EV charging, the "don't care" case). |
 | `unavailable` | *Optional.* A "do not run" window, **time-of-day only** (no date). May wrap past midnight (`from > to`, e.g. `22:00–06:00`). |
+
+**Local time is resolved in the Shelly controller, never in the service.** `ShellyLocalTime` sits beside
+`SmartHomeShellyController`, and `ScheduleService` stays UTC-in/UTC-out for every integration. Home
+Assistant converts properly at its own edge and keeps sending `ready_by_utc`, so nothing shared had to learn
+about wall clocks. The Shelly request is its own DTO, `ShellyScheduleRequest`, for the same reason.
 
 **One request is one job.** The body was a `tasks[]` array; both clients only ever sent one entry, so it is
 flat. Reintroducing the array later is additive.

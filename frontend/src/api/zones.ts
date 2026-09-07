@@ -67,3 +67,36 @@ export const ZONE_BY_ID: Record<number, Zone> = Object.values(ZONE_BY_MAPKEY).re
   },
   {} as Record<number, Zone>,
 );
+
+// ---------------------------------------------------------------------------
+// Backend zone catalog (GET /api/zones), keyed by ENTSO-E code.
+//
+// Separate from ZONE_BY_MAPKEY above: that one joins GeoJSON polygons to our internal ids for the map,
+// while devices name their zone by code and never see an id. The wizard needs codes, so it asks the
+// backend rather than shipping a second copy of the list.
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5262';
+
+/** A zone as the backend describes it. `code` is the ENTSO-E area code baked into device scripts. */
+export interface ZoneOption {
+  code: string;
+  name: string;
+}
+
+export async function fetchZones(signal?: AbortSignal): Promise<ZoneOption[]> {
+  const res = await fetch(`${API_BASE}/api/zones`, { signal });
+  if (!res.ok) throw new Error(`GET /api/zones failed: ${res.status}`);
+  return res.json();
+}
+
+/** The zone covering a location, for preselecting the dropdown. Null when the backend has no match. */
+export async function resolveZone(
+  lat: number,
+  lon: number,
+  signal?: AbortSignal,
+): Promise<ZoneOption | null> {
+  const res = await fetch(`${API_BASE}/api/zones/resolve?lat=${lat}&lon=${lon}`, { signal });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`GET /api/zones/resolve failed: ${res.status}`);
+  return res.json();
+}
