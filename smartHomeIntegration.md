@@ -6,7 +6,7 @@ sits on top of see [DESIGN.md](./DESIGN.md).
  
 > **Status in one line:** a stateless `POST /api/shelly/schedule` takes one job ("I need N hours of power by
 > deadline X"), ranks the stored spot-price curve, and returns the **merged run blocks**;
-> `GET /api/shelly/schedule/status` returns the current price colour for a location, and `GET /api/zones`
+> `GET /api/shelly/schedule/status` returns the current price colour for a zone, and `GET /api/zones`
 > lists the zones a client can pick from. Coordinate→zone resolution works (nearest zone centre).
 > The daily commit model (see the end) is not built yet.
 
@@ -105,9 +105,13 @@ run-block sensor, so folding them together turns three calls per refresh into on
 abstract base controller's virtual `BuildScheduleAsync` step was for — the concrete controller
 overrides only the mapping. See [homeAssistantIntegration.md](./homeAssistantIntegration.md).
 
-### `GET /api/shelly/schedule/status?lat=&lon=&time=`
+### `GET /api/shelly/schedule/status?zoneCode=&time=`
 
 A second, much simpler endpoint for ambient display: what colour is the price at this instant?
+
+Keyed by **zone code**, like the schedule POST — a device never sends coordinates. Resolution is a
+setup-time question answered once by `GET /api/zones/resolve`, so `ZoneLocatorService` is now used only
+there and `ScheduleService` no longer depends on it.
 
 | Response | Meaning |
 | --- | --- |

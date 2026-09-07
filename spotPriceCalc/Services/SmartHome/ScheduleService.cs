@@ -9,13 +9,13 @@ namespace spotPriceCalc.Services.SmartHome;
 public class ScheduleService : IScheduleService
 {
     private readonly ISpotPriceService _prices;
-    private readonly IZoneLocatorService _zoneLocator;
     private readonly ILogger<ScheduleService> _logger;
 
-    public ScheduleService(ISpotPriceService prices, IZoneLocatorService zoneLocator, ILogger<ScheduleService> logger)
+    // No IZoneLocatorService: every request names its zone by code. Coordinates are resolved once at
+    // setup time via GET /api/zones/resolve, which is where the locator now lives.
+    public ScheduleService(ISpotPriceService prices, ILogger<ScheduleService> logger)
     {
         _prices = prices;
-        _zoneLocator = zoneLocator;
         _logger = logger;
     }
     
@@ -178,9 +178,10 @@ public class ScheduleService : IScheduleService
     // Null = no colour applies (day missing or not yet classified); the caller turns the indicator off.
     public async Task<PriceColor?> ResolveStatus(StatusSchedule request, CancellationToken ct)
     {
-        var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
-        if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
-            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
+        if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
+            throw new ArgumentException($"Unknown bidding zone code {request.ZoneCode}.", nameof(request));
+
+        var biddingZoneId = zone.Id;
 
         // Client timestamps are UTC by contract (see SmartHomeIntegrationController).
         var at = DateTime.SpecifyKind(request.StatusTime, DateTimeKind.Utc);

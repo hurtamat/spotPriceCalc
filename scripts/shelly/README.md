@@ -56,7 +56,9 @@ calls.
 
 ## `priceColor.shelly.js` — the price-colour indicator
 
-- Every **5 min** (repeating `Timer`) plus once on boot, it `GET`s `/api/shelly/schedule/status?lat&lon&time`.
+- Every **5 min** (repeating `Timer`) plus once on boot, it `GET`s `/api/shelly/schedule/status?zoneCode&time`.
+- **The zone is baked in as `COLOR_CONFIG.zoneCode`**, the same contract `schedule.shelly.js` uses — neither
+  script sends coordinates.
 - The backend returns the `PriceColor` enum as a **number**: `0`=green, `1`=yellow, `2`=red.
 - It maps the code to an RGB value and sets the **Plug S Gen3 LED ring** via `PLUGS_UI.SetConfig`
   (rgb is a **0–100** scale, not 0–255; both on/off states are set the same so the colour shows regardless of
@@ -140,7 +142,7 @@ Request/response shapes mirror the backend DTOs in `spotPriceCalc/Dtos/Schedule/
 
 - `ScheduleRequest.cs` / `ScheduleResponse.cs` — the schedule POST (`zone_code` + `ready_by_utc` instant in;
   `blocks` of `start_utc`/`end_utc` out, all UTC `...Z`).
-- `StatusSchedule.cs` / `PriceColor.cs` — the status GET (lat/lon/time in; a `PriceColor` number out).
+- `StatusSchedule.cs` / `PriceColor.cs` — the status GET (`zoneCode`/`time` in; a `PriceColor` number out).
 
 ## Planned onboarding: the config wizard (not built yet)
 

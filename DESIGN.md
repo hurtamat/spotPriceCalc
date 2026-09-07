@@ -202,7 +202,7 @@ Other things the live responses confirm, worth knowing before touching this code
 | Method | Route | Purpose |
 | --- | --- | --- |
 | `POST` | `/api/shelly/schedule` | Device sends one job ("N hours by X" in a zone), gets back the chosen run blocks. See [smartHomeIntegration.md](./smartHomeIntegration.md). |
-| `GET` | `/api/shelly/schedule/status?lat=&lon=&time=` | Current price colour for a location: `200` + `0`/`1`/`2` (Green/Yellow/Red), or **`204 No Content`** when the slot is missing or unclassified. |
+| `GET` | `/api/shelly/schedule/status?zoneCode=&time=` | Current price colour for a zone: `200` + `0`/`1`/`2` (Green/Yellow/Red), or **`204 No Content`** when the slot is missing or unclassified. |
 
 The 204 is deliberate: the Shelly script clears its LEDs on anything that isn't a 200, so an unclassified slot
 shows nothing rather than a guessed colour. `ResolveStatus` returns `PriceColor?` and the controller maps null

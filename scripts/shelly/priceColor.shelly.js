@@ -6,17 +6,12 @@ let COLOR_CONFIG = {
   endpoint: "/api/shelly/schedule/status",
   timeoutSec: 15,
   fetchSec: 300,
-  lat: 50.08,   // location fallback
-  lon: 14.44,
+  // ENTSO-E area code, baked in when the script is generated — same contract as schedule.shelly.js,
+  // so the device never resolves geography. GET /api/zones/resolve?lat=&lon= names it once at setup.
+  zoneCode: "10YCZ-CEPS-----N",
 };
 
 function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }
-
-function deviceLocation() {
-  let sys = Shelly.getComponentConfig("sys");
-  if (sys && sys.location && typeof sys.location.lat === "number") return sys.location;
-  return null;
-}
 
 // 0=green, 1=yellow, 2=red.
 function parseCode(body) {
@@ -54,10 +49,8 @@ function clearColor() {
 }
 
 function fetchColor() {
-  let loc = deviceLocation();
   let url = COLOR_CONFIG.backendUrl + COLOR_CONFIG.endpoint +
-    "?lat=" + (loc ? loc.lat : COLOR_CONFIG.lat) +
-    "&lon=" + (loc ? loc.lon : COLOR_CONFIG.lon) +
+    "?zoneCode=" + COLOR_CONFIG.zoneCode +
     "&time=" + nowIso();
 
   print("fetching colour @ " + nowIso());

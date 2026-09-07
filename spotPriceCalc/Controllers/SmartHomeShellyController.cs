@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using spotPriceCalc.Dtos.Schedule;
+using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Services.SmartHome;
 
 namespace spotPriceCalc.Controllers;
@@ -24,10 +25,13 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
     }
 
     [HttpGet("schedule/status")]
-    public async Task<IActionResult> Status([FromQuery] decimal lat, decimal lon, DateTime time, CancellationToken ct)
+    public async Task<IActionResult> Status([FromQuery] string zoneCode, DateTime time, CancellationToken ct)
     {
+        if (!BiddingZoneSeedData.ByCode.ContainsKey(zoneCode))
+            return BadRequest($"Unknown bidding zone code {zoneCode}.");
+
         var response = await _schedule.ResolveStatus(
-            new StatusSchedule { Lat = lat, Lon = lon, StatusTime = time }, ct);
+            new StatusSchedule { ZoneCode = zoneCode, StatusTime = time }, ct);
 
         // 204 when no colour applies; the device script clears its LEDs on anything that isn't a 200.
         return response is null ? NoContent() : Ok(response);
