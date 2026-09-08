@@ -362,6 +362,7 @@ export function ShellyWizard() {
             </div>
           </Question>
 
+          <div key={mode} className="sb-sw-swap">
           {isRelay ? (
             <Question
               n={3}
@@ -466,17 +467,18 @@ export function ShellyWizard() {
               <p className="sb-sw-note">Only the Plug S Gen3 has the ring.</p>
             </Question>
           )}
+          </div>
         </section>
 
         <section id="script" className="sb-sw-script">
           <div className="sb-sw-script-head">
             <div style={{ marginRight: 'auto' }}>
               <span className="sb-sw-eyebrow">Ready to paste</span>
-              <h2 className="sb-sw-script-name">
+              <h2 key={mode} className="sb-sw-script-name sb-sw-swap">
                 {isRelay ? 'spotbuddy-relay.js' : 'spotbuddy-colour.js'}
               </h2>
             </div>
-            <div className="sb-sw-chips">
+            <div key={mode} className="sb-sw-chips sb-sw-swap">
               {chips.map((c) => (
                 <span key={c} className="sb-sw-chip">
                   {c}
@@ -499,7 +501,7 @@ export function ShellyWizard() {
 
           {generated && !('error' in generated) ? (
             <>
-              <div className="sb-sw-code">
+              <div key={mode} className="sb-sw-code sb-sw-swap">
                 <code>{generated.code}</code>
               </div>
               <p className="sb-sw-script-note">One minified line. Nothing to read, just copy it.</p>
@@ -558,7 +560,7 @@ export function ShellyWizard() {
                   <strong>Virtual components → Components</strong>, and everything you answered above is
                   there as a control you can drag. No web page, no account, no coming back here.
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div key={mode} className="sb-sw-swap" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {(isRelay ? RELAY_COMPONENTS : []).map((v) => (
                     <div key={v.id} className="sb-sw-vc">
                       <code>{v.id}</code>
@@ -624,7 +626,13 @@ export function ShellyWizard() {
                     +
                   </span>
                 </button>
-                {openTrouble === i && <p className="sb-sw-faq-a">{t.a}</p>}
+                {/* Same grid-rows 0fr->1fr slide as the landing page's FAQ, rather than a hard
+                    mount/unmount — see .sb-faq-panel. */}
+                <div className="sb-faq-panel" data-open={openTrouble === i}>
+                  <div>
+                    <p className="sb-sw-faq-a">{t.a}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

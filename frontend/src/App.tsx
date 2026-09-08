@@ -9,6 +9,8 @@ import { Faq } from './components/Faq';
 import { Footer } from './components/Footer';
 import { ConfigurePage } from './components/ConfigurePage';
 import { ShellyWizard } from './components/ShellyWizard';
+import { LegalPage } from './components/LegalPage';
+import { useScrollReveal } from './hooks/useScrollReveal';
 import { HomeAssistantPage } from './components/HomeAssistantPage';
 
 // Path routing without a router dependency, a handful of static pages is not worth react-router.
@@ -16,9 +18,14 @@ import { HomeAssistantPage } from './components/HomeAssistantPage';
 const PAGES: Record<string, string> = {};
 
 export default function App() {
+  // Every page gets the scroll-in effect, so it is mounted here rather than per page.
+  useScrollReveal();
+
   const path = window.location.pathname.replace(/\/+$/, '') || '/';
   if (path === '/home-assistant') return <HomeAssistantPage />;
   if (path === '/shelly') return <ShellyWizard />;
+  if (path === '/privacy') return <LegalPage kind="privacy" />;
+  if (path === '/terms') return <LegalPage kind="terms" />;
 
   const page = PAGES[path];
   if (page) return <ConfigurePage title={page} />;
