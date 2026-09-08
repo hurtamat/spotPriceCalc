@@ -22,7 +22,7 @@ public class BiddingZonesController : ControllerBase
     public IActionResult Get() =>
         Ok(BiddingZoneSeedData.Zones
             .OrderBy(z => z.Name)
-            .Select(z => new BiddingZoneDto { Code = z.Code, Name = z.Name })
+            .Select(z => new BiddingZoneDto { Code = z.Code, Name = z.Name, TimeZoneId = z.TimeZoneId })
             .ToList());
 
     /// <summary>The zone governing a location, so a client can preselect it: GET /api/zones/resolve.</summary>
@@ -32,7 +32,7 @@ public class BiddingZonesController : ControllerBase
     {
         var zoneId = _zoneLocator.ResolveBiddingZone(lat, lon);
         return BiddingZoneSeedData.ById.TryGetValue(zoneId, out var zone)
-            ? Ok(new BiddingZoneDto { Code = zone.Code, Name = zone.Name })
+            ? Ok(new BiddingZoneDto { Code = zone.Code, Name = zone.Name, TimeZoneId = zone.TimeZoneId })
             : NotFound();
     }
 }

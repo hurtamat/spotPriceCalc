@@ -81,6 +81,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5262';
 export interface ZoneOption {
   code: string;
   name: string;
+  /** IANA id, e.g. "Europe/Prague". Display-only — it names the clock the wizard's hours belong to. */
+  time_zone_id: string;
 }
 
 export async function fetchZones(signal?: AbortSignal): Promise<ZoneOption[]> {
