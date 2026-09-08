@@ -30,9 +30,8 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
         return Ok(new ShellyScheduleResponse
         {
             DeviceId = schedule.DeviceId,
-            ZoneName = schedule.ZoneName,
             Scheduled = schedule.Scheduled,
-            Blocks = schedule.Blocks,
+            Slots = schedule.Blocks.Select(ShellyScheduleResponse.ToPair).ToList(),
             // The device shows these verbatim; it cannot convert UTC to local itself.
             TodayLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 0),
             TomorrowLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 1),

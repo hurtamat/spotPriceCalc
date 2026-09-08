@@ -88,8 +88,7 @@ function createAllComponents(cb) {
     if (i >= ROLES.length) { cb(ids); return; }
     let role = ROLES[i][0];
     Shelly.call("Virtual.Add", /** @type {*} */ ({ type: ROLES[i][1], config: configFor(role) }), function (res, ec, em) {
-      if (ec !== 0) print("Virtual.Add failed for " + role + ": " + em);
-      else ids[role] = normalizeKey(role, res.id);
+      if (ec === 0) ids[role] = normalizeKey(role, res.id);
       i++;
       next();
     });
@@ -105,7 +104,6 @@ function anyComponentExists(ids) {
 }
 function createAndStore(done) {
   createAllComponents(function (newIds) {
-    print("Added the SpotBuddy settings to this device. Change them on the device's own page.");
     VC = newIds;
     Shelly.call("KVS.Set", { key: KVS_VC, value: JSON.stringify(newIds) }, function () { done(); });
   });
@@ -139,6 +137,13 @@ function readInputs() {
     unavailFrom: getNum(VC.unavailFrom, CONFIG.unavailFrom),
     unavailTo: getNum(VC.unavailTo, CONFIG.unavailTo),
   };
+}
+
+// Fingerprint of the settings a plan was built from. Comparing it against the sliders is how an edit
+// gets noticed — the device has no change event we can afford to listen for, and the 5-minute tick is a
+// free debounce for a slider drag.
+function inputsSig(i) {
+  return i.hours + "|" + i.deadline + "|" + (i.continuous ? 1 : 0) + "|" + i.unavailFrom + "|" + i.unavailTo;
 }
 
 function setText(role, str) {
@@ -184,7 +189,7 @@ function buildBody(inputs) {
 
 function fetchPlan() {
   let inputs = readInputs();
-  if (inputs.hours <= 0) { print("Hours needed is 0, so there is nothing to schedule."); return; }
+  if (inputs.hours <= 0) return;
 
   let body = JSON.stringify(buildBody(inputs));
 
@@ -194,34 +199,28 @@ function fetchPlan() {
     content_type: "application/json",
     timeout: 15,
   }, function (res, ec, em) {
-    if (ec !== 0) { print("Could not reach SpotBuddy: " + em); return; }
-    if (res.code !== 200) { print("SpotBuddy replied with an error (" + res.code + "): " + res.body); return; }
+    if (ec !== 0 || res.code !== 200) return;
     let resp;
-    try { resp = JSON.parse(res.body); } catch (e) { print("SpotBuddy's reply could not be read."); return; }
-    onPlan(resp);
+    try { resp = JSON.parse(res.body); } catch (e) { return; }
+    onPlan(resp, inputsSig(inputs));
   });
 }
 
-function onPlan(resp) {
-  let slots = [];
-  if (resp.blocks) {
-    for (let i = 0; i < resp.blocks.length; i++) slots.push([resp.blocks[i].start_utc, resp.blocks[i].end_utc]);
-  }
-
+// No print() anywhere: every string literal is resident in an ~8 KB heap, and the two "Running
+// today/tomorrow" labels report the same thing where the user can actually see it.
+//
+// resp.slots is already [start, end] pairs, so it is stored as it arrives — no per-block objects to
+// build and discard, which is the whole reason the Shelly response has its own shape.
+function onPlan(resp, sig) {
   PLAN = {
     day: todayStr(),
     afterPublish: nowHourUtc() >= CONFIG.fetchHourUtc,
-    slots: slots,
+    slots: resp.slots || [],
+    sig: sig,
     today: resp.today_local || "—",
     tomorrow: resp.tomorrow_local || "—",
   };
   Shelly.call("KVS.Set", { key: KVS_PLAN, value: JSON.stringify(PLAN) }, null);
-
-  if (resp.scheduled === false) {
-    print("No cheap hours found for those settings. Check the hours and the ready-by time.");
-  } else {
-    print("Today: " + PLAN.today + " | Tomorrow: " + PLAN.tomorrow);
-  }
 
   updateDisplays();
   applyRelay();
@@ -239,9 +238,7 @@ function applyRelay() {
       if (isNowWithin(PLAN.slots[i])) { on = true; break; }
     }
   }
-  Shelly.call("Switch.Set", { id: CONFIG.switchId, on: on }, function (res, ec, em) {
-    if (ec !== 0) print("Could not switch the relay: " + em);
-  });
+  Shelly.call("Switch.Set", { id: CONFIG.switchId, on: on }, null);
 }
 
 function maybeDailyFetch() {
@@ -250,14 +247,41 @@ function maybeDailyFetch() {
 
   let stale = (PLAN === null) || (PLAN.day !== today);
   let needTomorrow = PLAN && PLAN.day === today && !PLAN.afterPublish && hourUtc >= CONFIG.fetchHourUtc;
+  // A plan built from settings the user has since changed is as stale as yesterday's.
+  let edited = PLAN && PLAN.sig !== inputsSig(readInputs());
 
-  if (stale || needTomorrow) fetchPlan();
+  if (stale || needTomorrow || edited) fetchPlan();
 }
 
 function tick() {
   maybeDailyFetch();
   updateDisplays();
   applyRelay();
+}
+
+// React to an edit straight away instead of waiting for the tick.
+//
+// The handler only wakes a debounced maybeDailyFetch, and that compares PLAN.sig — so an event that
+// changed nothing relevant (our own Text.Set on the labels, say) costs a string compare and stops there.
+// That is why no role filtering beyond "is it one of ours" is needed, and why the two mechanisms compose:
+// the tick is the safety net if an event is ever missed.
+//
+// Components we did not create are ignored on purpose. A metering plug emits switch:0 status constantly,
+// and each one would reset the debounce, so an unfiltered handler would never fire at all.
+let refetchTimer = null;
+
+function isOurComponent(comp) {
+  for (let i = 0; i < ROLES.length; i++) if (VC[ROLES[i][0]] === comp) return true;
+  return false;
+}
+
+function onComponentChanged() {
+  if (refetchTimer !== null) Timer.clear(refetchTimer);
+  // Long enough that dragging a slider through twenty values asks once.
+  refetchTimer = Timer.set(2000, false, function () {
+    refetchTimer = null;
+    maybeDailyFetch();
+  });
 }
 
 // Boot: ensure components, load the stored plan, then run.
@@ -271,5 +295,8 @@ loadOrCreateComponents(function () {
     // Edits to the Virtual Components apply on the next tick, not instantly — the status handler
     // that made them immediate cost more heap than the 5-minute wait is worth.
     Timer.set(CONFIG.tickSec * 1000, true, tick);
+    Shelly.addStatusHandler(function (e) {
+      if (e && e.component && isOurComponent(e.component)) onComponentChanged();
+    });
   });
 });

@@ -69,6 +69,13 @@ this periodically, reads the result, and sets its relay.
 | `continuous_block` | `true` ⇒ hours must run back-to-back (boiler, washer). `false` (default) ⇒ split for the absolute cheapest hours (EV charging, the "don't care" case). |
 | `unavailable` | *Optional.* A "do not run" window, **time-of-day only** (no date). May wrap past midnight (`from > to`, e.g. `22:00–06:00`). |
 
+**The Shelly response is its own shape.** `ShellyScheduleResponse` is not a `ScheduleResponse`: it sends
+`slots` as bare `[start, end]` string pairs plus the two local-time label strings, and drops the per-block
+price the device never reads. A Shelly has roughly 8 KB of script heap and pays for every byte twice, in the
+response buffer and again in the parsed object graph. The timestamps are formatted `yyyy-MM-ddTHH:mm:ssZ`
+explicitly, because the device compares them as plain strings — that only works while the form is
+fixed-width, so it is a contract rather than a serialisation detail.
+
 **Local time is resolved in the Shelly controller, never in the service.** `ShellyLocalTime` sits beside
 `SmartHomeShellyController`, and `ScheduleService` stays UTC-in/UTC-out for every integration. Home
 Assistant converts properly at its own edge and keeps sending `ready_by_utc`, so nothing shared had to learn

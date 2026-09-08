@@ -2,22 +2,34 @@ using System.Text.Json.Serialization;
 
 namespace spotPriceCalc.Dtos.Schedule;
 
-/// <summary>
-/// The Shelly flavour of <see cref="ScheduleResponse"/>: the same blocks, plus the two ready-made display
-/// strings the device shows on its "Charging today / tomorrow" labels.
-/// </summary>
-/// <remarks>
-/// The blocks themselves stay UTC, because that is what the relay compares against. But the labels are read
-/// by a person, and mJS has no timezone database, so the device cannot render them in local time — the same
-/// reason the deadline arrives as a wall clock. Formatting them here costs one string each and saves the
-/// device both the conversion it cannot do and the formatting code it has no room for.
-/// </remarks>
-public record ShellyScheduleResponse : ScheduleResponse
+/// <summary>What a Shelly gets back: run windows as bare pairs, plus the text for its two labels.</summary>
+// Not a ScheduleResponse: that carries per-block objects with a price the device reads and discards, and
+// an ~8 KB script heap pays for every byte twice — response buffer, then parsed graph.
+public record ShellyScheduleResponse
 {
-    // e.g. "01:00-04:00, 22:00-23:00", or "—" when nothing runs that day. Zone-local.
+    [JsonPropertyName("device_id")]
+    public required string DeviceId { get; init; }
+
+    // False ⇒ the job could not be placed; slots is then empty.
+    [JsonPropertyName("scheduled")]
+    public required bool Scheduled { get; init; }
+
+    // Run windows as [start, end] pairs, UTC, sorted.
+    [JsonPropertyName("slots")]
+    public required IReadOnlyList<string[]> Slots { get; init; }
+
+    // e.g. "01:00-04:00, 22:00-23:00", or "—" when nothing runs that day. Zone-local, for the labels.
     [JsonPropertyName("today_local")]
     public required string TodayLocal { get; init; }
 
     [JsonPropertyName("tomorrow_local")]
     public required string TomorrowLocal { get; init; }
+
+    // Always yyyy-MM-ddTHH:mm:ssZ. The device compares these as plain strings, which only works while the
+    // form is fixed-width — so the format is a contract, not a serialisation detail.
+    public static string[] ToPair(ScheduledBlock block) =>
+    [
+        block.StartUtc.ToString("yyyy-MM-ddTHH:mm:ss'Z'"),
+        block.EndUtc.ToString("yyyy-MM-ddTHH:mm:ss'Z'"),
+    ];
 }
