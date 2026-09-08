@@ -2,20 +2,11 @@ using spotPriceCalc.Dtos.Schedule;
 
 namespace spotPriceCalc.Controllers;
 
-/// <summary>
-/// Turns the Shelly's local wall clock into the UTC instants the scheduler works in.
-/// </summary>
-/// <remarks>
-/// Deliberately not in Services/SmartHome: the shared <c>ScheduleService</c> is UTC-in, UTC-out for every
-/// integration, and only the Shelly path needs this. Keeping it beside the controller keeps the seam honest.
-/// </remarks>
+/// <summary>Turns the Shelly's local wall clock into the UTC instants the scheduler works in.</summary>
+// Not in Services/SmartHome on purpose: ScheduleService is UTC-in/UTC-out for every integration.
 public static class ShellyLocalTime
 {
-    /// <summary>
-    /// The request with <c>ReadyByUtc</c> and <c>Unavailable</c> resolved from local time, or unchanged
-    /// when the device sent an instant. <paramref name="ianaTimeZoneId"/> is the bidding zone's own
-    /// timezone, from the zone catalog.
-    /// </summary>
+    /// <summary>The request with ReadyByUtc and Unavailable resolved against the zone's timezone.</summary>
     public static ScheduleRequest Resolve(
         ShellyScheduleRequest request, string ianaTimeZoneId, DateTime? nowUtc = null)
     {
@@ -48,15 +39,9 @@ public static class ShellyLocalTime
         return ToUtc(date.ToDateTime(local), tz);
     }
 
-    /// <summary>
-    /// The do-not-run window shifted from local time-of-day to UTC, so it means the same hours the user
-    /// picked. The scheduler matches it against UTC slots, so an unshifted window would be wrong by the
-    /// zone's offset.
-    /// </summary>
-    /// <remarks>
-    /// One offset is used for the whole window, taken at the deadline. A window that straddles a DST switch
-    /// is therefore an hour out on that one day — the same compromise a wall-clock timer makes.
-    /// </remarks>
+    /// <summary>The do-not-run window shifted from local time-of-day to UTC, as the scheduler matches it.</summary>
+    // One offset for the whole window, taken at the deadline: a window straddling a DST switch is an hour
+    // out that day, the same compromise a wall-clock timer makes.
     private static UnavailableWindow? ToUtcWindow(UnavailableWindow? window, TimeZoneInfo tz, DateTime atUtc)
     {
         if (window is null)
@@ -70,10 +55,7 @@ public static class ShellyLocalTime
         };
     }
 
-    /// <summary>
-    /// The blocks falling on one local calendar day, as "HH:mm-HH:mm" joined by commas, or "—" when the
-    /// day has none. A block is listed on the day it starts.
-    /// </summary>
+    /// <summary>One local day's blocks as "HH:mm-HH:mm, …", or "—". A block lands on the day it starts.</summary>
     public static string FormatLocalDay(
         IEnumerable<ScheduledBlock> blocks, string ianaTimeZoneId, int daysFromToday, DateTime? nowUtc = null)
     {
@@ -93,10 +75,7 @@ public static class ShellyLocalTime
         return parts.Count > 0 ? string.Join(", ", parts) : "—";
     }
 
-    /// <summary>
-    /// Local to UTC, tolerating the two hours a year that a wall clock is not a single instant: the spring
-    /// gap has no such local time (jump forward past it) and the autumn overlap has two (take the first).
-    /// </summary>
+    /// <summary>Local to UTC, tolerating the spring gap (jump past it) and the autumn overlap (take the first).</summary>
     private static DateTime ToUtc(DateTime localTime, TimeZoneInfo tz)
     {
         var unspecified = DateTime.SpecifyKind(localTime, DateTimeKind.Unspecified);

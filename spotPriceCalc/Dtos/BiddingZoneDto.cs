@@ -11,9 +11,7 @@ public record BiddingZoneDto
     [JsonPropertyName("name")]
     public required string Name { get; init; }
 
-    // IANA id, e.g. "Europe/Prague". Display-only, like BiddingZone.TimeZoneId itself: the setup wizard
-    // tells the user which clock the hours they pick belong to. Never use it to build a market window —
-    // that is always CET (see MarketDay).
+    // IANA id, e.g. "Europe/Prague". Display-only — never build a market window from it, that is CET.
     [JsonPropertyName("time_zone_id")]
     public required string TimeZoneId { get; init; }
 }

@@ -42,17 +42,28 @@ calls.
 - On boot it ensures the user's **Virtual Components** exist (created only if none are present, so a user can
   delete ones they don't want): `continuous` toggle, `hours`, `deadline`, `unavailFrom`, `unavailTo` sliders,
   plus two read-only labels (`today` / `tomorrow`) showing when it will run.
+- **The response has its own shape.** `ShellyScheduleResponse` sends `slots` as bare `[start, end]` pairs
+  rather than `ScheduleResponse`'s per-block objects with a price the device never reads. Every byte costs
+  twice on-device — once in the response buffer, again in the parsed graph — and the script used to build
+  and immediately discard those objects. Home Assistant keeps the richer shape.
 - **The labels' text comes from the backend**, as `today_local` / `tomorrow_local` on the response. The
   device has no timezone database, so it cannot render UTC blocks in local time — and formatting them
   server-side means it carries no formatting code either. The blocks stay UTC, because that is what the
   relay compares against.
-- **It narrates itself in plain language** — what it is doing, what it got back, and when the relay actually
-  changes state (a tick that switches nothing stays quiet). Open the script console to watch it.
+- **It prints nothing.** Every string literal stays resident in the ~8 KB script heap, and logging was
+  enough to push it over. The two labels report the same thing where the user can actually see it, so the
+  console output was paying twice. Add a `print()` back temporarily if you need to debug, and check
+  `mem_peak` afterwards.
 - It `POST`s the inputs to `/api/shelly/schedule` and stores the returned ON-blocks in KVS (`sched_plan`).
 - A local **tick (5 min)** drives the relay from the stored plan and refreshes the displays.
-- It re-fetches when a new day starts or after the day-ahead prices publish (~13:00 UTC). **An edit to a
-  Virtual Component applies on the next tick**, up to 5 minutes later, rather than immediately — the status
-  handler that made it instant cost more heap than the wait is worth.
+- It re-fetches when a new day starts, after the day-ahead prices publish (~13:00 UTC), or when the
+  sliders no longer match what the stored plan was built from — a fingerprint of the settings stored on
+  the plan as `PLAN.sig`.
+- **An edit applies about two seconds later.** A status handler wakes a debounced `maybeDailyFetch`, which
+  compares that fingerprint, so an event that changed nothing relevant costs one string compare and stops.
+  The two mechanisms compose: the handler gives the speed, the tick's own check is the safety net if an
+  event is ever missed. Components the script did not create are ignored — a metering plug emits
+  `switch:0` status constantly, and each one would reset the debounce so it never fired.
 - **One job per device:** the request is flat — one `duration_hours`, one deadline — which is all a relay needs.
 - **The zone is baked in as `CONFIG.zoneCode`**, an ENTSO-E area code, and the script never sends coordinates.
   Resolution is a setup-time question, not a per-request one, so the wizard answers it once with
@@ -115,7 +126,7 @@ bytes with no behaviour change:
 
 | Script | Source | `dist/` |
 | --- | --- | --- |
-| `schedule` | 10990 B | 5354 B |
+| `schedule` | 11749 B | 4714 B |
 | `priceColor` | 2671 B | 1149 B |
 
 Two mJS quirks it handles: template literals are unsupported and the minifier rewrites every string as
