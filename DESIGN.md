@@ -229,8 +229,12 @@ Decides *when*; all the work lives in `ISpotPriceService`. On startup:
 BackfillHistoryAsync(today-7, today-2)   // 6 days, unclassified — see below
 PopulateAsync(today-1)                   // yesterday  → classified
 PopulateAsync(today)                     // today      → classified
-PopulateAsync(today+1)                   // tomorrow   → classified
+PopulateAsync(today+1)                   // tomorrow   → only past DailyRunTime CET
 ```
+
+**Tomorrow is skipped when the app starts before `DailyRunTime` (13:21 CET).** The SDAC auction has not
+cleared, so every one of the 45 zones would decline; the daily loop populates it at that time anyway.
+`DayAheadPublished` uses the same CET wall clock as `NextRunUtc`, so the two agree by construction.
 then loops, waking daily at `DailyRunTime` (Europe/Prague) to populate tomorrow.
 
 **Order matters and the days are sequential, not parallel.** Classification looks back over the trailing

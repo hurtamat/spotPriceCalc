@@ -52,11 +52,20 @@ public class PriceDataScheduler : BackgroundService
         // Ends the day before yesterday; yesterday itself arrives classified in the populate below.
         await BackfillHistoryAsync(today.AddDays(-QuantileWindowDays), today.AddDays(-2), ct);
 
-        _logger.LogInformation("Startup populate: yesterday, today, tomorrow");
         await PopulateAsync(today.AddDays(-1), "startup: yesterday", ct);
         await PopulateAsync(today, "startup: today", ct);
-        await PopulateAsync(today.AddDays(1), "startup: tomorrow", ct);
+        
+        if (DayAheadPublished(DateTimeOffset.UtcNow))
+            await PopulateAsync(today.AddDays(1), "startup: tomorrow", ct);
+        else
+            _logger.LogInformation(
+                "Startup: skipping tomorrow, before {RunTime} CET the day-ahead prices are not published",
+                DailyRunTime);
     }
+
+    // Whether tomorrow's prices should exist yet, in the same CET wall clock the daily run uses.
+    private static bool DayAheadPublished(DateTimeOffset nowUtc) =>
+        TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(nowUtc, CentralEurope).DateTime) >= DailyRunTime;
 
     private async Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct)
     {
