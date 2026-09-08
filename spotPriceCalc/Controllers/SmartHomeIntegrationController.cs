@@ -8,11 +8,15 @@ namespace spotPriceCalc.Controllers;
 public abstract class SmartHomeIntegrationController : ControllerBase
 {
     protected readonly IScheduleService _schedule;
+    private readonly TimeProvider _clock;
 
-    protected SmartHomeIntegrationController(IScheduleService schedule)
+    protected SmartHomeIntegrationController(IScheduleService schedule, TimeProvider clock)
     {
         _schedule = schedule;
+        _clock = clock;
     }
+
+    protected DateTime UtcNow => _clock.GetUtcNow().UtcDateTime;
 
     /// <summary>Run the device-agnostic scheduler for this request. Override to customise the mapping.</summary>
     protected virtual Task<ScheduleResponse> BuildScheduleAsync(ScheduleRequest request, CancellationToken ct) =>

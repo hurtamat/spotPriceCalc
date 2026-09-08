@@ -9,13 +9,15 @@ namespace spotPriceCalc.Services.SmartHome;
 public class ScheduleService : IScheduleService
 {
     private readonly ISpotPriceService _prices;
+    private readonly TimeProvider _clock;
     private readonly ILogger<ScheduleService> _logger;
 
     // No IZoneLocatorService: every request names its zone by code. Coordinates are resolved once at
     // setup time via GET /api/zones/resolve, which is where the locator now lives.
-    public ScheduleService(ISpotPriceService prices, ILogger<ScheduleService> logger)
+    public ScheduleService(ISpotPriceService prices, TimeProvider clock, ILogger<ScheduleService> logger)
     {
         _prices = prices;
+        _clock = clock;
         _logger = logger;
     }
     
@@ -31,7 +33,7 @@ public class ScheduleService : IScheduleService
         if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
             throw new ArgumentException($"Unknown bidding zone code {request.ZoneCode}.", nameof(request));
 
-        var deadline = request.ResolveDeadlineUtc();
+        var deadline = request.ResolveDeadlineUtc(_clock.GetUtcNow().UtcDateTime);
         var slots = await LoadSlotsAsync(zone.Id, deadline, ct);
         var chosen = Evaluate(request, slots, deadline);
 

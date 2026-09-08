@@ -10,10 +10,12 @@ namespace spotPriceCalc.Controllers;
 public class SpotPricesController : ControllerBase
 {
     private readonly ISpotPriceService _service;
+    private readonly TimeProvider _clock;
 
-    public SpotPricesController(ISpotPriceService service)
+    public SpotPricesController(ISpotPriceService service, TimeProvider clock)
     {
         _service = service;
+        _clock = clock;
     }
 
     /// <summary>Stored day-ahead prices for one zone for a single CET market day.</summary>
@@ -35,7 +37,7 @@ public class SpotPricesController : ControllerBase
     [HttpPost("populate")]
     public async Task<IActionResult> Populate([FromQuery] DateOnly? date, CancellationToken ct = default)
     {
-        var target = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var target = date ?? DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
         var result = await _service.PopulateUntilCompleteAsync(target, ct);
         return Ok(result);
     }

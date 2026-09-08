@@ -8,13 +8,13 @@ public static class ShellyLocalTime
 {
     /// <summary>The request with ReadyByUtc and Unavailable resolved against the zone's timezone.</summary>
     public static ScheduleRequest Resolve(
-        ShellyScheduleRequest request, string ianaTimeZoneId, DateTime? nowUtc = null)
+        ShellyScheduleRequest request, string ianaTimeZoneId, DateTime nowUtc)
     {
         if (request.ReadyByUtc is not null && request.Unavailable is null)
             return request;
 
         var tz = TimeZoneInfo.FindSystemTimeZoneById(ianaTimeZoneId);
-        var now = DateTime.SpecifyKind(nowUtc ?? DateTime.UtcNow, DateTimeKind.Utc);
+        var now = DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc);
 
         // An explicit instant always wins; the local clock is the fallback for devices that cannot convert.
         var deadline = request.ReadyByUtc is null && request.ReadyByLocal is { } local
@@ -57,10 +57,10 @@ public static class ShellyLocalTime
 
     /// <summary>One local day's blocks as "HH:mm-HH:mm, …", or "—". A block lands on the day it starts.</summary>
     public static string FormatLocalDay(
-        IEnumerable<ScheduledBlock> blocks, string ianaTimeZoneId, int daysFromToday, DateTime? nowUtc = null)
+        IEnumerable<ScheduledBlock> blocks, string ianaTimeZoneId, int daysFromToday, DateTime nowUtc)
     {
         var tz = TimeZoneInfo.FindSystemTimeZoneById(ianaTimeZoneId);
-        var now = DateTime.SpecifyKind(nowUtc ?? DateTime.UtcNow, DateTimeKind.Utc);
+        var now = DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc);
         var day = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(now, tz)).AddDays(daysFromToday);
 
         var parts = blocks

@@ -4,6 +4,7 @@ namespace spotPriceCalc.Services;
 public class PriceDataScheduler : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly TimeProvider _clock;
     private readonly ILogger<PriceDataScheduler> _logger;
 
     private const int QuantileWindowDays = 7;
@@ -12,9 +13,12 @@ public class PriceDataScheduler : BackgroundService
     private static readonly TimeOnly DailyRunTime = new(13, 21);
     private static readonly TimeZoneInfo CentralEurope = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
 
-    public PriceDataScheduler(IServiceScopeFactory scopeFactory, ILogger<PriceDataScheduler> logger)
+    // TimeProvider also fakes the daily Task.Delay, so a test advances a day instead of sleeping it.
+    public PriceDataScheduler(
+        IServiceScopeFactory scopeFactory, TimeProvider clock, ILogger<PriceDataScheduler> logger)
     {
         _scopeFactory = scopeFactory;
+        _clock = clock;
         _logger = logger;
     }
 
@@ -26,15 +30,15 @@ public class PriceDataScheduler : BackgroundService
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                var nextRunUtc = NextRunUtc(DateTimeOffset.UtcNow);
-                var delay = nextRunUtc - DateTimeOffset.UtcNow;
+                var nextRunUtc = NextRunUtc(_clock.GetUtcNow());
+                var delay = nextRunUtc - _clock.GetUtcNow();
                 _logger.LogInformation(
                     "Next daily populate (tomorrow) scheduled for {NextRunUtc:o} ({RunTime} CET, in {Delay})",
                     nextRunUtc, DailyRunTime, delay);
 
-                await Task.Delay(delay, stoppingToken);
-                
-                var tomorrow = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1);
+                await Task.Delay(delay, _clock, stoppingToken);
+
+                var tomorrow = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime).AddDays(1);
                 await PopulateAsync(tomorrow, "daily 13:25 CET", stoppingToken);
             }
         }
@@ -47,7 +51,7 @@ public class PriceDataScheduler : BackgroundService
     // History first, then the three real days oldest first so yesterday has its full trailing window.
     private async Task RunStartupPopulateAsync(CancellationToken ct)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
 
         // Ends the day before yesterday; yesterday itself arrives classified in the populate below.
         await BackfillHistoryAsync(today.AddDays(-QuantileWindowDays), today.AddDays(-2), ct);
@@ -55,7 +59,7 @@ public class PriceDataScheduler : BackgroundService
         await PopulateAsync(today.AddDays(-1), "startup: yesterday", ct);
         await PopulateAsync(today, "startup: today", ct);
         
-        if (DayAheadPublished(DateTimeOffset.UtcNow))
+        if (DayAheadPublished(_clock.GetUtcNow()))
             await PopulateAsync(today.AddDays(1), "startup: tomorrow", ct);
         else
             _logger.LogInformation(

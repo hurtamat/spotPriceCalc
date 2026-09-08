@@ -11,7 +11,8 @@ namespace spotPriceCalc.Controllers;
 [Route("api/homeassistant")]
 public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
 {
-    public SmartHomeHomeAssistantController(IScheduleService schedule) : base(schedule)
+    public SmartHomeHomeAssistantController(IScheduleService schedule, TimeProvider clock)
+        : base(schedule, clock)
     {
     }
 
@@ -28,7 +29,7 @@ public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
         var schedule = await BuildScheduleAsync(request, ct);
 
         // Anchored on now, not the deadline: the curve is for display, and the plan is asked for early.
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         var curve = await _schedule.ResolvePriceCurveAsync(zone.Id, now, ct);
 
         return Ok(new HomeAssistantScheduleResponse

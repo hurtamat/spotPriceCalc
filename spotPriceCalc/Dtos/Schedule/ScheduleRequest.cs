@@ -29,11 +29,11 @@ public record ScheduleRequest
     [JsonPropertyName("unavailable")]
     public UnavailableWindow? Unavailable { get; init; }
 
-    // The deadline: the one given, else 24h out.
-    public DateTime ResolveDeadlineUtc(DateTime? nowUtc = null) =>
+    // The deadline: the one given, else 24h out. nowUtc is required so the caller's clock decides.
+    public DateTime ResolveDeadlineUtc(DateTime nowUtc) =>
         ReadyByUtc is DateTime given
             ? DateTime.SpecifyKind(given, DateTimeKind.Utc)
-            : DateTime.SpecifyKind(nowUtc ?? DateTime.UtcNow, DateTimeKind.Utc).AddHours(24);
+            : DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc).AddHours(24);
 }
 
 public record UnavailableWindow

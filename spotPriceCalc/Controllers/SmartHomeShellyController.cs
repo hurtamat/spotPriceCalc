@@ -10,7 +10,7 @@ namespace spotPriceCalc.Controllers;
 [Route("api/shelly")]
 public class SmartHomeShellyController : SmartHomeIntegrationController
 {
-    public SmartHomeShellyController(IScheduleService schedule) : base(schedule)
+    public SmartHomeShellyController(IScheduleService schedule, TimeProvider clock) : base(schedule, clock)
     {
     }
 
@@ -23,7 +23,9 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
             return BadRequest($"Unknown bidding zone code {request.ZoneCode}.");
 
         // The device sends a wall clock in its zone's local time; the scheduler only sees instants.
-        var resolved = ShellyLocalTime.Resolve(request, zone.TimeZoneId);
+        // Read once, so the deadline and the two labels agree.
+        var now = UtcNow;
+        var resolved = ShellyLocalTime.Resolve(request, zone.TimeZoneId, now);
 
         var schedule = await BuildScheduleAsync(resolved, ct);
 
@@ -33,8 +35,8 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
             Scheduled = schedule.Scheduled,
             Slots = schedule.Blocks.Select(ShellyScheduleResponse.ToPair).ToList(),
             // The device shows these verbatim; it cannot convert UTC to local itself.
-            TodayLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 0),
-            TomorrowLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 1),
+            TodayLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 0, now),
+            TomorrowLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 1, now),
         });
     }
 

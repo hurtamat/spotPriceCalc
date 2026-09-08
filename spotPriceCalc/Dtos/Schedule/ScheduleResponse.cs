@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace spotPriceCalc.Dtos.Schedule;
 
-// Response of POST /api/shelly/schedule. The device stores the blocks and runs its relay locally.
+// Returned by POST /api/homeassistant/schedule; reshaped into the flat ShellyScheduleResponse for Shelly.
 public record ScheduleResponse
 {
     [JsonPropertyName("device_id")]
