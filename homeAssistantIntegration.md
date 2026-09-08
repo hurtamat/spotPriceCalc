@@ -101,8 +101,11 @@ dialog — and `GET /api/zones/resolve?lat=&lon=` with Home Assistant's own coor
 right zone. The user picks a zone by name; what is stored and sent is its ENTSO-E code.
 
 **Why a second endpoint rather than reusing the Shelly one.** A Shelly drives one relay and needs
-nothing but the blocks. Home Assistant also publishes price sensors, so reusing `/api/shelly/schedule` would
-mean three calls per refresh (plan, colour, curve). This endpoint returns all three in one payload:
+nothing but the run windows, so its response has since narrowed to bare `[start, end]` pairs plus two
+label strings — it is `ShellyScheduleResponse`, not `ScheduleResponse`, and carries no prices at all.
+Home Assistant publishes price sensors as well, so reusing that endpoint would mean three calls per
+refresh (plan, colour, curve) and one of them could not be served from it anyway. This endpoint returns
+all three in one payload:
 
 ```json
 {

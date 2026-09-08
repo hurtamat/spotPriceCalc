@@ -7,8 +7,9 @@ sits on top of see [DESIGN.md](./DESIGN.md).
 > **Status in one line:** a stateless `POST /api/shelly/schedule` takes one job ("I need N hours of power by
 > deadline X"), ranks the stored spot-price curve, and returns the **merged run blocks**;
 > `GET /api/shelly/schedule/status` returns the current price colour for a zone, and `GET /api/zones`
-> lists the zones a client can pick from. Coordinate→zone resolution works (nearest zone centre).
-> The daily commit model (see the end) is not built yet.
+> lists the zones a client can pick from. Coordinate→zone resolution works (nearest zone centre) and is
+> used once at setup, not per request. The commit model is **device-stores** (see the end): the API stays
+> stateless and the device holds its plan.
 
 ---
 
@@ -88,9 +89,13 @@ The minimal valid request is a device id, a zone code, and `duration_hours`.
 
 ### Response
 
+Two shapes, because two clients with very different budgets read it.
+
+**`ScheduleResponse`** — the general one, and what Home Assistant's response is built from:
+
 ```json
 {
-  "device_id": "shelly-1",
+  "device_id": "ha-1",
   "zone_name": "Czech Republic",
   "scheduled": true,
   "blocks": [
@@ -105,13 +110,33 @@ The minimal valid request is a device id, a zone code, and `duration_hours`.
 | `scheduled` | `false` ⇒ the job couldn't be placed (e.g. window too short, or no prices stored). |
 | `blocks` | The chosen run-time as **merged contiguous blocks** (UTC, sorted), not individual slots. `eur_per_mwh` is the duration-weighted average across the block. |
 
+**`ShellyScheduleResponse`** — what `POST /api/shelly/schedule` actually returns:
+
+```json
+{
+  "device_id": "shelly-1",
+  "scheduled": true,
+  "slots": [["2026-08-13T23:00:00Z", "2026-08-14T02:00:00Z"]],
+  "today_local": "01:00-04:00",
+  "tomorrow_local": "—"
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `slots` | The same blocks as bare `[start, end]` pairs. No price: the script read the two timestamps and threw the object away, and an ~8 KB script heap pays for every byte twice — once in the response buffer, again in the parsed graph. |
+| `today_local` / `tomorrow_local` | Ready-made text for the device's two read-only labels, e.g. `"01:00-04:00, 22:00-23:00"` or `"—"`. Formatted in the zone's own timezone, because mJS has no timezone database and cannot render a UTC instant as local time. |
+
+`zone_name` is absent from the Shelly shape — nothing on the device displayed it.
+
+Slot timestamps are always `yyyy-MM-ddTHH:mm:ssZ`, formatted explicitly rather than left to the serialiser.
+The device compares them as **plain strings**, which is only valid while the form is fixed-width and sorts
+chronologically, so the format is a contract rather than a serialisation detail.
+
 **There is no `relay_state` / `now_utc` / `next_toggle_utc`.** The model changed: the device is handed the
 blocks and runs its relay locally against them, rather than asking "on or off right now?" on every poll. That
 means one call per day instead of one per polling interval — and it sidesteps the recompute-drift problem
 described at the end of this doc, at the cost of the device needing a clock.
-
-The response is **deliberately lean** — it's consumed by a device script, not a human. No display strings, no
-labels, no reasons. Everything is UTC.
 
 ### `POST /api/homeassistant/schedule`
 
@@ -156,6 +181,9 @@ Controllers/
 │                                       the base; a vendor controller overrides only the mapping.
 ├─ SmartHomeHomeAssistantController.cs concrete: POST /api/homeassistant/schedule. Same plan, plus the
 │                                       price curve, so the integration needs one call per refresh.
+├─ ShellyLocalTime.cs                  Shelly only: wall clock -> instant, and blocks -> label text,
+│                                       both against the zone's IANA timezone. Beside the controller
+│                                       because ScheduleService stays UTC-in/UTC-out.
 └─ BiddingZonesController.cs           GET /api/zones and /api/zones/resolve, so a client can offer a
                                         zone picker without shipping its own copy of the list.
 Services/SmartHome/
@@ -166,8 +194,10 @@ Services/SmartHome/
 Dtos/Schedule/
 ├─ ScheduleRequest.cs                request + UnavailableWindow, and ResolveDeadlineUtc.
 ├─ ScheduleResponse.cs               response + ScheduledBlock.
-└─ HomeAssistantScheduleResponse.cs  the HA response + PriceCurvePoint.
-StatusSchedule.cs                 the colour query (lat, lon, dateTime).
+├─ ShellyScheduleRequest.cs          adds ready_by_local, the wall-clock deadline.
+├─ ShellyScheduleResponse.cs         the flat device shape: slots + the two label strings.
+├─ HomeAssistantScheduleResponse.cs  the HA response + PriceCurvePoint.
+└─ StatusSchedule.cs                 the colour query (zone_code, dateTime).
 ```
 
 **Why an abstract base controller *and* a service?** The service is the reusable brain — testable with no HTTP.
@@ -230,7 +260,7 @@ stored price curve (hourly today, 15-minute handled if the data has it).
 
 ---
 
-## Open problem: stateless recompute drifts — commit vs. track
+## Commit vs. track — the drift problem, and what was decided
 
 The endpoint today is **stateless**: it recomputes the plan from scratch on every call. That's simple, but it's
 **wrong across a day** if the device polls repeatedly, because the optimization *moves* as time advances.
@@ -262,9 +292,23 @@ That leaves one choice — **where the frozen plan lives:**
   a reboot re-fetch should still return the *same* committed plan, so we'd likely persist it server-side
   anyway.
 
-**Progress-tracking** ("how many hours done") only returns if we want the system to be **adaptive** — e.g. the
-device was offline during a committed ON-hour and missed charge, so it should make it up. That's a v2 robustness
-feature, not part of the first commit model.
+### Decided: device-stores
 
-**Next step:** decide server-stores vs. device-stores, then add the committed-schedule persistence and switch
-the endpoint from "optimize live" to "read the committed plan."
+**Device-stores is what shipped**, and the API is still stateless — there is no `committed_schedule` table.
+The device fetches a plan, writes it to KVS, and its own 5-minute tick drives the relay from that stored copy.
+Drift is gone because it *does not re-fetch per poll*: it re-fetches only when the day rolls over, when the
+day-ahead prices publish, or when the user edits a Virtual Component. A reboot reloads the plan from KVS
+rather than asking again.
+
+Server-stores was the recommendation above and is still the better shape on paper. It lost on cost: it needs a
+new table, a commit step in the daily job, and per-device identity and auth that do not exist yet, and the
+device has to keep a plan across reboots either way. When device identity arrives, this is worth revisiting.
+
+**What device-stores does not solve:** an edit mid-plan re-optimises the *remaining* window with no memory of
+hours already delivered. Change "hours needed" at 02:30 having already charged two hours and the fresh plan
+schedules the full duration again. It is the same over-delivery as the polling example above, now triggered by
+a deliberate act rather than by every poll — rare and user-initiated instead of constant and invisible, which
+is why it was accepted. Fixing it properly is the progress-tracking work below.
+
+**Progress-tracking** ("how many hours done") is still the v2 robustness feature: it would also cover a device
+that was offline during a committed ON-hour and should make the time up.

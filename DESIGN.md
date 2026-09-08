@@ -16,7 +16,7 @@ weather+COP optimization) see [README.md](./README.md) — that part is **not bu
 | --- | --- | --- |
 | **.NET API** | `spotPriceCalc/` | **This doc.** Price ingestion, classification, read API, smart-home endpoints. |
 | Calc service (Python/FastAPI) | `calc-service/` | `POST /price-zones` is **wired up and called during populate** — but the algorithm behind it is a deliberate placeholder (sort + cut at 1/3 and 2/3). `POST /schedule` exists and is not called by .NET. |
-| Frontend (React/Vite) | `frontend/` | Landing page + **working interactive zone map** driving a live price chart, and the **Shelly setup wizard** at `/shelly` that generates a pre-filled device script. |
+| Frontend (React/Vite) | `frontend/` | Landing page + **working interactive zone map** driving a live price chart, the **Shelly setup wizard** at `/shelly` that generates a pre-filled device script, the Home Assistant guide at `/home-assistant`, and the legal documents at `/privacy` and `/terms`. |
 | Shelly scripts | `scripts/shelly/` | Two device scripts: `priceColor` (LED ring from `/api/shelly/schedule/status`) and `schedule`. Minified by `minify.sh` into a committed `dist/` the wizard fills in — an mJS script gets ~8 KB of heap, so source size is a hard constraint. |
 
 ---
@@ -30,6 +30,7 @@ spotPriceCalc/
 ├─ Controllers/
 │   ├─ SpotPricesController.cs           read + manual populate
 │   ├─ SmartHomeIntegrationController.cs abstract adapter shared by integrations
+│   ├─ BiddingZonesController.cs         GET /api/zones, /api/zones/resolve
 │   ├─ SmartHomeShellyController.cs      POST /api/shelly/schedule, GET /api/shelly/schedule/status
 │   └─ ShellyLocalTime.cs                wall clock -> instant, Shelly only (see smartHomeIntegration.md)
 ├─ Services/
@@ -202,7 +203,7 @@ Other things the live responses confirm, worth knowing before touching this code
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/shelly/schedule` | Device sends one job ("N hours by X" in a zone), gets back the chosen run blocks. See [smartHomeIntegration.md](./smartHomeIntegration.md). |
+| `POST` | `/api/shelly/schedule` | Device sends one job ("N hours by X" in a zone), gets back `slots` as `[start, end]` pairs plus ready-made local-time label text. Its own flat shape, not `ScheduleResponse` — see [smartHomeIntegration.md](./smartHomeIntegration.md). |
 | `GET` | `/api/shelly/schedule/status?zoneCode=&time=` | Current price colour for a zone: `200` + `0`/`1`/`2` (Green/Yellow/Red), or **`204 No Content`** when the slot is missing or unclassified. |
 
 The 204 is deliberate: the Shelly script clears its LEDs on anything that isn't a 200, so an unclassified slot
@@ -213,7 +214,7 @@ to 204.
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/zones` | Every zone as `{code, name}`, so a client offers a picker without shipping its own list. |
+| `GET` | `/api/zones` | Every zone as `{code, name, time_zone_id}`, so a client offers a picker without shipping its own list. The timezone is display-only — it tells the setup wizard which clock the hours a user picks belong to. |
 | `GET` | `/api/zones/resolve?lat=&lon=` | The zone covering a location, for preselecting it. Nearest zone centre, same as the scheduler used to do internally. |
 
 Clients name their zone by **ENTSO-E code**, never by our `Id` — the ids are a storage detail, the codes are
@@ -343,15 +344,20 @@ Full instructions in README. DB specifics:
    Next: add from/to support to `OpenMeteoWeatherClient`, a weather populate loop, and a read endpoint (symmetric
    to prices — the repository already supports the range).
 4. **No caching / fetch-if-missing** — the read endpoint returns only stored data. Deliberate; add later.
-5. **Populate takes one date at a time.** The scheduler works around it by calling it three times. Letting it
-   take a range and work out for itself which days are missing would fold the backfill and populate paths into
-   one — `HasDayAsync` already makes that cheap per (zone, day). Note **tomorrow only exists after the SDAC
-   auction clears (~13:00 CET)**, so a run before that legitimately declines for it.
+5. **Populate takes one date at a time.** The scheduler works around it by calling it two or three times at
+   startup. Letting it take a range and work out for itself which days are missing would fold the backfill and
+   populate paths into one — `HasDayAsync` already makes that cheap per (zone, day).
 6. **A day stored while the calc-service was down stays unclassified forever** — see Classification above. A
    `HasUnclassifiedAsync` check on the skip path would make it self-heal; deliberately not built yet.
 7. **Security token hardcoded** in `appsettings.Development.json` — move to user-secrets / env. Still true, and
    the file is committed.
 8. **Minor layering leak** — `SpotPricesController` references `Infrastructure.Persistence.BiddingZoneSeedData`
    for id validation. Fine for now; move the zone catalog into a service if you want controllers off Infrastructure.
-9. **`entsoeErr.xml` sits in the repo root** — a captured acknowledgement response, useful as a fixture. Move it
-   somewhere deliberate or delete it.
+9. **A failed populate leaves zones missing until the next day.** `Declined` is not retried, by design — asking
+   again cannot change the answer — so a day that ran before ENTSO-E had the data stays partial. Observed:
+   yesterday complete at 45/45 while today had 15 zones (all 7 Italian, plus BE/BG/GR/HR/HU/NL/RO/SK) at
+   **zero** slots. Re-running `POST /api/spotprices/populate?date=…` fills them and skips the rest. A "retry
+   declined zones later in the day" pass would close it.
+10. **The Shelly script prints nothing.** Every string literal is resident in its ~8 KB heap and logging was
+    enough to push it over, so failures are silent — a failed fetch keeps the previous plan and retries on the
+    next tick. Add one temporary `print()` when debugging and check `mem_peak` afterwards.
