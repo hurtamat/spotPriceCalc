@@ -23,7 +23,8 @@ public class ScheduleService : IScheduleService
     
     private record Slot(DateTime Start, DateTime End, decimal Price)
     {
-        public double Hours => (End - Start).TotalHours;
+        public TimeSpan Length => End - Start;
+        public decimal Cost => Price * (decimal)Length.TotalHours;
     }
 
     #region Schedule building
@@ -71,49 +72,60 @@ public class ScheduleService : IScheduleService
             .OrderBy(s => s.Start)
             .ToList();
 
+        var needed = TimeSpan.FromHours(request.DurationHours);
         return request.ContinuousBlock
-            ? SelectContiguous(eligible, request.DurationHours)
-            : SelectCheapest(eligible, request.DurationHours);
+            ? SelectContiguous(eligible, needed)
+            : SelectCheapest(eligible, needed);
     }
 
     #endregion
 
     #region Slot selection
 
-    private static List<Slot> SelectCheapest(List<Slot> eligible, double durationHours)
+    private static List<Slot> SelectCheapest(List<Slot> eligible, TimeSpan needed)
     {
         var chosen = new List<Slot>();
-        var covered = 0.0;
+        var covered = TimeSpan.Zero;
         foreach (var s in eligible.OrderBy(s => s.Price).ThenBy(s => s.Start))
         {
-            if (covered >= durationHours) break;
+            if (covered >= needed) break;
             chosen.Add(s);
-            covered += s.Hours;
+            covered += s.Length;
         }
+        
+        if (covered < needed)
+            return new List<Slot>();
+
         return chosen.OrderBy(s => s.Start).ToList();
     }
 
-    private static List<Slot> SelectContiguous(List<Slot> eligible, double durationHours)
+    // Cheapest back-to-back run covering the job
+    private static List<Slot> SelectContiguous(List<Slot> eligible, TimeSpan needed)
     {
         var byTime = eligible.OrderBy(s => s.Start).ToList();
-        if (byTime.Count == 0) return new List<Slot>();
-
-        var slotHours = byTime[0].Hours;
-        var needed = Math.Max(1, (int)Math.Ceiling(durationHours / slotHours - 1e-9));
 
         List<Slot>? best = null;
         decimal bestCost = decimal.MaxValue;
 
-        for (var i = 0; i + needed <= byTime.Count; i++)
+        for (var i = 0; i < byTime.Count; i++)
         {
-            var block = byTime.GetRange(i, needed);
-            if (!IsContiguous(block)) continue;
+            var covered = TimeSpan.Zero;
+            var cost = 0m;
 
-            var cost = block.Sum(s => s.Price);
-            if (cost < bestCost)
+            for (var j = i; j < byTime.Count; j++)
             {
-                bestCost = cost;
-                best = block;
+                if (j > i && byTime[j].Start != byTime[j - 1].End) break; // gap
+
+                covered += byTime[j].Length;
+                cost += byTime[j].Cost;
+                if (covered < needed) continue;
+
+                if (cost < bestCost)
+                {
+                    bestCost = cost;
+                    best = byTime.GetRange(i, j - i + 1);
+                }
+                break;
             }
         }
 
@@ -130,14 +142,6 @@ public class ScheduleService : IScheduleService
             : t >= window.From || t < window.To;
     }
 
-    private static bool IsContiguous(IReadOnlyList<Slot> block)
-    {
-        for (var i = 1; i < block.Count; i++)
-            if (block[i].Start != block[i - 1].End)
-                return false;
-        return true;
-    }
-
     // Collapse contiguous chosen slots into single blocks.
     private static List<ScheduledBlock> MergeIntoBlocks(List<Slot> chosen)
     {
@@ -149,15 +153,15 @@ public class ScheduleService : IScheduleService
         {
             var start = ordered[i].Start;
             var end = ordered[i].End;
-            var weightedPrice = ordered[i].Price * (decimal)ordered[i].Hours;
-            var hours = ordered[i].Hours;
+            var cost = ordered[i].Cost;
+            var length = ordered[i].Length;
 
             var j = i + 1;
             while (j < ordered.Count && ordered[j].Start == end)
             {
                 end = ordered[j].End;
-                weightedPrice += ordered[j].Price * (decimal)ordered[j].Hours;
-                hours += ordered[j].Hours;
+                cost += ordered[j].Cost;
+                length += ordered[j].Length;
                 j++;
             }
 
@@ -165,7 +169,9 @@ public class ScheduleService : IScheduleService
             {
                 StartUtc = start,
                 EndUtc = end,
-                EurPerMwh = hours > 0 ? decimal.Round(weightedPrice / (decimal)hours, 4) : ordered[i].Price,
+                EurPerMwh = length > TimeSpan.Zero
+                    ? decimal.Round(cost / (decimal)length.TotalHours, 4)
+                    : ordered[i].Price,
             });
             i = j;
         }
