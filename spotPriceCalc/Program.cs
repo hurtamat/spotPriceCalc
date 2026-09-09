@@ -1,3 +1,5 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using spotPriceCalc.Infrastructure.ExternalClients;
 using spotPriceCalc.Infrastructure.ExternalClients.OpenMeteo;
@@ -21,6 +23,25 @@ builder.Services.AddCors(options =>
         .WithOrigins(corsOrigins)
         .AllowAnyHeader()
         .AllowAnyMethod()));
+
+// Ingress terminates TLS and opens its own connection
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// Per-caller ceiling
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) }));
+});
 
 builder.Services.AddControllers();
 
@@ -62,6 +83,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseForwardedHeaders();
+
 // In containers the platform's ingress terminates TLS, so only redirect when running natively.
 if (!builder.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER"))
 {
@@ -69,7 +92,7 @@ if (!builder.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER"))
 }
 
 app.UseCors(FrontendCors);
-
+app.UseRateLimiter();
 app.MapControllers();
 
 app.Run();
