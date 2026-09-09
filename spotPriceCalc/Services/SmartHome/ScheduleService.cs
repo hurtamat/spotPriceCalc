@@ -34,9 +34,10 @@ public class ScheduleService : IScheduleService
         if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
             throw new ArgumentException($"Unknown bidding zone code {request.ZoneCode}.", nameof(request));
 
-        var deadline = request.ResolveDeadlineUtc(_clock.GetUtcNow().UtcDateTime);
+        var nowUtc = _clock.GetUtcNow().UtcDateTime;
+        var deadline = request.ResolveDeadlineUtc(nowUtc);
         var slots = await LoadSlotsAsync(zone.Id, deadline, ct);
-        var chosen = Evaluate(request, slots, deadline);
+        var chosen = Evaluate(request, slots, deadline, nowUtc);
 
         return new ScheduleResponse
         {
@@ -62,9 +63,11 @@ public class ScheduleService : IScheduleService
             .ToList();
     }
 
-    private static List<Slot> Evaluate(ScheduleRequest request, List<Slot> slots, DateTime deadlineUtc)
+    private static List<Slot> Evaluate(
+        ScheduleRequest request, List<Slot> slots, DateTime deadlineUtc, DateTime nowUtc)
     {
-        var windowStart = deadlineUtc.AddHours(-24);
+        var lookBack = deadlineUtc.AddHours(-24);
+        var windowStart = lookBack < nowUtc ? nowUtc : lookBack;
 
         var eligible = slots
             .Where(s => s.Start >= windowStart && s.End <= deadlineUtc)
