@@ -16,4 +16,11 @@ public static class MarketDay
         var localEnd = localStart.AddDays(1);
         return (TimeZoneInfo.ConvertTimeToUtc(localStart, Cet), TimeZoneInfo.ConvertTimeToUtc(localEnd, Cet));
     }
+
+    // 23:00Z the UTC date is still today yet CET the actual date is already tomorrow
+    public static DateOnly ContainingDay(DateTime utcInstant)
+    {
+        var utc = DateTime.SpecifyKind(utcInstant, DateTimeKind.Utc);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utc, Cet));
+    }
 }

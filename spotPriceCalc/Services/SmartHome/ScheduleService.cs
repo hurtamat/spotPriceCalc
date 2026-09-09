@@ -49,7 +49,7 @@ public class ScheduleService : IScheduleService
     // The stored curve as UTC slots, padded a day each side so the 24h look-back is covered.
     private async Task<List<Slot>> LoadSlotsAsync(int zoneId, DateTime deadlineUtc, CancellationToken ct)
     {
-        var day = DateOnly.FromDateTime(deadlineUtc);
+        var day = MarketDay.ContainingDay(deadlineUtc);
         var priced = await _prices.GetPricesAsync(zoneId, day.AddDays(-1), day.AddDays(1), ct);
 
         return priced.Points
@@ -210,7 +210,7 @@ public class ScheduleService : IScheduleService
             throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(biddingZoneId));
 
         var at = DateTime.SpecifyKind(atUtc, DateTimeKind.Utc);
-        var day = DateOnly.FromDateTime(at);
+        var day = MarketDay.ContainingDay(at);
 
         // Today and tomorrow. Tomorrow is simply absent until the day-ahead prices publish.
         var prices = await _prices.GetPricesAsync(biddingZoneId, day, day.AddDays(1), ct);

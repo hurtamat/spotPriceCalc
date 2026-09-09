@@ -44,10 +44,10 @@ public class SpotPriceService : ISpotPriceService
         return _repository.GetAsync(biddingZoneId, fromUtc, toUtc, ct);
     }
 
-    // Query by instant: resolve to the day containing it and reuse the day-range bounds logic above.
+    // Query by instant: resolve to the market day containing it and reuse the day-range bounds above.
     public Task<ZoneSpotPrices> GetPricesAsync(int biddingZoneId, DateTime instant, CancellationToken ct)
     {
-        var day = DateOnly.FromDateTime(instant);
+        var day = MarketDay.ContainingDay(instant);
         return GetPricesAsync(biddingZoneId, day, day, ct);
     }
 
