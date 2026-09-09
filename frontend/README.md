@@ -37,8 +37,8 @@ The chart needs the backend running. Start the .NET API on its **`http` profile*
 reach it over plain HTTP (`http://localhost:5262`):
 
 - CORS for `localhost:5173` is already allowed in `Program.cs`.
-- If nothing shows in the chart, the DB probably isn't populated yet —
-  `POST http://localhost:5262/api/spotprices/populate?day=today` (and `?day=tomorrow`).
+- If nothing shows in the chart, the DB probably isn't populated yet. `PriceDataScheduler` populates on
+  startup, so restart the API and watch its log — there is no manual populate endpoint any more.
 
 Override the API URL by copying `.env.example` to `.env` (or `.env.local`) and setting `VITE_API_BASE_URL`.
 

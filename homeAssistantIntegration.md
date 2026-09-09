@@ -43,7 +43,7 @@ supplier/hardware-agnostic pitch in [IDEA.md](./IDEA.md).
 | `switch.spotbuddy_enabled` | switch | Master off switch. |
 | `switch.spotbuddy_continuous_block` | switch | Hours back-to-back, or split for the cheapest slots. |
 | `number.spotbuddy_duration` | number | Hours of power needed. The one always-required field. |
-| `time.spotbuddy_ready_by` | time | The deadline. The eligible window is the 24h before it. |
+| `time.spotbuddy_ready_by` | time | The deadline. The eligible window is the 24h before it, clipped to never start before now. |
 | `switch.spotbuddy_unavailable_window` | switch | Whether the do-not-run window applies. Off ⇒ the two times below are ignored and no `unavailable` is sent. |
 | `time.spotbuddy_unavailable_from` / `_to` | time | The do-not-run window itself. |
 | `button.spotbuddy_refresh_plan` | button | Fetch the plan again now. |
@@ -170,9 +170,11 @@ blocks as an on/off step series, which is the shape a stepline chart wants.
 ## What is not built
 
 - **Auth.** The API key field was removed from the config flow: the plan is rate limiting rather than
-  a per-user credential. `api.py` keeps the `X-Api-Key` plumbing and raises `ConfigEntryAuthFailed`
-  on a 401/403, so adding one later is a config-flow field and nothing else. The backend checks
-  nothing today — see the "No auth" note at the top of [DESIGN.md](./DESIGN.md).
+  a per-user credential, and the backend now runs a per-IP limiter. `api.py` keeps the `X-Api-Key`
+  plumbing and raises `ConfigEntryAuthFailed` on a 401/403, so adding a credential later is a
+  config-flow field and nothing else. The backend still checks no identity — see the note at the top of
+  [DESIGN.md](./DESIGN.md). Note the limiter partitions on IP, so every device behind one household NAT
+  shares a budget.
 - **Tests.** `requirements_test.txt` pins the HA test harness; there is no `tests/` directory yet.
 - **The production backend URL.** `DEFAULT_BASE_URL` in `const.py` is still a local development
   address; it needs the deployed host before release.

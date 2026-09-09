@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using spotPriceCalc.Domain;
 using spotPriceCalc.Dtos.Schedule;
 using spotPriceCalc.Services.SmartHome;
 
@@ -19,6 +20,7 @@ public abstract class SmartHomeIntegrationController : ControllerBase
     protected DateTime UtcNow => _clock.GetUtcNow().UtcDateTime;
 
     /// <summary>Run the device-agnostic scheduler for this request. Override to customise the mapping.</summary>
-    protected virtual Task<ScheduleResponse> BuildScheduleAsync(ScheduleRequest request, CancellationToken ct) =>
-        _schedule.BuildAsync(request, ct);
+    protected virtual Task<ScheduleResponse> BuildScheduleAsync(
+        BiddingZone zone, ScheduleRequest request, CancellationToken ct) =>
+        _schedule.BuildAsync(zone, request, ct);
 }

@@ -6,7 +6,8 @@ weather+COP optimization) see [README.md](./README.md) — that part is **not bu
 
 > **Status in one line:** the .NET API fetches ENTSO-E day-ahead prices per bidding zone on a schedule,
 > stores them in Postgres with a Green/Yellow/Red quantile stamped on every slot by the calc-service, and
-> serves them to the frontend and to smart-home devices. Weather (Open-Meteo) is scaffolded but inert. No auth.
+> serves them to the frontend and to smart-home devices. Weather (Open-Meteo) is scaffolded but inert.
+> No auth; a per-IP rate limiter is the only protection on the public endpoints.
 
 ---
 
@@ -15,7 +16,7 @@ weather+COP optimization) see [README.md](./README.md) — that part is **not bu
 | Service | Dir | State |
 | --- | --- | --- |
 | **.NET API** | `spotPriceCalc/` | **This doc.** Price ingestion, classification, read API, smart-home endpoints. |
-| Calc service (Python/FastAPI) | `calc-service/` | `POST /price-zones` is **wired up and called during populate** — but the algorithm behind it is a deliberate placeholder (sort + cut at 1/3 and 2/3). `POST /schedule` exists and is not called by .NET. |
+| Calc service (Python/FastAPI) | `calc-service/` | `POST /price-zones` is **wired up and called during populate**; it returns de-trended residual quantiles (see `calc-service/README.md`), though at the 7-day window .NET sends, the baseline barely moves. `POST /schedule` exists and is not called by .NET. |
 | Frontend (React/Vite) | `frontend/` | Landing page + **working interactive zone map** driving a live price chart, the **Shelly setup wizard** at `/shelly` that generates a pre-filled device script, the Home Assistant guide at `/home-assistant`, and the legal documents at `/privacy` and `/terms`. |
 | Shelly scripts | `scripts/shelly/` | Two device scripts: `priceColor` (LED ring from `/api/shelly/schedule/status`) and `schedule`. Minified by `minify.sh` into a committed `dist/` the wizard fills in — an mJS script gets ~8 KB of heap, so source size is a hard constraint. |
 
@@ -28,7 +29,7 @@ Clean-ish layered architecture. Folder = layer, dependencies point inward toward
 ```
 spotPriceCalc/
 ├─ Controllers/
-│   ├─ SpotPricesController.cs           read + manual populate
+│   ├─ SpotPricesController.cs           read (populate is the scheduler's job, no write endpoint)
 │   ├─ SmartHomeIntegrationController.cs abstract adapter shared by integrations
 │   ├─ BiddingZonesController.cs         GET /api/zones, /api/zones/resolve
 │   ├─ SmartHomeShellyController.cs      POST /api/shelly/schedule, GET /api/shelly/schedule/status
@@ -151,6 +152,13 @@ SDAC is CET, never the zone's own local time.
 and the populate skip-check. It converts against a **fixed `Europe/Berlin`**, so the DST switch and the
 23h/25h transition days are handled by `TimeZoneInfo` automatically.
 
+`MarketDay.ContainingDay(utcInstant)` is the other direction — the market day an instant falls in — and it
+reads the instant **in CET, not UTC**. Anything going from an instant to a day must use it. Taking
+`DateOnly.FromDateTime` of a UTC instant looks equivalent and is not: at 23:00Z the UTC date is still today
+while the CET delivery day is already tomorrow, so `WindowUtc(that date)` does not contain the instant and
+the lookup finds no slot. That was a real bug — `/api/shelly/schedule/status` returned 204 for the last one
+to two hours of every day, in every zone, and the LED ring went dark.
+
 **`BiddingZone.TimeZoneId` is display-only** — it goes out on the DTO so the frontend can label the UTC curve
 in the country's own wall-clock time. It must *not* be used to build market windows. It previously was, and
 that was a real bug: for the 9 non-CET zones (GR/BG/RO/FI/EE/LV/LT one hour ahead of CET, PT/IE one hour
@@ -189,15 +197,17 @@ Other things the live responses confirm, worth knowing before touching this code
 | Method | Route | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/spotprices?biddingZoneId=6&date=2026-08-13` | **Read** stored prices for one zone for a **single** CET market day. Validates zone id (404). Returns `ZoneSpotPricesDto`. |
-| `POST` | `/api/spotprices/populate?date=2026-08-13` | **Write**: fetch, store and classify ALL zones for that date (defaults to today UTC), retrying until every zone is in. Returns `PopulateResult`. |
 
-- Read returns **only what's in the DB** — there is **no fetch-if-missing / caching**. Populate first, then read.
+- Read returns **only what's in the DB** — there is **no fetch-if-missing / caching**. `PriceDataScheduler` is
+  the only thing that populates; there is no manual write endpoint.
 - `ZoneSpotPricesDto` adds a computed **`CtPerKwh = EurPerMwh / 10`** (consumer unit) on top of the raw EUR/MWh,
   and carries the zone's `TimeZoneId` so the frontend can label the UTC curve in the country's own wall clock.
 - Each point also carries its **`Quantile` as a name** (`"Green"`/`"Yellow"`/`"Red"`, `null` when unclassified),
   not the stored int — the numbers are a storage contract clients shouldn't depend on. The frontend colours its
   bars from it and renders `null` grey rather than guessing.
-- Populate is *also* driven automatically by `PriceDataScheduler` — the manual POST is for ad-hoc backfilling.
+- Populate runs **only** from `PriceDataScheduler` (startup + daily). The manual `POST /populate` was removed:
+  it was unauthenticated and fanned out to one ENTSO-E request per zone, retried, so anyone could burn our
+  upstream quota. Backfilling a missed day means a restart, or calling the service from a test.
 
 ### Smart home (`SmartHomeShellyController`, route `api/shelly`; `SmartHomeHomeAssistantController`, route `api/homeassistant`)
 
@@ -356,7 +366,7 @@ Full instructions in README. DB specifics:
 9. **A failed populate leaves zones missing until the next day.** `Declined` is not retried, by design — asking
    again cannot change the answer — so a day that ran before ENTSO-E had the data stays partial. Observed:
    yesterday complete at 45/45 while today had 15 zones (all 7 Italian, plus BE/BG/GR/HR/HU/NL/RO/SK) at
-   **zero** slots. Re-running `POST /api/spotprices/populate?date=…` fills them and skips the rest. A "retry
+   **zero** slots. A restart re-runs the startup populate, which fills them and skips the rest. A "retry
    declined zones later in the day" pass would close it.
 10. **The Shelly script prints nothing.** Every string literal is resident in its ~8 KB heap and logging was
     enough to push it over, so failures are silent — a failed fetch keeps the previous plan and retries on the

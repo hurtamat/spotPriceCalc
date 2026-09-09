@@ -26,11 +26,11 @@ public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
         if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
             return BadRequest($"Unknown bidding zone code {request.ZoneCode}.");
 
-        var schedule = await BuildScheduleAsync(request, ct);
+        var schedule = await BuildScheduleAsync(zone, request, ct);
 
         // Anchored on now, not the deadline: the curve is for display, and the plan is asked for early.
         var now = UtcNow;
-        var curve = await _schedule.ResolvePriceCurveAsync(zone.Id, now, ct);
+        var curve = await _schedule.ResolvePriceCurveAsync(zone, now, ct);
 
         return Ok(new HomeAssistantScheduleResponse
         {

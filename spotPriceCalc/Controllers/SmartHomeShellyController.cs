@@ -27,7 +27,7 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
         var now = UtcNow;
         var resolved = ShellyLocalTime.Resolve(request, zone.TimeZoneId, now);
 
-        var schedule = await BuildScheduleAsync(resolved, ct);
+        var schedule = await BuildScheduleAsync(zone, resolved, ct);
 
         return Ok(new ShellyScheduleResponse
         {
@@ -43,11 +43,10 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
     [HttpGet("schedule/status")]
     public async Task<IActionResult> Status([FromQuery] string zoneCode, DateTime time, CancellationToken ct)
     {
-        if (!BiddingZoneSeedData.ByCode.ContainsKey(zoneCode))
+        if (!BiddingZoneSeedData.ByCode.TryGetValue(zoneCode, out var zone))
             return BadRequest($"Unknown bidding zone code {zoneCode}.");
 
-        var response = await _schedule.ResolveStatus(
-            new StatusSchedule { ZoneCode = zoneCode, StatusTime = time }, ct);
+        var response = await _schedule.ResolveStatus(zone, time, ct);
 
         // 204 when no colour applies; the device script clears its LEDs on anything that isn't a 200.
         return response is null ? NoContent() : Ok(response);

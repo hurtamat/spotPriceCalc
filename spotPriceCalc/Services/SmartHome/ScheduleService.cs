@@ -29,11 +29,8 @@ public class ScheduleService : IScheduleService
 
     #region Schedule building
 
-    public async Task<ScheduleResponse> BuildAsync(ScheduleRequest request, CancellationToken ct)
+    public async Task<ScheduleResponse> BuildAsync(BiddingZone zone, ScheduleRequest request, CancellationToken ct)
     {
-        if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
-            throw new ArgumentException($"Unknown bidding zone code {request.ZoneCode}.", nameof(request));
-
         var nowUtc = _clock.GetUtcNow().UtcDateTime;
         var deadline = request.ResolveDeadlineUtc(nowUtc);
         var slots = await LoadSlotsAsync(zone.Id, deadline, ct);
@@ -187,15 +184,12 @@ public class ScheduleService : IScheduleService
     #region Price colour
 
     // Null = no colour applies (day missing or not yet classified); the caller turns the indicator off.
-    public async Task<PriceColor?> ResolveStatus(StatusSchedule request, CancellationToken ct)
+    public async Task<PriceColor?> ResolveStatus(BiddingZone zone, DateTime atUtc, CancellationToken ct)
     {
-        if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
-            throw new ArgumentException($"Unknown bidding zone code {request.ZoneCode}.", nameof(request));
-
         var biddingZoneId = zone.Id;
 
         // Client timestamps are UTC by contract (see SmartHomeIntegrationController).
-        var at = DateTime.SpecifyKind(request.StatusTime, DateTimeKind.Utc);
+        var at = DateTime.SpecifyKind(atUtc, DateTimeKind.Utc);
         var prices = await _prices.GetPricesAsync(biddingZoneId, at, ct);
 
         // Quantile is stamped at populate time, so this is a lookup. Half-open [From, To) as everywhere else.
@@ -213,11 +207,9 @@ public class ScheduleService : IScheduleService
 
     // The curve for the instant's day and the next. Null when the zone has nothing stored.
     public async Task<IReadOnlyList<PriceCurvePoint>?> ResolvePriceCurveAsync(
-        int biddingZoneId, DateTime atUtc, CancellationToken ct)
+        BiddingZone zone, DateTime atUtc, CancellationToken ct)
     {
-        if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
-            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(biddingZoneId));
-
+        var biddingZoneId = zone.Id;
         var at = DateTime.SpecifyKind(atUtc, DateTimeKind.Utc);
         var day = MarketDay.ContainingDay(at);
 

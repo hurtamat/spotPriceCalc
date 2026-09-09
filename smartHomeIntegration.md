@@ -66,7 +66,7 @@ this periodically, reads the result, and sets its relay.
 | `zone_code` | **Required.** ENTSO-E area code, e.g. `10YCZ-CEPS-----N`. A string, so no client depends on our own zone ids. `GET /api/zones` lists them, and `GET /api/zones/resolve?lat=&lon=` names the one covering a location so a client can preselect it. |
 | `duration_hours` | The one field that's always required — total hours of power the job needs. |
 | `ready_by_local` | *Optional, Shelly only.* The deadline as a **wall clock** in the zone's own local time, e.g. `"06:00:00"`. `SmartHomeShellyController` turns it into an instant against the zone's IANA timezone, taken from the zone catalog — so no timezone is sent. It exists because a Shelly cannot convert: mJS has no timezone database, and a UTC hour baked in by the wizard would drift an hour at every DST switch. `ready_by_utc` wins when both are given. The same conversion shifts `unavailable` from local hours to UTC. |
-| `ready_by_utc` | *Optional.* **The anchor** — the **instant (UTC)** the job must finish by; the window is the 24h before it. One instant rather than a date plus a wall clock, because only the client knows which timezone the user's clock belongs to. Null ⇒ 24h from now (`ResolveDeadlineUtc`), so "no deadline" means the cheapest hours in the coming day. Not a midnight: that cuts the window at a fixed hour, and a plan made in the evening could not reach the cheap night hours past it. |
+| `ready_by_utc` | *Optional.* **The anchor** — the **instant (UTC)** the job must finish by; the window is the 24h before it, never reaching earlier than now. One instant rather than a date plus a wall clock, because only the client knows which timezone the user's clock belongs to. Null ⇒ 24h from now (`ResolveDeadlineUtc`), so "no deadline" means the cheapest hours in the coming day. Not a midnight: that cuts the window at a fixed hour, and a plan made in the evening could not reach the cheap night hours past it. |
 | `continuous_block` | `true` ⇒ hours must run back-to-back (boiler, washer). `false` (default) ⇒ split for the absolute cheapest hours (EV charging, the "don't care" case). |
 | `unavailable` | *Optional.* A "do not run" window, **time-of-day only** (no date), and **in UTC** — the scheduler matches it against each slot's UTC time-of-day. May wrap past midnight (`from > to`, e.g. `22:00–06:00`). A client holding a local wall clock converts it itself, taking the offset **at the deadline**: a time-of-day has no date, so some date has to be picked, and the deadline is the one the window is anchored to. A window straddling a DST switch is then an hour out that day, the same compromise a wall-clock timer makes. Both shipped clients do this — `ShellyLocalTime.ToUtcWindow` server-side for Shelly, `_to_utc_time` in the Home Assistant coordinator. |
 
@@ -107,7 +107,7 @@ Two shapes, because two clients with very different budgets read it.
 | Field | Meaning |
 | --- | --- |
 | `zone_name` | The zone `zone_code` named — the only human-readable field, for sanity-checking. |
-| `scheduled` | `false` ⇒ the job couldn't be placed (e.g. window too short, or no prices stored). |
+| `scheduled` | `false` ⇒ the job couldn't be placed — the eligible window is too short to cover `duration_hours`, no back-to-back run is long enough, or no prices are stored. **Never a partial plan:** a job that can only be half placed comes back `false` with no blocks, because a half-charged car is a failed job, not a cheap one. |
 | `blocks` | The chosen run-time as **merged contiguous blocks** (UTC, sorted), not individual slots. `eur_per_mwh` is the duration-weighted average across the block. |
 
 **`ShellyScheduleResponse`** — what `POST /api/shelly/schedule` actually returns:
@@ -189,7 +189,8 @@ Controllers/
 Services/SmartHome/
 ├─ IZoneLocatorService.cs             coordinates → bidding zone (own responsibility).
 ├─ ZoneLocatorService.cs             nearest zone centre (Haversine). Works; wrong right at internal borders.
-├─ IScheduleService.cs               the decision engine's contract.
+├─ IScheduleService.cs               the decision engine's contract. Takes a resolved BiddingZone,
+                                     not a code, so an unknown zone is rejected once at the edge.
 └─ ScheduleService.cs                the brain. Regions: Schedule building / Slot selection / Price colour.
 Dtos/Schedule/
 ├─ ScheduleRequest.cs                request + UnavailableWindow, and ResolveDeadlineUtc.
@@ -197,7 +198,6 @@ Dtos/Schedule/
 ├─ ShellyScheduleRequest.cs          adds ready_by_local, the wall-clock deadline.
 ├─ ShellyScheduleResponse.cs         the flat device shape: slots + the two label strings.
 ├─ HomeAssistantScheduleResponse.cs  the HA response + PriceCurvePoint.
-└─ StatusSchedule.cs                 the colour query (zone_code, dateTime).
 ```
 
 **Why an abstract base controller *and* a service?** The service is the reusable brain — testable with no HTTP.
@@ -219,9 +219,11 @@ things (`BiddingZoneSeedData`, the private math helpers).
 1. **Anchor on the deadline.** The eligible window is always the 24h *before* it:
    ```
    anchor      = ready_by_utc, or now + 24h when it is null
-   windowStart = anchor − 24h
+   windowStart = max(anchor − 24h, now)
    eligible    = price slots fully inside [windowStart, anchor]  minus  the unavailable window
    ```
+   The `max(…, now)` matters whenever a client sends a deadline closer than 24h — the cheapest hours of a
+   look-back window are often ones that have already passed, and a device cannot run in them.
    This is deliberately **not** a calendar day: anchoring on the deadline and looking back keeps the cheap
    overnight block (e.g. 23:00→05:00) whole instead of slicing it at midnight. `LoadSlotsAsync` reads a day
    either side of the deadline so the look-back can reach into the previous day.
@@ -231,10 +233,14 @@ things (`BiddingZoneSeedData`, the private math helpers).
 
 3. **Select the hours:**
    - `continuous_block = false` → greedily take the cheapest slots until `duration_hours` is covered.
-   - `continuous_block = true` → slide a back-to-back block of the required length over the eligible slots and
-     pick the cheapest valid position.
+   - `continuous_block = true` → grow a back-to-back run from each start until it covers `duration_hours`, and
+     keep the cheapest, comparing runs by duration-weighted cost rather than a raw price sum.
 
-The evaluation is factored into its own static `Evaluate` helper (self-contained, testable).
+   Either way, **not covering the duration returns nothing**, so `scheduled` is `false` rather than a short plan.
+
+Durations are `TimeSpan`, never fractional hours: ticks are integers, so "did we cover the job?" is an exact
+comparison with no floating-point tolerance. `Evaluate` is a static helper taking `nowUtc` as a parameter, so
+it is a pure function of its inputs and testable with no clock.
 
 ### Everything is UTC
 

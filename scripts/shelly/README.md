@@ -164,7 +164,8 @@ Request/response shapes mirror the backend DTOs in `spotPriceCalc/Dtos/Schedule/
 
 - `ScheduleRequest.cs` / `ScheduleResponse.cs` — the schedule POST (`zone_code` + `ready_by_utc` instant in;
   `blocks` of `start_utc`/`end_utc` out, all UTC `...Z`).
-- `StatusSchedule.cs` / `PriceColor.cs` — the status GET (`zoneCode`/`time` in; a `PriceColor` number out).
+- `PriceColor.cs` — the status GET (`zoneCode`/`time` bind straight from the query string; a `PriceColor`
+  number out).
 
 ## Onboarding: the config wizard
 

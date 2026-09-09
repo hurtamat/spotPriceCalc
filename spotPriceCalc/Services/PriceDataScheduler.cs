@@ -39,7 +39,7 @@ public class PriceDataScheduler : BackgroundService
                 await Task.Delay(delay, _clock, stoppingToken);
 
                 var tomorrow = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime).AddDays(1);
-                await PopulateAsync(tomorrow, "daily 13:25 CET", stoppingToken);
+                await PopulateAsync(tomorrow, $"daily {DailyRunTime} CET", stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

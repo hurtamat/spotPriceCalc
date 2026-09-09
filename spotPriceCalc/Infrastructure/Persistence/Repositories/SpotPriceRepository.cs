@@ -31,7 +31,7 @@ public class SpotPriceRepository : ISpotPriceRepository
             .ToListAsync(ct);
     }
 
-    // Minimum stored slots for a day to count as populated.
+    // Minimum stored slots for a day to count as populated more than where CET is +2 with 15min slots so 8. It's a rough assumption.
     private const int MinSlotsForDay = 12;
 
     public async Task<bool> HasDayAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct)
