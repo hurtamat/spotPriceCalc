@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using spotPriceCalc.Services.Zones;
 using spotPriceCalc.Domain;
 using spotPriceCalc.Dtos.Schedule;
 using spotPriceCalc.Services.SmartHome;
@@ -9,11 +10,14 @@ namespace spotPriceCalc.Controllers;
 public abstract class SmartHomeIntegrationController : ControllerBase
 {
     protected readonly IScheduleService _schedule;
+    protected readonly IBiddingZoneCatalog _zones;
     private readonly TimeProvider _clock;
 
-    protected SmartHomeIntegrationController(IScheduleService schedule, TimeProvider clock)
+    protected SmartHomeIntegrationController(
+        IScheduleService schedule, IBiddingZoneCatalog zones, TimeProvider clock)
     {
         _schedule = schedule;
+        _zones = zones;
         _clock = clock;
     }
 

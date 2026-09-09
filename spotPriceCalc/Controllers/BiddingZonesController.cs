@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using spotPriceCalc.Services.Zones;
 using spotPriceCalc.Dtos;
-using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Services.SmartHome;
 
 namespace spotPriceCalc.Controllers;
@@ -11,16 +11,18 @@ namespace spotPriceCalc.Controllers;
 public class BiddingZonesController : ControllerBase
 {
     private readonly IZoneLocatorService _zoneLocator;
+    private readonly IBiddingZoneCatalog _zones;
 
-    public BiddingZonesController(IZoneLocatorService zoneLocator)
+    public BiddingZonesController(IZoneLocatorService zoneLocator, IBiddingZoneCatalog zones)
     {
         _zoneLocator = zoneLocator;
+        _zones = zones;
     }
 
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<BiddingZoneDto>), StatusCodes.Status200OK)]
     public IActionResult Get() =>
-        Ok(BiddingZoneSeedData.Zones
+        Ok(_zones.All
             .OrderBy(z => z.Name)
             .Select(z => new BiddingZoneDto { Code = z.Code, Name = z.Name, TimeZoneId = z.TimeZoneId })
             .ToList());
@@ -31,7 +33,7 @@ public class BiddingZonesController : ControllerBase
     public IActionResult Resolve([FromQuery] decimal lat, [FromQuery] decimal lon)
     {
         var zoneId = _zoneLocator.ResolveBiddingZone(lat, lon);
-        return BiddingZoneSeedData.ById.TryGetValue(zoneId, out var zone)
+        return _zones.TryById(zoneId, out var zone)
             ? Ok(new BiddingZoneDto { Code = zone.Code, Name = zone.Name, TimeZoneId = zone.TimeZoneId })
             : NotFound();
     }

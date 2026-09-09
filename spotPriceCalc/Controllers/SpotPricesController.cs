@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using spotPriceCalc.Services.Zones;
 using spotPriceCalc.Dtos;
-using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Services;
 
 namespace spotPriceCalc.Controllers;
@@ -10,10 +10,12 @@ namespace spotPriceCalc.Controllers;
 public class SpotPricesController : ControllerBase
 {
     private readonly ISpotPriceService _service;
+    private readonly IBiddingZoneCatalog _zones;
 
-    public SpotPricesController(ISpotPriceService service)
+    public SpotPricesController(ISpotPriceService service, IBiddingZoneCatalog zones)
     {
         _service = service;
+        _zones = zones;
     }
 
     /// <summary>Stored day-ahead prices for one zone for a single CET market day.</summary>
@@ -23,11 +25,10 @@ public class SpotPricesController : ControllerBase
         [FromQuery] DateOnly date,
         CancellationToken ct)
     {
-        if (!BiddingZoneSeedData.ById.ContainsKey(biddingZoneId))
+        if (!_zones.TryById(biddingZoneId, out var zone))
             return NotFound($"Unknown bidding zone id {biddingZoneId}.");
 
         var prices = await _service.GetPricesAsync(biddingZoneId, date, date, ct);
-        var zone = BiddingZoneSeedData.ById[biddingZoneId]; // validated above
         return Ok(ZoneSpotPricesDto.From(prices, zone.TimeZoneId));
     }
 }

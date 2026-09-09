@@ -2,7 +2,7 @@ using spotPriceCalc.Domain;
 using spotPriceCalc.Dtos.PriceZones;
 using spotPriceCalc.Infrastructure.ExternalClients;
 using spotPriceCalc.Infrastructure.ExternalClients.Entsoe;
-using spotPriceCalc.Infrastructure.Persistence;
+using spotPriceCalc.Services.Zones;
 using spotPriceCalc.Infrastructure.Persistence.Repositories;
 
 namespace spotPriceCalc.Services;
@@ -12,6 +12,7 @@ public class SpotPriceService : ISpotPriceService
     private readonly ISpotPriceProvider _provider;
     private readonly IPriceZoneProvider _priceZoneProvider;
     private readonly ISpotPriceRepository _repository;
+    private readonly IBiddingZoneCatalog _zones;
     private readonly ILogger<SpotPriceService> _logger;
 
     // Throttle the sequential ENTSO-E calls so we don't trip their rate limits / gateway timeouts.
@@ -26,11 +27,13 @@ public class SpotPriceService : ISpotPriceService
         ISpotPriceProvider provider,
         IPriceZoneProvider priceZoneProvider,
         ISpotPriceRepository repository,
+        IBiddingZoneCatalog zones,
         ILogger<SpotPriceService> logger)
     {
         _provider = provider;
         _priceZoneProvider = priceZoneProvider;
         _repository = repository;
+        _zones = zones;
         _logger = logger;
     }
 
@@ -79,7 +82,7 @@ public class SpotPriceService : ISpotPriceService
     // One pass over every zone. The only place that hits ENTSO-E; the retry wrapper above calls it repeatedly.
     private async Task<PopulateResult> PopulateOnceAsync(DateOnly date, CancellationToken ct)
     {
-        var zones = BiddingZoneSeedData.Zones;
+        var zones = _zones.All;
         int succeeded = 0, skipped = 0, declined = 0, pointsSaved = 0;
         var failures = new List<string>();
 
@@ -160,7 +163,7 @@ public class SpotPriceService : ISpotPriceService
     // Backfills a date range in one ENTSO-E call per zone. No quantiles, not retried.
     public async Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct)
     {
-        var zones = BiddingZoneSeedData.Zones;
+        var zones = _zones.All;
         int succeeded = 0, skipped = 0, pointsSaved = 0, failed = 0;
 
         foreach (var zone in zones)

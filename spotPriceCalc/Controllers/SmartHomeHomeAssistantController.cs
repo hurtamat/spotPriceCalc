@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using spotPriceCalc.Services.Zones;
 using spotPriceCalc.Dtos.Schedule;
-using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Services.SmartHome;
 
 namespace spotPriceCalc.Controllers;
@@ -11,8 +11,9 @@ namespace spotPriceCalc.Controllers;
 [Route("api/homeassistant")]
 public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
 {
-    public SmartHomeHomeAssistantController(IScheduleService schedule, TimeProvider clock)
-        : base(schedule, clock)
+    public SmartHomeHomeAssistantController(
+        IScheduleService schedule, IBiddingZoneCatalog zones, TimeProvider clock)
+        : base(schedule, zones, clock)
     {
     }
 
@@ -23,7 +24,7 @@ public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
     {
         if (request.DurationHours <= 0)
             return BadRequest("duration_hours must be greater than zero.");
-        if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
+        if (!_zones.TryByCode(request.ZoneCode, out var zone))
             return BadRequest($"Unknown bidding zone code {request.ZoneCode}.");
 
         var schedule = await BuildScheduleAsync(zone, request, ct);

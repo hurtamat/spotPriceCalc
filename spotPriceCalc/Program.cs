@@ -7,6 +7,7 @@ using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Infrastructure.Persistence.Repositories;
 using spotPriceCalc.Services;
 using spotPriceCalc.Services.SmartHome;
+using spotPriceCalc.Services.Zones;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,6 +61,8 @@ builder.Services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherClient>(c =>
 builder.Services.AddHttpClient<IPriceZoneProvider, CalcServicePriceZoneClient>(c =>
     c.BaseAddress = new Uri(builder.Configuration["CalcService:BaseUrl"]
                             ?? throw new InvalidOperationException("CalcService:BaseUrl is not configured.")));
+
+builder.Services.AddSingleton<IBiddingZoneCatalog, BiddingZoneCatalog>();
 
 builder.Services.AddScoped<ISpotPriceRepository, SpotPriceRepository>();
 builder.Services.AddScoped<IWeatherRepository, WeatherRepository>();

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using spotPriceCalc.Services.Zones;
 using spotPriceCalc.Dtos.Schedule;
-using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Services.SmartHome;
 
 namespace spotPriceCalc.Controllers;
@@ -10,7 +10,9 @@ namespace spotPriceCalc.Controllers;
 [Route("api/shelly")]
 public class SmartHomeShellyController : SmartHomeIntegrationController
 {
-    public SmartHomeShellyController(IScheduleService schedule, TimeProvider clock) : base(schedule, clock)
+    public SmartHomeShellyController(
+        IScheduleService schedule, IBiddingZoneCatalog zones, TimeProvider clock)
+        : base(schedule, zones, clock)
     {
     }
 
@@ -19,7 +21,7 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
     {
         if (request.DurationHours <= 0)
             return BadRequest("duration_hours must be greater than zero.");
-        if (!BiddingZoneSeedData.ByCode.TryGetValue(request.ZoneCode, out var zone))
+        if (!_zones.TryByCode(request.ZoneCode, out var zone))
             return BadRequest($"Unknown bidding zone code {request.ZoneCode}.");
 
         // The device sends a wall clock in its zone's local time; the scheduler only sees instants.
@@ -43,7 +45,7 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
     [HttpGet("schedule/status")]
     public async Task<IActionResult> Status([FromQuery] string zoneCode, DateTime time, CancellationToken ct)
     {
-        if (!BiddingZoneSeedData.ByCode.TryGetValue(zoneCode, out var zone))
+        if (!_zones.TryByCode(zoneCode, out var zone))
             return BadRequest($"Unknown bidding zone code {zoneCode}.");
 
         var response = await _schedule.ResolveStatus(zone, time, ct);
