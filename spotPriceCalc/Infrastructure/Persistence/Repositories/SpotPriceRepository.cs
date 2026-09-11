@@ -21,16 +21,6 @@ public class SpotPriceRepository : ISpotPriceRepository
         return new ZoneSpotPrices { BiddingZoneId = biddingZoneId, Points = points };
     }
 
-    public async Task<IReadOnlyList<decimal>> GetPriceValuesAsync(
-        int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct)
-    {
-        return await _db.SpotPrices
-            .Where(p => p.BiddingZoneId == biddingZoneId && p.From >= fromUtc && p.From < toUtcExclusive)
-            .OrderBy(p => p.From)
-            .Select(p => p.Price)
-            .ToListAsync(ct);
-    }
-
     // Minimum stored slots for a day to count as populated more than where CET is +2 with 15min slots so 8. It's a rough assumption.
     private const int MinSlotsForDay = 12;
 

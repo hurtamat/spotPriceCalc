@@ -4,21 +4,20 @@ using spotPriceCalc.Domain;
 namespace spotPriceCalc.Dtos;
 
 // Wire aggregate: zone id + IANA timezone once, then the UTC price curve.
-public record ZoneSpotPricesDto(int BiddingZoneId, string TimeZoneId, IReadOnlyList<PricePointDto> Points)
+public record ZoneSpotPricesDto(int BiddingZoneId, string TimeZoneId, IReadOnlyList<ClassifiedPricePointDto> Points)
 {
     public static ZoneSpotPricesDto From(ZoneSpotPrices z, string timeZoneId) =>
-        new(z.BiddingZoneId, timeZoneId, z.Points.Select(PricePointDto.From).ToList());
+        new(z.BiddingZoneId, timeZoneId, z.Points.Select(ClassifiedPricePointDto.From).ToList());
 }
 
-// One slot: raw EUR/MWh plus consumer-facing ct/kWh (÷10). Quantile goes out as the name, not the
-// stored int; null means the slot was never classified.
-public record PricePointDto(
+public record ClassifiedPricePointDto(
     DateTime FromUtc,
     DateTime ToUtc,
     decimal EurPerMwh,
     decimal CtPerKwh,
     [property: JsonConverter(typeof(JsonStringEnumConverter))] PriceQuantile? Quantile)
+    : PricePointDto(FromUtc, ToUtc, EurPerMwh)
 {
-    public static PricePointDto From(PricePoint p) =>
+    public static new ClassifiedPricePointDto From(PricePoint p) =>
         new(p.From, p.To, p.Price, p.Price / 10m, p.Quantile);
 }

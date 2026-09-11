@@ -1,4 +1,5 @@
 using spotPriceCalc.Domain;
+using spotPriceCalc.Dtos;
 using spotPriceCalc.Dtos.PriceZones;
 using spotPriceCalc.Infrastructure.ExternalClients;
 using spotPriceCalc.Infrastructure.ExternalClients.Entsoe;
@@ -143,14 +144,16 @@ public class SpotPriceService : ISpotPriceService
         var (dayFromUtc, dayToUtc) = MarketDay.WindowUtc(date);
         var windowFromUtc = MarketDay.WindowUtc(date.AddDays(-(QuantileWindowDays - 1))).FromUtc;
 
-        var prices = await _repository.GetPriceValuesAsync(zone.Id, windowFromUtc, dayToUtc, ct);
-        if (prices.Count < MinQuantileSamples)
+        // The whole window, ordered by From: the calc-service needs each slot's span, not just its price.
+        var window = await _repository.GetAsync(zone.Id, windowFromUtc, dayToUtc, ct);
+        if (window.Points.Count < MinQuantileSamples)
         {
             _logger.LogInformation("Skipped quantiles for {Zone} on {Date}: only {Count} sample(s)",
-                zone.Name, date, prices.Count);
+                zone.Name, date, window.Points.Count);
             return;
         }
 
+        var prices = window.Points.Select(PricePointDto.From).ToList();
         var zones = await _priceZoneProvider.GetPriceZonesAsync(prices, ct);
         await _repository.SetQuantilesAsync(
             zone.Id, dayFromUtc, dayToUtc, zones.LowerQuantile, zones.UpperQuantile, ct);

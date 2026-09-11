@@ -61,18 +61,24 @@ base config is in `wire.py`.
 > **Status: implemented.** Cut-offs are de-trended, not plain quantiles of the raw
 > prices — see *How the cut-offs are derived* below.
 
-The body is a **bare JSON array of prices** — no timestamps, no resolution, no
-metadata — but it **must be in chronological order**: the moving baseline is
-order-dependent, unlike plain quantiles. .NET's `GetPriceValuesAsync` sorts by
-`From`, which is what makes this safe.
+The body is a **JSON array of price points** — each one a slot's span and its price:
+
+```json
+[
+  { "fromUtc": "2026-07-24T00:00:00Z", "toUtc": "2026-07-24T00:15:00Z", "eurPerMwh": 155.26 },
+  { "fromUtc": "2026-07-24T00:15:00Z", "toUtc": "2026-07-24T00:30:00Z", "eurPerMwh": 148.90 }
+]
+```
+
+The span is the only thing that says hourly or 15-min, so there is no resolution field, and a payload may mix
+both. The service **sorts by `fromUtc`** before doing anything: the moving baseline is order-dependent, unlike
+plain quantiles, and now that every point carries its own timestamp that no longer rests on the caller's
+`ORDER BY`. Only `eurPerMwh` feeds the maths today — the timestamps are carried so this endpoint can start
+weighting slots by length without another contract change.
 
 The caller sends a trailing window (7 days today) and stamps only the **last day**
 of it. That is why one pair of numbers is enough: it only has to be correct for
 the day being classified, and the next day gets a fresh pair from its own window.
-
-```json
-[155.26, 148.9, 132.0, 121.44, 118.02, 110.35, 104.88, 99.1]
-```
 
 Back come the two **cut-off prices** in EUR/MWh:
 
@@ -119,7 +125,8 @@ centred on zero would stamp every slot red.
   noise.
 
 **Caveat — equal slot durations.** Quantiles are unweighted, so every value counts
-once regardless of how long its slot lasted. Correct within one zone at one
+once regardless of how long its slot lasted, even though each point now states its
+own span. Correct within one zone at one
 resolution, but a range straddling a PT60M→PT15M switchover would weight an hour
 the same as 15 minutes. The .NET side sends a single zone/range, which holds
 today; revisit if you ever backfill across a resolution change.
@@ -138,7 +145,10 @@ Keep both ends in sync with these conventions:
 - **Endpoint** — `POST /schedule`, one call per (zone, day range).
 - **JSON casing** — camelCase on the wire (`biddingZoneId`, `eurPerMwh`, …).
   Python fields stay snake_case; `Field(alias=...)` / `to_camel` bridge the two,
-  and `populate_by_name` lets either spelling deserialize.
+  and `populate_by_name` lets either spelling deserialize. The shared price-point
+  model lives in `wire.py` (`fromUtc` / `toUtc` / `eurPerMwh`); `/schedule` still
+  has its own older `from` / `to` spelling in `main.py`, which is what the sample
+  payloads use.
 - **Timestamps** — UTC, ISO-8601 (e.g. `2026-07-24T02:00:00Z`). Postgres emits
   `+00:00` instead of `Z`; both are valid UTC and parse fine.
 - **`from` / `to`** on the request are calendar **dates**. `from` is required;

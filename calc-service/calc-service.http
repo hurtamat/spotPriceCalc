@@ -11,20 +11,62 @@ Content-Type: application/json
 Accept: application/json
 
 [
-  155.26, 148.90, 132.00, 121.44, 118.02, 110.35, 104.88, 99.10,
-  95.42, 91.07, 88.63, 84.29, 80.15, 76.88, 71.20, 66.05,
-  62.40, 58.77, 54.13, 49.90, 45.62, 38.04, 22.51, -3.18
+  { "fromUtc": "2026-07-23T22:00:00Z", "toUtc": "2026-07-23T23:00:00Z", "eurPerMwh": 155.26 },
+  { "fromUtc": "2026-07-23T23:00:00Z", "toUtc": "2026-07-24T00:00:00Z", "eurPerMwh": 148.9 },
+  { "fromUtc": "2026-07-24T00:00:00Z", "toUtc": "2026-07-24T01:00:00Z", "eurPerMwh": 132.0 },
+  { "fromUtc": "2026-07-24T01:00:00Z", "toUtc": "2026-07-24T02:00:00Z", "eurPerMwh": 121.44 },
+  { "fromUtc": "2026-07-24T02:00:00Z", "toUtc": "2026-07-24T03:00:00Z", "eurPerMwh": 118.02 },
+  { "fromUtc": "2026-07-24T03:00:00Z", "toUtc": "2026-07-24T04:00:00Z", "eurPerMwh": 110.35 },
+  { "fromUtc": "2026-07-24T04:00:00Z", "toUtc": "2026-07-24T05:00:00Z", "eurPerMwh": 104.88 },
+  { "fromUtc": "2026-07-24T05:00:00Z", "toUtc": "2026-07-24T06:00:00Z", "eurPerMwh": 99.1 },
+  { "fromUtc": "2026-07-24T06:00:00Z", "toUtc": "2026-07-24T07:00:00Z", "eurPerMwh": 95.42 },
+  { "fromUtc": "2026-07-24T07:00:00Z", "toUtc": "2026-07-24T08:00:00Z", "eurPerMwh": 91.07 },
+  { "fromUtc": "2026-07-24T08:00:00Z", "toUtc": "2026-07-24T09:00:00Z", "eurPerMwh": 88.63 },
+  { "fromUtc": "2026-07-24T09:00:00Z", "toUtc": "2026-07-24T10:00:00Z", "eurPerMwh": 84.29 },
+  { "fromUtc": "2026-07-24T10:00:00Z", "toUtc": "2026-07-24T11:00:00Z", "eurPerMwh": 80.15 },
+  { "fromUtc": "2026-07-24T11:00:00Z", "toUtc": "2026-07-24T12:00:00Z", "eurPerMwh": 76.88 },
+  { "fromUtc": "2026-07-24T12:00:00Z", "toUtc": "2026-07-24T13:00:00Z", "eurPerMwh": 71.2 },
+  { "fromUtc": "2026-07-24T13:00:00Z", "toUtc": "2026-07-24T14:00:00Z", "eurPerMwh": 66.05 },
+  { "fromUtc": "2026-07-24T14:00:00Z", "toUtc": "2026-07-24T15:00:00Z", "eurPerMwh": 62.4 },
+  { "fromUtc": "2026-07-24T15:00:00Z", "toUtc": "2026-07-24T16:00:00Z", "eurPerMwh": 58.77 },
+  { "fromUtc": "2026-07-24T16:00:00Z", "toUtc": "2026-07-24T17:00:00Z", "eurPerMwh": 54.13 },
+  { "fromUtc": "2026-07-24T17:00:00Z", "toUtc": "2026-07-24T18:00:00Z", "eurPerMwh": 49.9 },
+  { "fromUtc": "2026-07-24T18:00:00Z", "toUtc": "2026-07-24T19:00:00Z", "eurPerMwh": 45.62 },
+  { "fromUtc": "2026-07-24T19:00:00Z", "toUtc": "2026-07-24T20:00:00Z", "eurPerMwh": 38.04 },
+  { "fromUtc": "2026-07-24T20:00:00Z", "toUtc": "2026-07-24T21:00:00Z", "eurPerMwh": 22.51 },
+  { "fromUtc": "2026-07-24T21:00:00Z", "toUtc": "2026-07-24T22:00:00Z", "eurPerMwh": -3.18 }
 ]
 
-### 2. Rising — #1 reversed, so order matters.
+### 2. Rising — #1 reversed, so order matters (and the service re-sorts by fromUtc).
 POST {{host}}/price-zones
 Content-Type: application/json
 Accept: application/json
 
 [
-  -3.18, 22.51, 38.04, 45.62, 49.90, 54.13, 58.77, 62.40,
-  66.05, 71.20, 76.88, 80.15, 84.29, 88.63, 91.07, 95.42,
-  99.10, 104.88, 110.35, 118.02, 121.44, 132.00, 148.90, 155.26
+  { "fromUtc": "2026-07-23T22:00:00Z", "toUtc": "2026-07-23T23:00:00Z", "eurPerMwh": -3.18 },
+  { "fromUtc": "2026-07-23T23:00:00Z", "toUtc": "2026-07-24T00:00:00Z", "eurPerMwh": 22.51 },
+  { "fromUtc": "2026-07-24T00:00:00Z", "toUtc": "2026-07-24T01:00:00Z", "eurPerMwh": 38.04 },
+  { "fromUtc": "2026-07-24T01:00:00Z", "toUtc": "2026-07-24T02:00:00Z", "eurPerMwh": 45.62 },
+  { "fromUtc": "2026-07-24T02:00:00Z", "toUtc": "2026-07-24T03:00:00Z", "eurPerMwh": 49.9 },
+  { "fromUtc": "2026-07-24T03:00:00Z", "toUtc": "2026-07-24T04:00:00Z", "eurPerMwh": 54.13 },
+  { "fromUtc": "2026-07-24T04:00:00Z", "toUtc": "2026-07-24T05:00:00Z", "eurPerMwh": 58.77 },
+  { "fromUtc": "2026-07-24T05:00:00Z", "toUtc": "2026-07-24T06:00:00Z", "eurPerMwh": 62.4 },
+  { "fromUtc": "2026-07-24T06:00:00Z", "toUtc": "2026-07-24T07:00:00Z", "eurPerMwh": 66.05 },
+  { "fromUtc": "2026-07-24T07:00:00Z", "toUtc": "2026-07-24T08:00:00Z", "eurPerMwh": 71.2 },
+  { "fromUtc": "2026-07-24T08:00:00Z", "toUtc": "2026-07-24T09:00:00Z", "eurPerMwh": 76.88 },
+  { "fromUtc": "2026-07-24T09:00:00Z", "toUtc": "2026-07-24T10:00:00Z", "eurPerMwh": 80.15 },
+  { "fromUtc": "2026-07-24T10:00:00Z", "toUtc": "2026-07-24T11:00:00Z", "eurPerMwh": 84.29 },
+  { "fromUtc": "2026-07-24T11:00:00Z", "toUtc": "2026-07-24T12:00:00Z", "eurPerMwh": 88.63 },
+  { "fromUtc": "2026-07-24T12:00:00Z", "toUtc": "2026-07-24T13:00:00Z", "eurPerMwh": 91.07 },
+  { "fromUtc": "2026-07-24T13:00:00Z", "toUtc": "2026-07-24T14:00:00Z", "eurPerMwh": 95.42 },
+  { "fromUtc": "2026-07-24T14:00:00Z", "toUtc": "2026-07-24T15:00:00Z", "eurPerMwh": 99.1 },
+  { "fromUtc": "2026-07-24T15:00:00Z", "toUtc": "2026-07-24T16:00:00Z", "eurPerMwh": 104.88 },
+  { "fromUtc": "2026-07-24T16:00:00Z", "toUtc": "2026-07-24T17:00:00Z", "eurPerMwh": 110.35 },
+  { "fromUtc": "2026-07-24T17:00:00Z", "toUtc": "2026-07-24T18:00:00Z", "eurPerMwh": 118.02 },
+  { "fromUtc": "2026-07-24T18:00:00Z", "toUtc": "2026-07-24T19:00:00Z", "eurPerMwh": 121.44 },
+  { "fromUtc": "2026-07-24T19:00:00Z", "toUtc": "2026-07-24T20:00:00Z", "eurPerMwh": 132.0 },
+  { "fromUtc": "2026-07-24T20:00:00Z", "toUtc": "2026-07-24T21:00:00Z", "eurPerMwh": 148.9 },
+  { "fromUtc": "2026-07-24T21:00:00Z", "toUtc": "2026-07-24T22:00:00Z", "eurPerMwh": 155.26 }
 ]
 
 ### 3. Fluctuating — no trend, night green / peaks red.
@@ -33,17 +75,44 @@ Content-Type: application/json
 Accept: application/json
 
 [
-  92.0, 74.5, 61.0, 55.0, 58.5, 70.0, 96.0, 128.0,
-  141.0, 133.0, 118.0, 105.0, 98.0, 94.5, 97.0, 108.0,
-  126.0, 152.0, 168.0, 159.0, 140.0, 121.0, 108.0, 96.0
+  { "fromUtc": "2026-07-23T22:00:00Z", "toUtc": "2026-07-23T23:00:00Z", "eurPerMwh": 92.0 },
+  { "fromUtc": "2026-07-23T23:00:00Z", "toUtc": "2026-07-24T00:00:00Z", "eurPerMwh": 74.5 },
+  { "fromUtc": "2026-07-24T00:00:00Z", "toUtc": "2026-07-24T01:00:00Z", "eurPerMwh": 61.0 },
+  { "fromUtc": "2026-07-24T01:00:00Z", "toUtc": "2026-07-24T02:00:00Z", "eurPerMwh": 55.0 },
+  { "fromUtc": "2026-07-24T02:00:00Z", "toUtc": "2026-07-24T03:00:00Z", "eurPerMwh": 58.5 },
+  { "fromUtc": "2026-07-24T03:00:00Z", "toUtc": "2026-07-24T04:00:00Z", "eurPerMwh": 70.0 },
+  { "fromUtc": "2026-07-24T04:00:00Z", "toUtc": "2026-07-24T05:00:00Z", "eurPerMwh": 96.0 },
+  { "fromUtc": "2026-07-24T05:00:00Z", "toUtc": "2026-07-24T06:00:00Z", "eurPerMwh": 128.0 },
+  { "fromUtc": "2026-07-24T06:00:00Z", "toUtc": "2026-07-24T07:00:00Z", "eurPerMwh": 141.0 },
+  { "fromUtc": "2026-07-24T07:00:00Z", "toUtc": "2026-07-24T08:00:00Z", "eurPerMwh": 133.0 },
+  { "fromUtc": "2026-07-24T08:00:00Z", "toUtc": "2026-07-24T09:00:00Z", "eurPerMwh": 118.0 },
+  { "fromUtc": "2026-07-24T09:00:00Z", "toUtc": "2026-07-24T10:00:00Z", "eurPerMwh": 105.0 },
+  { "fromUtc": "2026-07-24T10:00:00Z", "toUtc": "2026-07-24T11:00:00Z", "eurPerMwh": 98.0 },
+  { "fromUtc": "2026-07-24T11:00:00Z", "toUtc": "2026-07-24T12:00:00Z", "eurPerMwh": 94.5 },
+  { "fromUtc": "2026-07-24T12:00:00Z", "toUtc": "2026-07-24T13:00:00Z", "eurPerMwh": 97.0 },
+  { "fromUtc": "2026-07-24T13:00:00Z", "toUtc": "2026-07-24T14:00:00Z", "eurPerMwh": 108.0 },
+  { "fromUtc": "2026-07-24T14:00:00Z", "toUtc": "2026-07-24T15:00:00Z", "eurPerMwh": 126.0 },
+  { "fromUtc": "2026-07-24T15:00:00Z", "toUtc": "2026-07-24T16:00:00Z", "eurPerMwh": 152.0 },
+  { "fromUtc": "2026-07-24T16:00:00Z", "toUtc": "2026-07-24T17:00:00Z", "eurPerMwh": 168.0 },
+  { "fromUtc": "2026-07-24T17:00:00Z", "toUtc": "2026-07-24T18:00:00Z", "eurPerMwh": 159.0 },
+  { "fromUtc": "2026-07-24T18:00:00Z", "toUtc": "2026-07-24T19:00:00Z", "eurPerMwh": 140.0 },
+  { "fromUtc": "2026-07-24T19:00:00Z", "toUtc": "2026-07-24T20:00:00Z", "eurPerMwh": 121.0 },
+  { "fromUtc": "2026-07-24T20:00:00Z", "toUtc": "2026-07-24T21:00:00Z", "eurPerMwh": 108.0 },
+  { "fromUtc": "2026-07-24T21:00:00Z", "toUtc": "2026-07-24T22:00:00Z", "eurPerMwh": 96.0 }
 ]
 
-### 4. Tiny — 5 values, proves min_periods=1 works.
+### 4. Tiny — 5 slots at 15 min, proves min_periods=1 works.
 POST {{host}}/price-zones
 Content-Type: application/json
 Accept: application/json
 
-[40.0, 80.0, 120.0, 160.0, 200.0]
+[
+  { "fromUtc": "2026-07-23T22:00:00Z", "toUtc": "2026-07-23T22:15:00Z", "eurPerMwh": 40.0 },
+  { "fromUtc": "2026-07-23T22:15:00Z", "toUtc": "2026-07-23T22:30:00Z", "eurPerMwh": 80.0 },
+  { "fromUtc": "2026-07-23T22:30:00Z", "toUtc": "2026-07-23T22:45:00Z", "eurPerMwh": 120.0 },
+  { "fromUtc": "2026-07-23T22:45:00Z", "toUtc": "2026-07-23T23:00:00Z", "eurPerMwh": 160.0 },
+  { "fromUtc": "2026-07-23T23:00:00Z", "toUtc": "2026-07-23T23:15:00Z", "eurPerMwh": 200.0 }
+]
 
 ### 5. Negatives — no special-casing needed.
 POST {{host}}/price-zones
@@ -51,9 +120,30 @@ Content-Type: application/json
 Accept: application/json
 
 [
-  88.0, 72.0, 45.0, 10.0, -8.5, -21.0, -15.0, 4.0,
-  52.0, 96.0, 118.0, 131.0, 127.0, 119.0, 112.0, 120.0,
-  138.0, 166.0, 181.0, 172.0, 150.0, 128.0, 110.0, 94.0
+  { "fromUtc": "2026-07-23T22:00:00Z", "toUtc": "2026-07-23T23:00:00Z", "eurPerMwh": 88.0 },
+  { "fromUtc": "2026-07-23T23:00:00Z", "toUtc": "2026-07-24T00:00:00Z", "eurPerMwh": 72.0 },
+  { "fromUtc": "2026-07-24T00:00:00Z", "toUtc": "2026-07-24T01:00:00Z", "eurPerMwh": 45.0 },
+  { "fromUtc": "2026-07-24T01:00:00Z", "toUtc": "2026-07-24T02:00:00Z", "eurPerMwh": 10.0 },
+  { "fromUtc": "2026-07-24T02:00:00Z", "toUtc": "2026-07-24T03:00:00Z", "eurPerMwh": -8.5 },
+  { "fromUtc": "2026-07-24T03:00:00Z", "toUtc": "2026-07-24T04:00:00Z", "eurPerMwh": -21.0 },
+  { "fromUtc": "2026-07-24T04:00:00Z", "toUtc": "2026-07-24T05:00:00Z", "eurPerMwh": -15.0 },
+  { "fromUtc": "2026-07-24T05:00:00Z", "toUtc": "2026-07-24T06:00:00Z", "eurPerMwh": 4.0 },
+  { "fromUtc": "2026-07-24T06:00:00Z", "toUtc": "2026-07-24T07:00:00Z", "eurPerMwh": 52.0 },
+  { "fromUtc": "2026-07-24T07:00:00Z", "toUtc": "2026-07-24T08:00:00Z", "eurPerMwh": 96.0 },
+  { "fromUtc": "2026-07-24T08:00:00Z", "toUtc": "2026-07-24T09:00:00Z", "eurPerMwh": 118.0 },
+  { "fromUtc": "2026-07-24T09:00:00Z", "toUtc": "2026-07-24T10:00:00Z", "eurPerMwh": 131.0 },
+  { "fromUtc": "2026-07-24T10:00:00Z", "toUtc": "2026-07-24T11:00:00Z", "eurPerMwh": 127.0 },
+  { "fromUtc": "2026-07-24T11:00:00Z", "toUtc": "2026-07-24T12:00:00Z", "eurPerMwh": 119.0 },
+  { "fromUtc": "2026-07-24T12:00:00Z", "toUtc": "2026-07-24T13:00:00Z", "eurPerMwh": 112.0 },
+  { "fromUtc": "2026-07-24T13:00:00Z", "toUtc": "2026-07-24T14:00:00Z", "eurPerMwh": 120.0 },
+  { "fromUtc": "2026-07-24T14:00:00Z", "toUtc": "2026-07-24T15:00:00Z", "eurPerMwh": 138.0 },
+  { "fromUtc": "2026-07-24T15:00:00Z", "toUtc": "2026-07-24T16:00:00Z", "eurPerMwh": 166.0 },
+  { "fromUtc": "2026-07-24T16:00:00Z", "toUtc": "2026-07-24T17:00:00Z", "eurPerMwh": 181.0 },
+  { "fromUtc": "2026-07-24T17:00:00Z", "toUtc": "2026-07-24T18:00:00Z", "eurPerMwh": 172.0 },
+  { "fromUtc": "2026-07-24T18:00:00Z", "toUtc": "2026-07-24T19:00:00Z", "eurPerMwh": 150.0 },
+  { "fromUtc": "2026-07-24T19:00:00Z", "toUtc": "2026-07-24T20:00:00Z", "eurPerMwh": 128.0 },
+  { "fromUtc": "2026-07-24T20:00:00Z", "toUtc": "2026-07-24T21:00:00Z", "eurPerMwh": 110.0 },
+  { "fromUtc": "2026-07-24T21:00:00Z", "toUtc": "2026-07-24T22:00:00Z", "eurPerMwh": 94.0 }
 ]
 
 ### Schedule — REAL Slovakia data, 2026-07-24 (full 15-min day). Payload from the DB.

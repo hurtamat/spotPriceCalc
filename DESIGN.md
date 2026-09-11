@@ -280,7 +280,8 @@ with a `RetryDelay` (10s) between attempts.
 
 ### Classification (`ClassifyDayAsync`)
 After a zone's day is stored, its prices for the trailing `QuantileWindowDays` (7, this day included) go to the
-calc-service `POST /price-zones`, which returns a lower/upper cut-off in EUR/MWh. `SetQuantilesAsync` then
+calc-service `POST /price-zones` as a list of `PricePointDto` (`fromUtc`, `toUtc`, `eurPerMwh` — the span is what
+says hourly vs 15-min, so no resolution field), which returns a lower/upper cut-off in EUR/MWh. `SetQuantilesAsync` then
 stamps every slot of *that day*: below lower ⇒ Green, above upper ⇒ Red, else Yellow. One country's prices form
 one distribution, so this is per zone.
 
