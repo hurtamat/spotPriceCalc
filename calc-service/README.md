@@ -1,8 +1,8 @@
 # calc-service (FastAPI)
 
-The scheduling/optimization engine. The .NET API calls this service once per
-(zone, day range) with real prices + weather; this service computes an on/off
-schedule and returns it. **.NET is the only caller** — it owns fetching data;
+The statistics engine. The .NET API hands it a trailing window of real prices;
+this service returns the cut-offs that split them into cheap/normal/expensive.
+Scheduling itself lives in .NET (`ScheduleService`). **.NET is the only caller** — it owns fetching data;
 this service is a pure function over the data it's handed (no DB, no upstream
 API calls of its own), which keeps it easy to unit-test and backtest.
 
@@ -146,42 +146,35 @@ baseline the two are equal, so there is little trend left to remove.
 
 Keep both ends in sync with these conventions:
 
-- **Endpoint** — `POST /schedule`, one call per (zone, day range).
+- **Endpoint** — `POST /price-zones`, one call per (zone, trailing window).
 - **JSON casing** — camelCase on the wire (`biddingZoneId`, `eurPerMwh`, …).
   Python fields stay snake_case; `Field(alias=...)` / `to_camel` bridge the two,
   and `populate_by_name` lets either spelling deserialize. The shared price-point
-  model lives in `wire.py` (`fromUtc` / `toUtc` / `eurPerMwh`); `/schedule` still
-  has its own older `from` / `to` spelling in `main.py`, which is what the sample
-  payloads use.
+  model lives in `wire.py` (`fromUtc` / `toUtc` / `eurPerMwh`).
 - **Timestamps** — UTC, ISO-8601 (e.g. `2026-07-24T02:00:00Z`). Postgres emits
   `+00:00` instead of `Z`; both are valid UTC and parse fine.
-- **`from` / `to`** on the request are calendar **dates**. `from` is required;
-  `to` is optional and defaults to `from` (a single day).
 - **Units** — price = EUR/MWh, temperature = °C.
 - **Time resolution** — *not* a field. It's implied by each price point's own
   `from`→`to` span (PT60M ⇒ hourly, PT15M ⇒ 15-min), decided per bidding zone
-  upstream. Always send both `from` and `to` on every price point.
+  upstream. Always send both `fromUtc` and `toUtc` on every price point.
 - **Device config** — intentionally **not** sent yet. Added later.
 
 ### Request shape
 
-```json
-{
-  "biddingZoneId": 6,
-  "from": "2026-07-24",
-  "to": "2026-07-24",
-  "prices": [
-    { "from": "2026-07-24T00:00:00Z", "to": "2026-07-24T00:15:00Z", "eurPerMwh": 155.26 }
-  ],
-  "weather": [
-    { "timeUtc": "2026-07-24T00:00:00Z", "temperatureC": 14.2 }
-  ]
-}
-```
+A bare array of price points — the trailing window, any resolution, any order
+(the service sorts by `fromUtc`).
 
-`weather` may be empty (`[]`) — there's no temperature data yet.
+```json
+[
+  { "fromUtc": "2026-07-24T00:00:00Z", "toUtc": "2026-07-24T00:15:00Z", "eurPerMwh": 155.26 }
+]
+```
 
 ### Response shape
 
-**To be defined** (your part). Likely on/off windows plus cost/saving estimates,
-e.g. `windows[]` of `{ from, to, on }`. Currently returns `{}`.
+```json
+{ "lowerQuantile": -12.4, "upperQuantile": 18.9 }
+```
+
+Cut-offs in EUR/MWh on the price *residual*: below `lowerQuantile` is cheap,
+above `upperQuantile` is expensive, between them is normal.

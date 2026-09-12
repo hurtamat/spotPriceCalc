@@ -146,32 +146,4 @@ Accept: application/json
   { "fromUtc": "2026-07-24T21:00:00Z", "toUtc": "2026-07-24T22:00:00Z", "eurPerMwh": 94.0 }
 ]
 
-### Schedule — REAL Slovakia data, 2026-07-24 (full 15-min day). Payload from the DB.
-POST {{host}}/schedule
-Content-Type: application/json
-Accept: application/json
-
-< ./sample-request-sk-2026-07-24.json
-
-### Schedule — REAL Germany-Luxembourg data, 2026-07-24 (full 15-min day). Payload from the DB.
-POST {{host}}/schedule
-Content-Type: application/json
-Accept: application/json
-
-< ./sample-request-de-2026-07-24.json
-
-### Schedule — REAL Spain data, 2026-07-24 (full 15-min day). Payload from the DB.
-POST {{host}}/schedule
-Content-Type: application/json
-Accept: application/json
-
-< ./sample-request-es-2026-07-24.json
-
-### Schedule — REAL Italy North data, 2026-07-24 (full 15-min day). Payload from the DB.
-POST {{host}}/schedule
-Content-Type: application/json
-Accept: application/json
-
-< ./sample-request-it-north-2026-07-24.json
-
 ###
