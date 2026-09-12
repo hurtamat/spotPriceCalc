@@ -42,7 +42,7 @@ public class ScheduleServiceTests
 
     private static UnavailableWindow Between(TimeOnly from, TimeOnly to) => new() { From = from, To = to };
 
-    private static TimeOnly At(int hour) => new(hour, 0);
+    private static TimeOnly At(int hour, int minute = 0) => new(hour, minute);
 
     #region Window and anchoring
 
@@ -316,6 +316,26 @@ public class ScheduleServiceTests
         var block = Assert.Single(result.Blocks);
         Assert.Equal(Utc(2026, 8, 13, 4), block.StartUtc);
         Assert.Equal(3m, block.EurPerMwh);
+    }
+
+    [Fact]
+    public async Task Unavailable_BoundaryFallingMidSlot_StillExcludesTheOverlappingSlot()
+    {
+        // A user typing 07:30 local (CEST) yields an 05:30 UTC boundary, so the window opens inside the
+        // 05:00 slot. Matching only the slot's start time-of-day would run the device for half an hour
+        // of a do-not-run window.
+        var now = Utc(2026, 8, 13, 0);
+        var deadline = Utc(2026, 8, 13, 12);
+        var prices = new FakeSpotPriceService(
+            Curve.Hourly(Utc(2026, 8, 13, 0), 90m, 95m, 92m, 94m, 93m, 1m, 2m, 50m));
+
+        var result = await Service(prices, now).BuildAsync(
+            Zone, Job(hours: 1, readyBy: deadline, unavailable: Between(At(5, 30), At(7))), default);
+
+        // 1 EUR starts at 05:00, before the window, and overlaps it; 2 EUR starts inside it. Both refused.
+        var block = Assert.Single(result.Blocks);
+        Assert.Equal(Utc(2026, 8, 13, 7), block.StartUtc);
+        Assert.Equal(50m, block.EurPerMwh);
     }
 
     [Fact]

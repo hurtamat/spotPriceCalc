@@ -132,15 +132,22 @@ public class ScheduleService : IScheduleService
         return best ?? new List<Slot>();
     }
 
-    // Is the slot inside the "do not run" window? from > to wraps past midnight.
+    // Does the slot overlap the "do not run" window at all?
     private static bool IsExcluded(Slot s, UnavailableWindow? window)
     {
         if (window is null) return false;
-        var t = TimeOnly.FromDateTime(s.Start);
-        return window.From <= window.To
-            ? t >= window.From && t < window.To
-            : t >= window.From || t < window.To;
+
+        var start = TimeOnly.FromDateTime(s.Start);
+        var end = TimeOnly.FromDateTime(s.End);
+
+        return InRange(start, window.From, window.To) || InRange(window.From, start, end);
     }
+
+    // Half-open [from, to) on the 24h clock; from > to wraps past midnight.
+    private static bool InRange(TimeOnly t, TimeOnly from, TimeOnly to) =>
+        from <= to
+            ? t >= from && t < to
+            : t >= from || t < to;
 
     // Collapse contiguous chosen slots into single blocks.
     private static List<ScheduledBlock> MergeIntoBlocks(List<Slot> chosen)
