@@ -76,6 +76,10 @@ plain quantiles, and now that every point carries its own timestamp that no long
 `ORDER BY`. Only `eurPerMwh` feeds the maths today — the timestamps are carried so this endpoint can start
 weighting slots by length without another contract change.
 
+**Extra fields are ignored.** .NET reuses one `PricePointDto` for its own API and for this call, so a real
+payload also carries `ctPerKwh` and `quantile`; pydantic drops what the model doesn't declare. Don't start
+reading `quantile` here — on the day being classified it is `null`, which is the whole reason for the call.
+
 The caller sends a trailing window (7 days today) and stamps only the **last day**
 of it. That is why one pair of numbers is enough: it only has to be correct for
 the day being classified, and the next day gets a fresh pair from its own window.
