@@ -16,7 +16,7 @@ weather+COP optimization) see [README.md](./README.md) — that part is **not bu
 | Service | Dir | State |
 | --- | --- | --- |
 | **.NET API** | `spotPriceCalc/` | **This doc.** Price ingestion, classification, read API, smart-home endpoints. |
-| Calc service (Python/FastAPI) | `calc-service/` | `POST /price-zones` is **wired up and called during populate**; it returns de-trended residual quantiles (see `calc-service/README.md`), though at the 7-day window .NET sends, the baseline barely moves. `POST /schedule` exists and is not called by .NET. |
+| Calc service (Python/FastAPI) | `calc-service/` | `POST /price-zones` is **wired up and called during populate**; it returns de-trended residual quantiles (see `calc-service/README.md`), though at the 7-day window .NET sends, the baseline barely moves. It is the service's only endpoint besides the health check. |
 | Frontend (React/Vite) | `frontend/` | Landing page + **working interactive zone map** driving a live price chart, the **Shelly setup wizard** at `/shelly` that generates a pre-filled device script, the Home Assistant guide at `/home-assistant`, and the legal documents at `/privacy` and `/terms`. |
 | Shelly scripts | `scripts/shelly/` | Two device scripts: `priceColor` (LED ring from `/api/shelly/schedule/status`) and `schedule`. Minified by `minify.sh` into a committed `dist/` the wizard fills in — an mJS script gets ~8 KB of heap, so source size is a hard constraint. |
 
@@ -30,12 +30,14 @@ Clean-ish layered architecture. Folder = layer, dependencies point inward toward
 spotPriceCalc/
 ├─ Controllers/
 │   ├─ SpotPricesController.cs           read (populate is the scheduler's job, no write endpoint)
-│   ├─ SmartHomeController.cs abstract adapter shared by integrations
+│   ├─ SmartHomeController.cs            abstract base: scheduler, zone catalog, clock, shared validation
 │   ├─ BiddingZonesController.cs         GET /api/zones, /api/zones/resolve
 │   ├─ SmartHomeShellyController.cs      POST /api/shelly/schedule, GET /api/shelly/schedule/status
+│   ├─ SmartHomeHomeAssistantController.cs  POST /api/homeassistant/schedule
 │   └─ ShellyLocalTime.cs                wall clock -> instant, Shelly only (see smartHomeIntegration.md)
 ├─ Services/
 │   ├─ SpotPriceService.cs               fetch → store → classify; regions: Reads / Populate / History backfill
+│   ├─ PopulateResult.cs                 populate-run summary
 │   ├─ PriceDataScheduler.cs             BackgroundService: startup catch-up + daily run
 │   └─ SmartHome/                        ScheduleService (device planning), ZoneLocatorService (coords → zone)
 ├─ Dtos/                                 wire shapes (adds computed fields); Schedule/ and PriceZones/
@@ -45,7 +47,6 @@ spotPriceCalc/
 │   ├─ PriceQuantile.cs       Green | Yellow | Red, stored as int
 │   ├─ ZoneSpotPrices.cs      aggregate: zone id once + List<PricePoint> (each carries Price + Quantile?)
 │   ├─ ZoneTemperatures.cs    aggregate: zone id once + List<TemperaturePoint>
-│   └─ PopulateResult.cs      populate-run summary (file is in Domain/, namespace is .Services)
 └─ Infrastructure/
     ├─ ExternalClients/       upstream HTTP (ENTSO-E, Open-Meteo, calc-service)
     │   ├─ Entsoe/            XML DTOs + deserializer + mapper + acknowledgement/error DTOs
@@ -138,8 +139,9 @@ When it won't serve a request, ENTSO-E returns an `Acknowledgement_MarketDocumen
   reason *text* is in the log line.
 
 An acknowledgement throws `EntsoeAcknowledgementException`, which populate counts as `Declined` rather than
-`Failed` — so it never triggers the retry loop, because asking again cannot change the answer. Anything else
-non-2xx (a gateway error, an HTML error page) falls through to `EnsureSuccessStatusCode` and *is* retried.
+`Failed` — asking again cannot change the answer. Anything else non-2xx (a gateway error, an HTML error page)
+falls through to `EnsureSuccessStatusCode`, which the resilience handler *does* retry (see below). Note the
+retry sits under the acknowledgement check, so a declined zone is never re-sent.
 
 #### The delivery day is CET — for every zone (`Domain/MarketDay.cs`)
 
@@ -165,7 +167,7 @@ that was a real bug: for the 9 non-CET zones (GR/BG/RO/FI/EE/LV/LT one hour ahea
 behind) the requested window straddled two CET publication days, ENTSO-E rounded it outward and returned
 **each day as its own `TimeSeries`**, and "take the first series" then stored the *previous* day's prices.
 Greece never converged: only ~4 slots landed in the expected window, under `MinSlotsForDay`, so every populate
-run re-fetched it and `PopulateUntilCompleteAsync` burned all 5 attempts.
+run re-fetched it and the populate retry loop of the time burned all 5 of its attempts.
 
 Other things the live responses confirm, worth knowing before touching this code:
 - **The API rounds any request outward to whole publication days.** Asking for a single hour returns all 96
@@ -230,6 +232,23 @@ to 204.
 Clients name their zone by **ENTSO-E code**, never by our `Id` — the ids are a storage detail, the codes are
 the industry's own identifiers.
 
+### Operational (no controller)
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/healthz/live` | Runs **no** checks — 200 while the process is up. What a liveness probe points at: a DB outage must not get the container restarted, because restarting cannot fix Postgres. |
+| `GET` | `/healthz/ready` | Runs the `AddDbContextCheck` against Postgres. What a readiness probe points at, so an instance that cannot serve is pulled from rotation instead of returning 500s. |
+| `GET` | `/openapi/v1.json` | The generated OpenAPI document, served in **every** environment (not dev-only): this API is the integration surface and the HACS integration is built against it. |
+
+Both health routes are exempt from the rate limiter — every probe arrives from the same platform address and
+would otherwise eat a per-IP budget.
+
+### Request validation
+
+Both schedule controllers share `SmartHomeController.Validate(zoneCode, durationHours, out zone)`, which
+returns the `IActionResult` to send or `null` to continue. `durationHours` is nullable so the Shelly status
+endpoint, which has a zone but no job, reuses the same zone lookup.
+
 ---
 
 ## Key flows
@@ -257,7 +276,7 @@ arrives from the populate that classifies it, and today/tomorrow then inherit a 
 Being a `BackgroundService` it needs min-replicas ≥ 1; move to a Container Apps cron Job if the API ever scales
 to zero. It has **no interface** on purpose — nothing injects it, and `IHostedService` is already the seam.
 
-### Populate (`SpotPriceService.PopulateUntilCompleteAsync` → `PopulateOnceAsync` → `PopulateZoneAsync`)
+### Populate (`SpotPriceService.PopulateAsync` → `PopulateZoneAsync`)
 ```
 for each of the 45 seeded zones:
     window = MarketDay.WindowUtc(date)                     // CET day, same for every zone
@@ -266,12 +285,16 @@ for each of the 45 seeded zones:
     wait RequestDelay (100ms) between real ENTSO-E calls
 return PopulateResult { date, zonesTotal, succeeded, skipped, failed, declined, pointsSaved, failures[] }
 ```
-Wrapped by `PopulateUntilCompleteAsync`, which re-runs the pass while `Failed > 0`, up to `MaxAttempts` (5)
-with a `RetryDelay` (10s) between attempts.
+**One pass, no outer retry.** There used to be a loop re-running the whole 47-zone pass while `Failed > 0`,
+up to 5 attempts. Retrying now happens one HTTP call lower down — `AddStandardResilienceHandler` in
+`Program.cs` gives each ENTSO-E request 3 retries with backoff, a 20s attempt timeout and a circuit breaker —
+so a flaky zone recovers inside its own call and lands on the first pass. Re-running 47 zones to nurse three
+was the wrong granularity, and a zone still failing after that was down longer than a re-run would have waited.
+The next scheduled populate picks it up.
 
-- **`Failed` vs `Declined`**: `Failed` counts only *retryable* problems (timeouts, gateway errors) and is what
-  drives the retry loop. `Declined` counts zones ENTSO-E explicitly has no data for. That split is why a day
-  where Italy is genuinely empty completes in one pass instead of burning five attempts with 10s sleeps.
+- **`Failed` vs `Declined`**: `Failed` counts zones that errored *after* their HTTP call had already retried.
+  `Declined` counts zones ENTSO-E explicitly has no data for, and is not an error at all — which is why a day
+  where Italy is genuinely empty completes cleanly.
 - **Idempotent & re-runnable**: `HasDayAsync` counts stored slots in the window and skips the zone at **≥ 12**
   (`MinSlotsForDay` — below a full hourly day of 24 and a full 15-minute day of 96, but above the handful a
   wrong/edge window could contain). So a re-run refills zones that failed *and* zones that stored a partial day.
@@ -284,7 +307,8 @@ calc-service `POST /price-zones` as a list of `PricePointDto` — the same DTO t
 `quantile` ride along and pydantic ignores them. The `fromUtc`→`toUtc` span is what says hourly vs 15-min, so
 there is no resolution field. Back come a lower/upper cut-off in EUR/MWh. `SetQuantilesAsync` then
 stamps every slot of *that day*: below lower ⇒ Green, above upper ⇒ Red, else Yellow. One country's prices form
-one distribution, so this is per zone.
+one distribution, so this is per zone. `SetQuantilesAsync` is a single `ExecuteUpdateAsync` — the three-way
+ternary translates to one SQL `CASE`, so no row is loaded or change-tracked.
 
 - Skipped (leaving `Quantile` null) when fewer than `MinQuantileSamples` (12) prices exist — early days have no
   history, and that must not fail the populate run.

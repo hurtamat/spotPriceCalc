@@ -93,7 +93,7 @@ appear here.
 
 `POST /api/homeassistant/schedule`, served by `SmartHomeHomeAssistantController`. It takes the same
 device-agnostic `ScheduleRequest` as the Shelly endpoint and runs the same `ScheduleService` — only
-the response differs, which is exactly what the abstract base controller's virtual step exists for.
+only the response differs, so each controller shapes its own and the base holds just what they share.
 
 It is the only call made at runtime. The config flow additionally calls `GET /api/zones` to fill the
 zone dropdown — which doubles as the reachability check, so an unreachable backend is reported in the

@@ -29,29 +29,19 @@ pip install -r requirements.txt
 fastapi dev main.py
 ```
 
-- Needs **Python 3.10+** (`main.py` uses `date | None` union syntax).
+- Needs **Python 3.10+** (union syntax in `price_zones.py`); the image is `python:3.12-slim`.
 - Build your **own** `.venv` — it's gitignored, not shared. Don't commit it.
 - Service listens on **http://localhost:8000**. Interactive docs at **/docs**.
 
 ## Testing
 
-Four real payloads (2026-07-24, full 15-min day, straight from the DB) sit next
-to this README:
+`calc-service.http` holds five `/price-zones` payloads covering the shapes that
+matter: falling, rising, fluctuating, a tiny 5-slot day (proves `min_periods=1`),
+and one with negative prices. Open it in Rider/VS Code and click **Run**, or try
+them at http://localhost:8000/docs.
 
-| Country | Zone id | File |
-| --- | --- | --- |
-| Slovakia | 6 | `sample-request-sk-2026-07-24.json` |
-| Germany-Luxembourg | 7 | `sample-request-de-2026-07-24.json` |
-| Spain | 9 | `sample-request-es-2026-07-24.json` |
-| Italy North | 33 | `sample-request-it-north-2026-07-24.json` |
-
-Open `calc-service.http` in Rider/VS Code and click **Run** on any request, or
-try them at http://localhost:8000/docs.
-
-**What it returns now:** `200 OK` with `{}` — the request is validated and all
-price points are parsed, but the response shape (on/off windows + cost/saving
-estimates) is not defined yet. That's the part to build. A `200` with `{}` means
-the contract works end-to-end and your input parsed correctly.
+Each returns `200 OK` with `{"lowerQuantile": …, "upperQuantile": …}` — the two
+cut-offs, in EUR/MWh, on the price residual.
 
 ## `POST /price-zones` — cheap / medium / expensive cut-offs
 

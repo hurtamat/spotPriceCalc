@@ -19,14 +19,21 @@ Four services in resource group `spotbuddy-rg` (westeurope):
 | Resource | Type | Notes |
 | --- | --- | --- |
 | `spotbuddy-frontend` | Container App | React build served by nginx, port 8080, public |
-| `spotbuddy-backend` | Container App | .NET API, port 8080, public, always one replica for the daily scheduler |
-| `spotbuddy-calc` | Container App | FastAPI, port 8000, internal ingress only |
+| `spotbuddy-backend` | Container App | .NET API, port 8080, public, 0.5 vCPU / 1Gi, always one replica for the daily scheduler |
+| `spotbuddy-calc` | Container App | FastAPI, port 8000, internal ingress only, 0.25 vCPU / 0.5Gi, **scales to zero** |
 | `spotbuddy-pg` | PostgreSQL Flexible Server | B1ms Burstable, database `spotprice` |
 | `spotbuddyacr` | Container Registry | Basic tier, images pulled by managed identity |
 | `spotbuddy-env` | Container Apps Environment | backed by `spotbuddy-logs` (Log Analytics) |
+| `spotbuddy-appi` | Application Insights | workspace-based on `spotbuddy-logs`; its connection string reaches the backend as `APPLICATIONINSIGHTS_CONNECTION_STRING` |
 
 The calc-service has no public address. Only apps inside the environment reach it, at
-`http://spotbuddy-calc/`.
+`http://spotbuddy-calc/`. It has `min_replicas = 0`, so the first call after an idle period pays a cold
+start — the backend's HTTP client retries through it, which is why that client has a resilience handler
+despite calc being ours and reliable.
+
+The backend exposes `/healthz/live` (no checks, for liveness) and `/healthz/ready` (checks Postgres, for
+readiness); calc answers on `/healthz` and `/`; nginx on `/healthz`. **No probes are configured in Terraform
+yet** — the endpoints exist, nothing points at them.
 
 Postgres is in **northeurope**, not westeurope. The subscription is restricted from provisioning
 Flexible Server in westeurope, so `var.postgres_location` is a separate variable.
@@ -190,7 +197,7 @@ cd infra && terraform output -raw postgres_password
 | `azure/login` fails in Actions | `permissions: id-token: write` is missing, or the branch has no matching federated credential. |
 | `The value of 'Version' should be in: []` | Not a version problem. The subscription is restricted from provisioning Postgres in that region. |
 | Apps unhealthy after a first apply | They are still on the placeholder image, which listens on port 80 while ingress expects 8080. The first real deploy fixes it. |
-| Backend starts and then exits | Usually the database. Check the backend logs. |
+| Backend starts and then exits | Usually the database. `DbInitializer` retries `MigrateAsync` 5 times, 3s apart, so a slow Postgres no longer crash-loops the container — if it still exits, the DB is genuinely unreachable. Check the backend logs for the migrate warnings. |
 
 ---
 
