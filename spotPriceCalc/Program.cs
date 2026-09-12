@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
@@ -77,6 +78,8 @@ builder.Services.AddHttpClient<IPriceZoneProvider, CalcServicePriceZoneClient>(c
     c.Timeout = TimeSpan.FromSeconds(20);
 });
 
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("postgres");
+
 builder.Services.AddSingleton<IBiddingZoneCatalog, BiddingZoneCatalog>();
 
 builder.Services.AddScoped<ISpotPriceRepository, SpotPriceRepository>();
@@ -112,5 +115,9 @@ if (!builder.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER"))
 app.UseCors(FrontendCors);
 app.UseRateLimiter();
 app.MapControllers();
+
+app.MapHealthChecks("/healthz/live", new HealthCheckOptions { Predicate = _ => false })
+    .DisableRateLimiting();
+app.MapHealthChecks("/healthz/ready").DisableRateLimiting();
 
 app.Run();
