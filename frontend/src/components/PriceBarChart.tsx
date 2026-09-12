@@ -117,7 +117,7 @@ export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; hei
           tickLabelInterval: (_value: unknown, index: number) => index % labelEvery === 0,
           disableTicks: true,
           disableLine: true,
-          tickLabelStyle: { fontSize: 11, fill: 'var(--color-neutral-600)' },
+          tickLabelStyle: { fontSize: 11, fill: 'var(--color-text-mute)' },
         },
       ]}
       yAxis={[
@@ -126,14 +126,14 @@ export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; hei
           disableTicks: true,
           disableLine: true,
           valueFormatter: (v: number) => v.toFixed(0),
-          tickLabelStyle: { fontSize: 11, fill: 'var(--color-neutral-600)' },
+          tickLabelStyle: { fontSize: 11, fill: 'var(--color-text-mute)' },
         },
       ]}
       series={[
         {
           dataKey: 'ct',
           label: 'Price',
-          valueFormatter: (v: number | null) => (v == null ? '—' : `${v.toFixed(1)} c/kWh`),
+          valueFormatter: (v: number | null) => (v == null ? 'no price' : `${v.toFixed(1)} c/kWh`),
         },
       ]}
       hideLegend
@@ -146,8 +146,8 @@ export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; hei
           x={nowSlot.time}
           label="now"
           labelAlign="start"
-          lineStyle={{ stroke: 'var(--color-accent)', strokeDasharray: '3 3', strokeWidth: 1.5 }}
-          labelStyle={{ fontSize: 10, fill: 'var(--color-accent)' }}
+          lineStyle={{ stroke: 'var(--color-text)', strokeDasharray: '3 3', strokeWidth: 1.5 }}
+          labelStyle={{ fontSize: 10, fill: 'var(--color-text)' }}
         />
       )}
     </BarChart>

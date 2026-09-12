@@ -13,8 +13,11 @@ export function Nav() {
   return (
     <nav className="sb-nav">
       <a className="sb-brand" href="/">
-        <BrandMark />
-        Spot<span className="sb-accent">Buddy</span>
+        <BrandMark size={34} />
+        <span>
+          <span className="sb-brand-word-a">Spot</span>
+          <span className="sb-brand-word-b">Steer</span>
+        </span>
       </a>
       <div className="sb-nav-links">
         {LINKS.map((l) => (
@@ -23,6 +26,11 @@ export function Nav() {
           </a>
         ))}
       </div>
+      {/* Same label as the hero's primary button on purpose: one label per intent,
+          everywhere on the site. */}
+      <a className="sb-btn sb-primary sb-nav-cta" href="/#prices">
+        See live prices
+      </a>
     </nav>
   );
 }

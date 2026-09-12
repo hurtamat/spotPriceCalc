@@ -41,8 +41,7 @@ export function SavingsCalculator() {
 
   return (
     <div className="sb-card sb-calc">
-      <div className="sb-eyebrow">Savings estimator</div>
-      <h3 style={{ fontSize: 24, margin: 0 }}>How much could you save?</h3>
+      <h3 className="sb-calc-title">Estimate it</h3>
 
       <div>
         <label className="sb-field-label">People in the household</label>
@@ -94,17 +93,15 @@ export function SavingsCalculator() {
 
       <div className="sb-calc-result">
         <div>
-          <div style={{ fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', opacity: 0.65 }}>
-            Estimated saving
-          </div>
+          <div className="sb-calc-result-cap">Estimated saving</div>
           <div className="sb-calc-result-euros">
             ≈ {savedEur.toLocaleString('en-US')} €
             <span style={{ fontSize: 18, opacity: 0.7, fontWeight: 600 }}> /yr</span>
           </div>
         </div>
-        <div style={{ borderLeft: '1px solid rgba(255,255,255,.22)', paddingLeft: 26 }}>
+        <div className="sb-calc-result-split">
           <div className="sb-calc-result-pct">{pct}%</div>
-          <div style={{ fontSize: 11, opacity: 0.7 }}>off your bill</div>
+          <div className="sb-calc-result-cap">off your bill</div>
         </div>
       </div>
 

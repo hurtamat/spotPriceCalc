@@ -1,5 +1,6 @@
-// 2×2 grid: the two live integrations get full cards with bullets and a Configure link, the
-// two planned ones keep the blurred-logo + "Coming soon" treatment from the old logo wall.
+// Bento, not a 2x2 of equal squares: Home Assistant leads across two columns, Shelly
+// runs full height beside it, and the two planned integrations share the lower row as
+// small tiles. Four items, four cells, no filler.
 const LIVE = [
   {
     key: 'homeassistant',
@@ -33,52 +34,52 @@ const LIVE = [
   },
 ];
 
-// Heights are well above the design's 64/52 so these don't read as small afterthoughts.
 const SOON = [
-  { key: 'google-home', name: 'Google Home', logo: '/assets/logo-google-home.png', logoHeight: 96 },
-  { key: 'alexa', name: 'Amazon Alexa', logo: '/assets/logo-alexa.png', logoHeight: 78 },
+  { key: 'google-home', name: 'Google Home', logo: '/assets/logo-google-home.png', logoHeight: 46 },
+  { key: 'alexa', name: 'Amazon Alexa', logo: '/assets/logo-alexa.png', logoHeight: 38 },
 ];
 
+// Material Symbols, the icon family the site already loads (see index.html), rather
+// than a hand-drawn path.
 function Check({ dark }: { dark: boolean }) {
   return (
-    <svg
-      className="sb-int-check"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.4}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ color: dark ? 'var(--color-accent-300)' : 'var(--color-accent)' }}
+    <span
+      className="material-symbols-outlined sb-int-check"
+      style={{ color: dark ? 'var(--color-text)' : 'var(--color-accent)' }}
       aria-hidden="true"
     >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
+      check
+    </span>
   );
 }
 
 export function Devices() {
   return (
-    <section id="devices" className="sb-section" style={{ padding: 'clamp(40px,6vw,80px) 0' }}>
+    <section id="devices" className="sb-section">
       <div className="sb-section-head">
-        <h2 style={{ fontSize: 'clamp(28px,4vw,42px)', margin: '14px 0' }}>
-          The smart-home systems SpotBuddy controls
-        </h2>
-        <p style={{ color: 'var(--color-neutral-700)', fontSize: 'clamp(15px,1.5vw,18px)' }}>
-          Already run one of these? You&apos;re ready. SpotBuddy speaks to your existing hub,
+        <h2>The smart-home systems SpotSteer controls</h2>
+        <p>
+          Already run one of these? You&apos;re ready. SpotSteer speaks to your existing hub,
           switches and plugs and runs them on the cheap hours. No new hardware, no rewiring.
         </p>
       </div>
 
       <div className="sb-int-grid">
         {LIVE.map((i) => (
-          <div key={i.key} className="sb-int-card" data-dark={i.dark || undefined}>
+          <div
+            key={i.key}
+            className="sb-int-card"
+            data-key={i.key}
+            data-dark={i.dark || undefined}
+          >
             <div className="sb-int-head">
               <img
                 src={i.logo}
                 alt={i.name}
                 style={{ height: i.logoHeight }}
-                className={i.dark ? 'sb-logo-white' : undefined}
+                // Every partner wordmark ships dark-on-light; on this site they all
+                // need flattening to the page's off-white.
+                className="sb-logo-white"
               />
               <span className="sb-int-badge">
                 <i className="sb-int-dot" />
@@ -98,15 +99,15 @@ export function Devices() {
             </div>
 
             <a className="sb-btn sb-int-cta" href={i.href}>
-              {i.cta} →
+              {i.cta}
             </a>
           </div>
         ))}
 
         {SOON.map((i) => (
           <div key={i.key} className="sb-int-card sb-int-soon" data-soon="true">
-            <span className="sb-logo-soon">Coming soon</span>
             <img src={i.logo} alt={i.name} style={{ height: i.logoHeight }} />
+            <span className="sb-logo-soon">Coming soon</span>
           </div>
         ))}
       </div>

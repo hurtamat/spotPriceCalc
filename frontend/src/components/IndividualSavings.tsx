@@ -13,8 +13,6 @@ interface Appliance {
   hours: number;
   /** Material Symbols ligature name, must also be in index.html's icon_names=. */
   icon: string;
-  /** Dropped from the single-column mobile layout to keep the section short. */
-  desktopOnly?: true;
 }
 
 interface Plan {
@@ -36,8 +34,8 @@ const APPLIANCES: Appliance[] = [
   { key: 'washer', name: 'Washing machine', kw: 2, hours: 2, icon: 'local_laundry_service' },
   { key: 'boiler', name: 'Electric boiler', kw: 2, hours: 2, icon: 'water_heater' },
   { key: 'heatpump', name: 'Heat pump', kw: 3.5, hours: 3, icon: 'heat_pump' },
-  { key: 'dishwasher', name: 'Dishwasher', kw: 1.8, hours: 2, icon: 'dishwasher', desktopOnly: true },
-  { key: 'dryer', name: 'Dryer', kw: 2.5, hours: 2, icon: 'cool_to_dry', desktopOnly: true },
+  { key: 'dishwasher', name: 'Dishwasher', kw: 1.8, hours: 2, icon: 'dishwasher' },
+  { key: 'dryer', name: 'Dryer', kw: 2.5, hours: 2, icon: 'cool_to_dry' },
 ];
 
 export function IndividualSavings() {
@@ -55,15 +53,16 @@ export function IndividualSavings() {
     [slots],
   );
 
-  const eur = (v: number | null) => (v == null ? '—' : `€${v.toFixed(2)}`);
-  const ct = (v: number | null) => (v == null ? '—' : `${v.toFixed(1)} c/kWh`);
+  const eur = (v: number) => `€${v.toFixed(2)}`;
+  const ct = (v: number) => `${v.toFixed(1)} c/kWh`;
 
   return (
     <section className="sb-indiv" id="individual-savings">
       <div className="sb-indiv-head">
         <h3>Individual savings</h3>
         <span>
-          Suggested start time &amp; saving vs. the evening peak · {zoneName}, {DAY_LABELS[day]}
+          Suggested start time and saving vs. the evening peak, for {zoneName} on{' '}
+          {DAY_LABELS[day].toLowerCase()}
         </span>
       </div>
 
@@ -72,7 +71,7 @@ export function IndividualSavings() {
           <div
             className="sb-card sb-indiv-card"
             key={appliance.key}
-            data-desktop-only={appliance.desktopOnly}
+            data-pending={plan.startTime == null || undefined}
           >
             <div className="sb-indiv-top">
               <span className="sb-indiv-icon">
@@ -83,29 +82,40 @@ export function IndividualSavings() {
               <div className="sb-indiv-title">
                 <div className="sb-indiv-name">{appliance.name}</div>
                 <div className="sb-indiv-spec">
-                  {appliance.kw} kW · {appliance.hours} h
+                  {appliance.kw} kW for {appliance.hours} h
                 </div>
               </div>
-              <div className="sb-indiv-when">
-                <div className="sb-indiv-cap">Turn on at</div>
-                <div className="sb-indiv-time">{plan.startTime ?? '—'}</div>
-              </div>
+              {plan.startTime != null && (
+                <div className="sb-indiv-when">
+                  <div className="sb-indiv-cap">Turn on at</div>
+                  <div className="sb-indiv-time">{plan.startTime}</div>
+                </div>
+              )}
             </div>
 
-            <div className="sb-indiv-foot">
-              <div>
-                <div className="sb-indiv-detail">
-                  Run {appliance.hours} h ({appliance.kw * appliance.hours} kWh)
+            {/* One honest pending line rather than a row of empty value slots: the
+                scheduler is not wired up yet, and three blank fields per card would
+                read as a loading failure. */}
+            {plan.midPriceCt == null || plan.savingEur == null ? (
+              <div className="sb-indiv-pending">
+                Needs a {appliance.hours} h block. Timing arrives when the scheduler goes live.
+              </div>
+            ) : (
+              <div className="sb-indiv-foot">
+                <div>
+                  <div className="sb-indiv-detail">
+                    Run {appliance.hours} h ({appliance.kw * appliance.hours} kWh)
+                  </div>
+                  <div className="sb-indiv-mid">
+                    <strong>{ct(plan.midPriceCt)}</strong> mid price
+                  </div>
                 </div>
-                <div className="sb-indiv-mid">
-                  <strong>{ct(plan.midPriceCt)}</strong> mid price
+                <div className="sb-indiv-saving-box">
+                  <div className="sb-indiv-cap">Saving vs. peak</div>
+                  <div className="sb-indiv-saving">{eur(plan.savingEur)}</div>
                 </div>
               </div>
-              <div className="sb-indiv-saving-box">
-                <div className="sb-indiv-cap">Saving vs. peak</div>
-                <div className="sb-indiv-saving">{eur(plan.savingEur)}</div>
-              </div>
-            </div>
+            )}
           </div>
         ))}
       </div>

@@ -17,7 +17,7 @@ const MODES: { key: Mode; title: string; body: string }[] = [
   {
     key: 'relay',
     title: 'Cheap-hours relay',
-    body: 'Switches the plug on during the cheapest hours of the day. This is what SpotBuddy is for. Pick this unless you only want the light.',
+    body: 'Switches the plug on during the cheapest hours of the day. This is what SpotSteer is for. Pick this unless you only want the light.',
   },
   {
     key: 'colour',
@@ -27,6 +27,9 @@ const MODES: { key: Mode; title: string; body: string }[] = [
 ];
 
 const COLOUR_LEGEND = [
+  // These three are the LED colours the device itself is set to by priceColor.js
+  // ([0,100,0] / [100,55,0] / [100,0,0]), not site palette. The legend has to match the
+  // plug on the wall, so it does not follow the brand's teal-and-amber price scale.
   { title: 'Cheap', body: 'Bottom third of today’s prices.', color: '#22c55e', glow: 'rgba(34,197,94,.22)' },
   { title: 'Average', body: 'Middle of the day’s range.', color: '#f59e0b', glow: 'rgba(245,158,11,.22)' },
   { title: 'Expensive', body: 'Top third, wait if you can.', color: '#ef4444', glow: 'rgba(239,68,68,.22)' },
@@ -63,7 +66,7 @@ const RELAY_COMPONENTS = [
 
 const DAY_FLOW = [
   { n: '1', title: 'Prices publish', body: 'Each afternoon the exchange publishes tomorrow’s prices for your zone.' },
-  { n: '2', title: 'The device asks us', body: 'The script calls SpotBuddy with your current slider values and gets a plan back.' },
+  { n: '2', title: 'The device asks us', body: 'The script calls SpotSteer with your current slider values and gets a plan back.' },
   { n: '3', title: 'The plan is frozen', body: 'Your hours are chosen once for the day, so nothing flips on and off as prices wobble.' },
   { n: '4', title: 'The relay follows it', body: 'On inside those hours, off outside them, until you change a slider.' },
 ];
@@ -79,7 +82,7 @@ const TROUBLES = [
   },
   {
     q: 'The relay never switches on',
-    a: 'Check that Hours needed and Ready by leave a window that is actually reachable: four hours with a 02:00 deadline and a do-not-run window across the night has nowhere to fit. Also check the Shelly has internet, and open the script console — it prints the hours it picked, or says why it could not.',
+    a: 'Check that Hours needed and Ready by leave a window that is actually reachable: four hours with a 02:00 deadline and a do-not-run window across the night has nowhere to fit. Also check the Shelly has internet, and open the script console. It prints the hours it picked, or says why it could not.',
   },
   {
     q: 'I want to control two channels',
@@ -324,7 +327,7 @@ export function ShellyWizard() {
           <Question
             n={2}
             title="Where you are"
-            sub="Your country decides which market prices the script follows. We ask your browser and preselect it — change it if it guessed wrong."
+            sub="Your country decides which market prices the script follows. We ask your browser and preselect it, so change it if it guessed wrong."
           >
             <div className="sb-sw-zonefield">
               <label className="sb-sw-label" htmlFor="sb-sw-zone">
@@ -356,7 +359,7 @@ export function ShellyWizard() {
                 ) : zoneState.status === 'failed' ? (
                   `${zoneState.reason} Pick your zone above.`
                 ) : (
-                  'No zone covers your location — pick one above.'
+                  'No zone covers your location, pick one above.'
                 )}
               </div>
             </div>
@@ -475,7 +478,7 @@ export function ShellyWizard() {
             <div style={{ marginRight: 'auto' }}>
               <span className="sb-sw-eyebrow">Ready to paste</span>
               <h2 key={mode} className="sb-sw-script-name sb-sw-swap">
-                {isRelay ? 'spotbuddy-relay.js' : 'spotbuddy-colour.js'}
+                {isRelay ? 'spotsteer-relay.js' : 'spotsteer-colour.js'}
               </h2>
             </div>
             <div key={mode} className="sb-sw-chips sb-sw-swap">
@@ -572,7 +575,7 @@ export function ShellyWizard() {
                   ))}
                   {!isRelay && (
                     <p className="sb-sw-device-lede" style={{ marginBottom: 0 }}>
-                      The colour script creates none — it only reads prices and sets the ring, so there is
+                      The colour script creates none. It only reads prices and sets the ring, so there is
                       nothing on the device to adjust.
                     </p>
                   )}
@@ -583,7 +586,7 @@ export function ShellyWizard() {
                   <div className="sb-sw-phone">
                     <img
                       src="/assets/shelly-virtual-components.png"
-                      alt="Shelly app showing the virtual components SpotBuddy created"
+                      alt="Shelly app showing the virtual components SpotSteer created"
                       onError={() => setHasPhoneShot(false)}
                     />
                   </div>
@@ -627,7 +630,7 @@ export function ShellyWizard() {
                   </span>
                 </button>
                 {/* Same grid-rows 0fr->1fr slide as the landing page's FAQ, rather than a hard
-                    mount/unmount — see .sb-faq-panel. */}
+                    mount/unmount, see .sb-faq-panel. */}
                 <div className="sb-faq-panel" data-open={openTrouble === i}>
                   <div>
                     <p className="sb-sw-faq-a">{t.a}</p>
@@ -642,7 +645,7 @@ export function ShellyWizard() {
           <div className="sb-sw-close">
             <a className="sb-card" href="/">
               <span className="sb-sw-close-kicker">Back to</span>
-              <span className="sb-sw-close-title">SpotBuddy home →</span>
+              <span className="sb-sw-close-title">SpotSteer home →</span>
               <span className="sb-sw-close-body">Prices, savings and the rest of the picture.</span>
             </a>
             <a className="sb-card" href="/home-assistant">

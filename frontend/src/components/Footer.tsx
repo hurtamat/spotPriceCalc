@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ContactDialog } from './ContactDialog';
+import { BrandMark } from './BrandMark';
 
 export function Footer() {
   const [contactOpen, setContactOpen] = useState(false);
@@ -7,7 +8,14 @@ export function Footer() {
   return (
     <footer className="sb-footer">
       <div className="sb-footer-bottom">
-        <span>© 2026 SpotBuddy. All rights reserved.</span>
+        <span className="sb-footer-brand">
+          <BrandMark size={26} />
+          <span>
+            <span className="sb-brand-word-a">Spot</span>
+            <span className="sb-brand-word-b">Steer</span>
+          </span>
+        </span>
+        <span>© 2026 SpotSteer. All rights reserved.</span>
         <span style={{ display: 'flex', gap: 18 }}>
           {/* Real links, not buttons: legal documents are things people bookmark, share and print. */}
           <a className="sb-footer-link" href="/privacy">

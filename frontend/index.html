@@ -2,22 +2,51 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#0f1418" />
+    <meta name="color-scheme" content="dark" />
+
+    <title>SpotSteer: automate your home energy against spot prices</title>
+    <meta
+      name="description"
+      content="See the hourly spot price for your European bidding zone, and let SpotSteer run your EV charger, boiler and heat pump in the cheap hours. Works with Home Assistant and Shelly. No new hardware."
+    />
+    <link rel="canonical" href="https://spotsteer.eu/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SpotSteer" />
+    <meta property="og:title" content="SpotSteer: automate your home energy against spot prices" />
+    <meta
+      property="og:description"
+      content="See the hourly spot price for your European bidding zone, and let SpotSteer run your devices in the cheap hours."
+    />
+    <meta property="og:image" content="https://spotsteer.eu/assets/backdrop.png" />
+    <meta property="og:image:width" content="640" />
+    <meta property="og:image:height" content="256" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Both site faces are self-hosted (see the @font-face block in spotsteer.css), so the
+         first paint waits on nothing from fonts.googleapis.com. The hero headline is painted
+         in Space Grotesk, so that file is preloaded ahead of the stylesheet that asks for it. -->
+    <link
+      rel="preload"
+      href="/fonts/spacegrotesk-var-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="preload" as="image" href="/assets/backdrop.png" fetchpriority="high" />
+
+    <!-- Appliance glyphs for the /savings appliance cards and the teaser that links to them.
+         icon_names= trims the download to just these eight, and Google REQUIRES that list to be
+         sorted alphabetically, otherwise the whole request 400s and no icons render. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Appliance glyphs for the Individual-savings cards. icon_names= trims the download to
-         just these six — and Google REQUIRES that list to be sorted alphabetically, otherwise the
-         whole request 400s and no icons render. -->
     <link
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=check,content_copy,cool_to_dry,dishwasher,electric_car,heat_pump,local_laundry_service,water_heater&display=swap"
       rel="stylesheet"
     />
-    <title>SpotBuddy: automate your home energy against spot prices</title>
   </head>
   <body>
     <div id="root"></div>

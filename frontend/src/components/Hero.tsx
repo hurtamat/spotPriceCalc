@@ -1,42 +1,64 @@
-import { SavingsCalculator } from './SavingsCalculator';
+// The photograph is the hero. It is a real <img> rather than a CSS background so it
+// can carry fetchpriority and explicit intrinsic dimensions: it is the LCP element,
+// and a background-image can do neither.
+const BACKDROP = '/assets/backdrop.png';
 
-const STATS = [
+export function Hero() {
+  return (
+    <section className="sb-hero">
+      <div className="sb-hero-media">
+        <img
+          src={BACKDROP}
+          width={640}
+          height={256}
+          fetchPriority="high"
+          decoding="async"
+          alt="An electric car charging on the driveway of a family home while a child plays basketball beside it."
+        />
+      </div>
+      <div className="sb-hero-scrim" aria-hidden="true" />
+
+      <div className="sb-hero-inner">
+        <div className="sb-hero-copy">
+          <h1 style={{ '--i': 0 } as React.CSSProperties}>
+            Cut your power bill <span className="sb-accent">up to 35%</span> without lifting a
+            finger.
+          </h1>
+          <p className="sb-hero-sub" style={{ '--i': 1 } as React.CSSProperties}>
+            Electricity prices change every hour. SpotSteer watches the spot market and runs your
+            devices when power is cheapest.
+          </p>
+          <div className="sb-hero-actions" style={{ '--i': 2 } as React.CSSProperties}>
+            <a className="sb-btn sb-primary" href="#prices">
+              See live prices
+            </a>
+            <a className="sb-btn sb-ghost" href="#how">
+              How it works
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// The three claims that used to crowd the hero. Trust marks belong under the value
+// proposition, not inside it.
+const CLAIMS = [
   { num: 'All', label: 'EU zones covered' },
   { num: '0€', label: 'new hardware' },
   { num: '24/7', label: 'hands-off automation' },
 ];
 
-export function Hero() {
+export function Claims() {
   return (
-    <section className="sb-hero">
-      <div>
-        <h1>
-          Cut your power bill <span className="sb-accent">up to 35%</span> without lifting a
-          finger.
-        </h1>
-        <p className="sb-hero-sub">
-          Electricity prices change every hour. SpotBuddy watches the spot market and tells your
-          smart devices to run when power is cheapest.
-        </p>
-        <div className="sb-hero-actions">
-          <a className="sb-btn sb-primary" href="#prices" style={{ fontSize: 15, padding: '14px 28px' }}>
-            See live prices →
-          </a>
-          <a className="sb-link" href="#how" style={{ color: 'var(--color-neutral-600)' }}>
-            See how it works
-          </a>
+    <section className="sb-claims">
+      {CLAIMS.map((c) => (
+        <div key={c.label}>
+          <div className="sb-stat-num">{c.num}</div>
+          <div className="sb-stat-label">{c.label}</div>
         </div>
-        <div className="sb-hero-stats">
-          {STATS.map((s) => (
-            <div key={s.label}>
-              <div className="sb-stat-num">{s.num}</div>
-              <div className="sb-stat-label">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <SavingsCalculator />
+      ))}
     </section>
   );
 }

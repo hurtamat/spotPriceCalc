@@ -13,7 +13,11 @@ export function useScrollReveal() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced || typeof IntersectionObserver === 'undefined') return;
 
-    const targets = Array.from(document.querySelectorAll<HTMLElement>('section'));
+    // The hero runs its own entry animation on mount (see .sb-hero-copy in the
+    // stylesheet); revealing it a second time would double the fade.
+    const targets = Array.from(
+      document.querySelectorAll<HTMLElement>('section:not(.sb-hero)'),
+    );
     if (targets.length === 0) return;
 
     const observer = new IntersectionObserver(

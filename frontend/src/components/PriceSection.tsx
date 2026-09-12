@@ -15,7 +15,7 @@ import { publishSelection } from '../state/selectionStore';
 // Default selection until the user picks a zone on the map (Germany-Luxembourg = id 7).
 const DEFAULT_ZONE_ID = 7;
 
-// Mobile breakpoint, must match the `@media (max-width: 900px)` rules in spotbuddy.css.
+// Mobile breakpoint, must match the `@media (max-width: 900px)` rules in spotsteer.css.
 const MOBILE_QUERY = '(max-width: 900px)';
 const isMobileNow = () =>
   typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches;
@@ -188,27 +188,33 @@ function Chart({
     };
   }, [state, day]);
 
-  const fmt = (v: number | undefined) => (v == null ? '—' : v.toFixed(1));
+  const fmt = (v: number) => v.toFixed(1);
 
   return (
     <>
       <div className="sb-chart-stats">
+        {/* No curve means no numbers. Three empty value slots would read as a broken
+            widget; the states below already say what is actually going on. */}
         <div className="sb-chart-stats-group">
-          <Stat capClass="sb-stat-cap" cap="Avg" value={fmt(derived?.avg)} unit="c/kWh" />
-          <Stat
-            capClass="sb-stat-cap sb-stat-cap-accent"
-            cap="Cheapest"
-            value={fmt(derived?.min)}
-            unit={derived ? `c · ${derived.minPt.time}` : 'c'}
-            valueColor="var(--color-accent)"
-          />
-          <Stat
-            capClass="sb-stat-cap sb-stat-cap-pop"
-            cap="Peak"
-            value={fmt(derived?.max)}
-            unit={derived ? `c · ${derived.maxPt.time}` : 'c'}
-            valueColor="var(--color-pop)"
-          />
+          {derived && (
+            <>
+              <Stat capClass="sb-stat-cap" cap="Avg" value={fmt(derived.avg)} unit="c/kWh" />
+              <Stat
+                capClass="sb-stat-cap sb-stat-cap-accent"
+                cap="Cheapest"
+                value={fmt(derived.min)}
+                unit={`c at ${derived.minPt.time}`}
+                valueColor="var(--color-accent-strong)"
+              />
+              <Stat
+                capClass="sb-stat-cap sb-stat-cap-pop"
+                cap="Peak"
+                value={fmt(derived.max)}
+                unit={`c at ${derived.maxPt.time}`}
+                valueColor="var(--color-warm-strong)"
+              />
+            </>
+          )}
         </div>
         <div className="sb-day-tabs">
           {DAY_ORDER.map((k) => (
@@ -260,7 +266,7 @@ function Chart({
               <i className="sb-dot" style={{ background: 'var(--color-q-red)' }} /> Expensive
             </span>
             <span>
-              {zoneName} · {DAY_LABELS[day]} · c/kWh
+              {zoneName}, {DAY_LABELS[day].toLowerCase()}, in c/kWh
             </span>
           </div>
 

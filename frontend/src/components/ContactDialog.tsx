@@ -9,7 +9,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 
 // TODO: real address once the domain's mailbox exists.
-export const CONTACT_EMAIL = 'hello@spotbuddy.eu';
+export const CONTACT_EMAIL = 'hello@spotsteer.eu';
 
 export function ContactDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -31,7 +31,7 @@ export function ContactDialog({ open, onClose }: { open: boolean; onClose: () =>
       </DialogTitle>
       <DialogContent>
         <Typography sx={{ fontSize: 14, color: 'var(--color-neutral-700)', mb: 2 }}>
-          Questions about SpotBuddy, your bidding zone, or a device we don&apos;t support yet?
+          Questions about SpotSteer, your bidding zone, or a device we don&apos;t support yet?
           Email us, we read everything.
         </Typography>
         <div className="sb-contact-row">

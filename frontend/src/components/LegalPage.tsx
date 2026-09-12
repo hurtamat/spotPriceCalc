@@ -33,7 +33,7 @@ export function LegalPage({ kind }: { kind: LegalKind }) {
   }, [kind]);
 
   useEffect(() => {
-    document.title = `${TITLES[kind]} · SpotBuddy`;
+    document.title = `${TITLES[kind]} · SpotSteer`;
   }, [kind]);
 
   return (
@@ -42,7 +42,7 @@ export function LegalPage({ kind }: { kind: LegalKind }) {
 
       <section className="sb-section sb-legal-page">
         <a className="sb-ha-back" href="/">
-          ← Back to SpotBuddy
+          ← Back to SpotSteer
         </a>
         <h1 className="sb-legal-title">{TITLES[kind]}</h1>
 

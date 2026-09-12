@@ -63,7 +63,7 @@ function fill(template: string, tokens: Record<string, string>): string {
     out = out.split(token).join(value);
   }
   const left = out.match(/__[A-Z_]+__/);
-  if (left) throw new Error(`Template still has ${left[0]} — no answer was supplied for it`);
+  if (left) throw new Error(`Template still has ${left[0]}, no answer was supplied for it`);
   return out;
 }
 

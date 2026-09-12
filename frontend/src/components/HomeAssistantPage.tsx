@@ -6,14 +6,14 @@ import { Footer } from './Footer';
 // whatever instance they have configured, so these work without knowing their address.
 const HACS_URL =
   'https://my.home-assistant.io/redirect/hacs_repository/?owner=hurtamat&repository=spotprice-ha&category=integration';
-const CONFIG_URL = 'https://my.home-assistant.io/redirect/config_flow_start/?domain=spotbuddy';
+const CONFIG_URL = 'https://my.home-assistant.io/redirect/config_flow_start/?domain=spotsteer';
 const BLUEPRINT_URL =
   'https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=' +
   encodeURIComponent(
-    'https://github.com/hurtamat/spotprice-ha/blob/main/blueprints/automation/spotbuddy/cheap_hours_switch.yaml',
+    'https://github.com/hurtamat/spotprice-ha/blob/main/blueprints/automation/spotsteer/cheap_hours_switch.yaml',
   );
 
-const RUN_ENTITY = 'binary_sensor.spotbuddy_running';
+const RUN_ENTITY = 'binary_sensor.spotsteer_running';
 
 const PREREQS = [
   { title: 'A running Home Assistant', note: 'Version 2024.4 or newer.' },
@@ -21,7 +21,7 @@ const PREREQS = [
   { title: 'A smart plug or switch', note: 'The device you want controlled.' },
 ];
 
-// Mirrors the config flow in custom_components/spotbuddy/config_flow.py. Keep in step.
+// Mirrors the config flow in custom_components/spotsteer/config_flow.py. Keep in step.
 const CONFIG_FIELDS = [
   {
     label: 'Latitude and longitude',
@@ -30,23 +30,23 @@ const CONFIG_FIELDS = [
   },
   {
     label: 'Controlled switch',
-    note: 'The device to run in the cheap hours. Pick it and setup is finished: SpotBuddy switches it on and off from then on, with no automation to write.',
+    note: 'The device to run in the cheap hours. Pick it and setup is finished: SpotSteer switches it on and off from then on, with no automation to write.',
     required: false,
   },
 ];
 
 const READ_ENTITIES = [
   { name: 'Running', desc: 'On during the cheap hours it picked.', id: RUN_ENTITY },
-  { name: 'Status', desc: 'What it is currently doing.', id: 'sensor.spotbuddy_status' },
+  { name: 'Status', desc: 'What it is currently doing.', id: 'sensor.spotsteer_status' },
   {
     name: 'Current price',
     desc: 'The spot price right now in EUR per MWh.',
-    id: 'sensor.spotbuddy_current_price',
+    id: 'sensor.spotsteer_current_price',
   },
   {
     name: 'Price level',
     desc: 'Cheap, average or expensive for this hour.',
-    id: 'sensor.spotbuddy_price_level',
+    id: 'sensor.spotsteer_price_level',
   },
 ];
 
@@ -124,7 +124,7 @@ export function HomeAssistantPage() {
           </span>
         </div>
         <p className="sb-ha-lede">
-          SpotBuddy works out your cheapest hours and switches your device on and off for you.
+          SpotSteer works out your cheapest hours and switches your device on and off for you.
         </p>
         <div className="sb-ha-meta">
           <span>~5 minutes</span>
@@ -167,7 +167,7 @@ export function HomeAssistantPage() {
           <div className="sb-ha-step-body">
             <h3>Install</h3>
             <p>
-              The button opens HACS in your Home Assistant with the SpotBuddy repository already
+              The button opens HACS in your Home Assistant with the SpotSteer repository already
               filled in. Press <strong>Download</strong>, then restart Home Assistant.
             </p>
             <div className="sb-ha-actions">
@@ -184,10 +184,10 @@ export function HomeAssistantPage() {
                 <ol>
                   <li>Download the latest release archive from our repository.</li>
                   <li>
-                    Copy the <code>spotbuddy</code> folder into <code>config/custom_components</code>.
+                    Copy the <code>spotsteer</code> folder into <code>config/custom_components</code>.
                   </li>
                   <li>
-                    Check the result is <code>custom_components/spotbuddy/</code>, then restart Home
+                    Check the result is <code>custom_components/spotsteer/</code>, then restart Home
                     Assistant.
                   </li>
                 </ol>
@@ -201,7 +201,7 @@ export function HomeAssistantPage() {
           <div className="sb-ha-step-body">
             <h3>Configure</h3>
             <p>
-              The button opens the SpotBuddy dialog inside Home Assistant. Fill it in and press
+              The button opens the SpotSteer dialog inside Home Assistant. Fill it in and press
               Submit.
             </p>
             <div className="sb-ha-actions">
@@ -238,7 +238,7 @@ export function HomeAssistantPage() {
             </div>
             <p>
               Your device now runs in the cheapest hours of the day, automatically. In Home Assistant
-              you get a SpotBuddy device showing whether it is running right now, the current price
+              you get a SpotSteer device showing whether it is running right now, the current price
               and whether this hour counts as cheap, average or expensive, alongside the settings you
               can change at any time.
             </p>
@@ -287,7 +287,7 @@ export function HomeAssistantPage() {
           <div>
             <div className="sb-ha-ref-grid">
               <div className="sb-card sb-ha-ref">
-                <div className="sb-ha-ref-tag">What SpotBuddy tells you</div>
+                <div className="sb-ha-ref-tag">What SpotSteer tells you</div>
                 {READ_ENTITIES.map((e) => (
                   <div key={e.id} className="sb-ha-ref-row">
                     <div className="sb-ha-ref-name">{e.name}</div>
@@ -297,7 +297,7 @@ export function HomeAssistantPage() {
                 ))}
               </div>
               <div className="sb-card sb-ha-ref">
-                <div className="sb-ha-ref-tag sb-ha-ref-tag-muted">What you tell SpotBuddy</div>
+                <div className="sb-ha-ref-tag sb-ha-ref-tag-muted">What you tell SpotSteer</div>
                 <p className="sb-ha-ref-lede">All editable in the Home Assistant UI.</p>
                 {SET_ENTITIES.map((e) => (
                   <div key={e.name} className="sb-ha-ref-row">

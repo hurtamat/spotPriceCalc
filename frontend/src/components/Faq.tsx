@@ -12,15 +12,15 @@ const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = 
   },
   {
     q: 'I pay a flat price for electricity, what now?',
-    a: 'Every European country has suppliers offering a dynamic (spot) tariff billed at the hourly/15min price. Ask yours for one, and SpotBuddy starts paying off.',
+    a: 'Every European country has suppliers offering a dynamic (spot) tariff billed at the hourly/15min price. Ask yours for one, and SpotSteer starts paying off.',
   },
   {
     q: 'I don’t have a smart meter, what now?',
-    a: 'You can still use SpotBuddy. Read the price curve and set a timer, or just switch things on during the cheap hours yourself. To automate it later, the simplest route is a smart plug with Home Assistant and our add-on.',
+    a: 'You can still use SpotSteer. Read the price curve and set a timer, or just switch things on during the cheap hours yourself. To automate it later, the simplest route is a smart plug with Home Assistant and our add-on.',
   },
   {
     q: 'Do my devices or appliances risk any harm?',
-    a: 'No. SpotBuddy just switches a plug or relay on and off, exactly like you flipping a switch, and your comfort parameters always apply so your EV is charged when you need it to be.',
+    a: 'No. SpotSteer just switches a plug or relay on and off, exactly like you flipping a switch, and your comfort parameters always apply so your EV is charged when you need it to be.',
   },
 ];
 
@@ -29,10 +29,11 @@ export function Faq() {
 
   return (
     <section id="faq" className="sb-section">
-      <h2 style={{ textAlign: 'center', fontSize: 'clamp(26px,3.6vw,38px)', marginBottom: 26 }}>
-        Frequently asked
-      </h2>
-      <div className="sb-faq-list">
+      <div className="sb-faq-layout">
+        <div className="sb-section-head">
+          <h2>Frequently asked</h2>
+        </div>
+        <div className="sb-faq-list">
         {FAQ.map((f, i) => {
           const isOpen = open === i;
           return (
@@ -66,8 +67,9 @@ export function Faq() {
                 </div>
               </div>
             </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </section>
   );
