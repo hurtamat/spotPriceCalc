@@ -1,25 +1,24 @@
 namespace spotPriceCalc.Services;
 
-// In-process price-data trigger: on startup populate yesterday/today/tomorrow (catch-up), then daily populate
-// tomorrow shortly after the day-ahead auction clears. Only decides *when* — the fetch + retry-until-complete
-// lives in ISpotPriceService.PopulateUntilCompleteAsync. Needs min-replicas >= 1 (a timer needs a running
-// replica); move to a Container Apps cron Job if the API ever scales to zero.
+// On startup populate yesterday/today/tomorrow then daily populate job.
 public class PriceDataScheduler : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly TimeProvider _clock;
     private readonly ILogger<PriceDataScheduler> _logger;
 
-    // Trailing days fetched at startup so the first classification has a full window. Matches
-    // SpotPriceService.QuantileWindowDays.
     private const int QuantileWindowDays = 7;
 
-    // Daily run time, Central European (CET/CEST); IANA id resolves on Linux and Windows.
-    private static readonly TimeOnly DailyRunTime = new(17, 28);
+    // Daily run at 13:21 CET, chosen to avoid a round time other people might use
+    private static readonly TimeOnly DailyRunTime = new(13, 21);
     private static readonly TimeZoneInfo CentralEurope = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
 
-    public PriceDataScheduler(IServiceScopeFactory scopeFactory, ILogger<PriceDataScheduler> logger)
+    // TimeProvider also fakes the daily Task.Delay, so a test advances a day instead of sleeping it.
+    public PriceDataScheduler(
+        IServiceScopeFactory scopeFactory, TimeProvider clock, ILogger<PriceDataScheduler> logger)
     {
         _scopeFactory = scopeFactory;
+        _clock = clock;
         _logger = logger;
     }
 
@@ -31,16 +30,16 @@ public class PriceDataScheduler : BackgroundService
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                var nextRunUtc = NextRunUtc(DateTimeOffset.UtcNow);
-                var delay = nextRunUtc - DateTimeOffset.UtcNow;
+                var nextRunUtc = NextRunUtc(_clock.GetUtcNow());
+                var delay = nextRunUtc - _clock.GetUtcNow();
                 _logger.LogInformation(
                     "Next daily populate (tomorrow) scheduled for {NextRunUtc:o} ({RunTime} CET, in {Delay})",
                     nextRunUtc, DailyRunTime, delay);
 
-                await Task.Delay(delay, stoppingToken);
-                
-                var tomorrow = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1);
-                await PopulateAsync(tomorrow, "daily 13:25 CET", stoppingToken);
+                await Task.Delay(delay, _clock, stoppingToken);
+
+                var tomorrow = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime).AddDays(1);
+                await PopulateAsync(tomorrow, $"daily {DailyRunTime} CET", stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -49,21 +48,28 @@ public class PriceDataScheduler : BackgroundService
         }
     }
 
-    // Startup catch-up. History first (one call per zone, unclassified) so that when yesterday classifies
-    // it already has its full trailing window; then the three real days, oldest-first, each classifying
-    // its own zones.
+    // History first, then the three real days oldest first so yesterday has its full trailing window.
     private async Task RunStartupPopulateAsync(CancellationToken ct)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
 
-        // Ends the day before yesterday — yesterday itself arrives (classified) in the populate below.
+        // Ends the day before yesterday; yesterday itself arrives classified in the populate below.
         await BackfillHistoryAsync(today.AddDays(-QuantileWindowDays), today.AddDays(-2), ct);
 
-        _logger.LogInformation("Startup populate: yesterday, today, tomorrow");
         await PopulateAsync(today.AddDays(-1), "startup: yesterday", ct);
         await PopulateAsync(today, "startup: today", ct);
-        await PopulateAsync(today.AddDays(1), "startup: tomorrow", ct);
+        
+        if (DayAheadPublished(_clock.GetUtcNow()))
+            await PopulateAsync(today.AddDays(1), "startup: tomorrow", ct);
+        else
+            _logger.LogInformation(
+                "Startup: skipping tomorrow, before {RunTime} CET the day-ahead prices are not published",
+                DailyRunTime);
     }
+
+    // Whether tomorrow's prices should exist yet, in the same CET wall clock the daily run uses.
+    private static bool DayAheadPublished(DateTimeOffset nowUtc) =>
+        TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(nowUtc, CentralEurope).DateTime) >= DailyRunTime;
 
     private async Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct)
     {
@@ -80,12 +86,12 @@ public class PriceDataScheduler : BackgroundService
         }
         catch (Exception ex)
         {
-            // History is context, not correctness — a failure just means thinner quantile windows.
+            // History is context, not correctness: a failure just means thinner quantile windows.
             _logger.LogError(ex, "History backfill {From}..{To} threw — startup continues", from, to);
         }
     }
 
-    // Runs the retry-until-complete populate for one date in a fresh scope. Never throws — logs and continues.
+    // Never throws; logs and continues.
     private async Task PopulateAsync(DateOnly date, string reason, CancellationToken ct)
     {
         try
@@ -93,7 +99,7 @@ public class PriceDataScheduler : BackgroundService
             _logger.LogInformation("Populate triggered ({Reason}) for {Date}", reason, date);
             await using var scope = _scopeFactory.CreateAsyncScope();
             var service = scope.ServiceProvider.GetRequiredService<ISpotPriceService>();
-            await service.PopulateUntilCompleteAsync(date, ct);
+            await service.PopulateAsync(date, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

@@ -1,8 +1,8 @@
 # calc-service (FastAPI)
 
-The scheduling/optimization engine. The .NET API calls this service once per
-(zone, day range) with real prices + weather; this service computes an on/off
-schedule and returns it. **.NET is the only caller** — it owns fetching data;
+The statistics engine. The .NET API hands it a trailing window of real prices;
+this service returns the cut-offs that split them into cheap/normal/expensive.
+Scheduling itself lives in .NET (`ScheduleService`). **.NET is the only caller** — it owns fetching data;
 this service is a pure function over the data it's handed (no DB, no upstream
 API calls of its own), which keeps it easy to unit-test and backtest.
 
@@ -29,29 +29,19 @@ pip install -r requirements.txt
 fastapi dev main.py
 ```
 
-- Needs **Python 3.10+** (`main.py` uses `date | None` union syntax).
+- Needs **Python 3.10+** (union syntax in `price_zones.py`); the image is `python:3.12-slim`.
 - Build your **own** `.venv` — it's gitignored, not shared. Don't commit it.
 - Service listens on **http://localhost:8000**. Interactive docs at **/docs**.
 
 ## Testing
 
-Four real payloads (2026-07-24, full 15-min day, straight from the DB) sit next
-to this README:
+`calc-service.http` holds five `/price-zones` payloads covering the shapes that
+matter: falling, rising, fluctuating, a tiny 5-slot day (proves `min_periods=1`),
+and one with negative prices. Open it in Rider/VS Code and click **Run**, or try
+them at http://localhost:8000/docs.
 
-| Country | Zone id | File |
-| --- | --- | --- |
-| Slovakia | 6 | `sample-request-sk-2026-07-24.json` |
-| Germany-Luxembourg | 7 | `sample-request-de-2026-07-24.json` |
-| Spain | 9 | `sample-request-es-2026-07-24.json` |
-| Italy North | 33 | `sample-request-it-north-2026-07-24.json` |
-
-Open `calc-service.http` in Rider/VS Code and click **Run** on any request, or
-try them at http://localhost:8000/docs.
-
-**What it returns now:** `200 OK` with `{}` — the request is validated and all
-price points are parsed, but the response shape (on/off windows + cost/saving
-estimates) is not defined yet. That's the part to build. A `200` with `{}` means
-the contract works end-to-end and your input parsed correctly.
+Each returns `200 OK` with `{"lowerQuantile": …, "upperQuantile": …}` — the two
+cut-offs, in EUR/MWh, on the price residual.
 
 ## `POST /price-zones` — cheap / medium / expensive cut-offs
 
@@ -61,18 +51,28 @@ base config is in `wire.py`.
 > **Status: implemented.** Cut-offs are de-trended, not plain quantiles of the raw
 > prices — see *How the cut-offs are derived* below.
 
-The body is a **bare JSON array of prices** — no timestamps, no resolution, no
-metadata — but it **must be in chronological order**: the moving baseline is
-order-dependent, unlike plain quantiles. .NET's `GetPriceValuesAsync` sorts by
-`From`, which is what makes this safe.
+The body is a **JSON array of price points** — each one a slot's span and its price:
+
+```json
+[
+  { "fromUtc": "2026-07-24T00:00:00Z", "toUtc": "2026-07-24T00:15:00Z", "eurPerMwh": 155.26 },
+  { "fromUtc": "2026-07-24T00:15:00Z", "toUtc": "2026-07-24T00:30:00Z", "eurPerMwh": 148.90 }
+]
+```
+
+The span is the only thing that says hourly or 15-min, so there is no resolution field, and a payload may mix
+both. The service **sorts by `fromUtc`** before doing anything: the moving baseline is order-dependent, unlike
+plain quantiles, and now that every point carries its own timestamp that no longer rests on the caller's
+`ORDER BY`. Only `eurPerMwh` feeds the maths today — the timestamps are carried so this endpoint can start
+weighting slots by length without another contract change.
+
+**Extra fields are ignored.** .NET reuses one `PricePointDto` for its own API and for this call, so a real
+payload also carries `ctPerKwh` and `quantile`; pydantic drops what the model doesn't declare. Don't start
+reading `quantile` here — on the day being classified it is `null`, which is the whole reason for the call.
 
 The caller sends a trailing window (7 days today) and stamps only the **last day**
 of it. That is why one pair of numbers is enough: it only has to be correct for
 the day being classified, and the next day gets a fresh pair from its own window.
-
-```json
-[155.26, 148.9, 132.0, 121.44, 118.02, 110.35, 104.88, 99.1]
-```
 
 Back come the two **cut-off prices** in EUR/MWh:
 
@@ -119,7 +119,8 @@ centred on zero would stamp every slot red.
   noise.
 
 **Caveat — equal slot durations.** Quantiles are unweighted, so every value counts
-once regardless of how long its slot lasted. Correct within one zone at one
+once regardless of how long its slot lasted, even though each point now states its
+own span. Correct within one zone at one
 resolution, but a range straddling a PT60M→PT15M switchover would weight an hour
 the same as 15 minutes. The .NET side sends a single zone/range, which holds
 today; revisit if you ever backfill across a resolution change.
@@ -135,39 +136,35 @@ baseline the two are equal, so there is little trend left to remove.
 
 Keep both ends in sync with these conventions:
 
-- **Endpoint** — `POST /schedule`, one call per (zone, day range).
+- **Endpoint** — `POST /price-zones`, one call per (zone, trailing window).
 - **JSON casing** — camelCase on the wire (`biddingZoneId`, `eurPerMwh`, …).
   Python fields stay snake_case; `Field(alias=...)` / `to_camel` bridge the two,
-  and `populate_by_name` lets either spelling deserialize.
+  and `populate_by_name` lets either spelling deserialize. The shared price-point
+  model lives in `wire.py` (`fromUtc` / `toUtc` / `eurPerMwh`).
 - **Timestamps** — UTC, ISO-8601 (e.g. `2026-07-24T02:00:00Z`). Postgres emits
   `+00:00` instead of `Z`; both are valid UTC and parse fine.
-- **`from` / `to`** on the request are calendar **dates**. `from` is required;
-  `to` is optional and defaults to `from` (a single day).
 - **Units** — price = EUR/MWh, temperature = °C.
 - **Time resolution** — *not* a field. It's implied by each price point's own
   `from`→`to` span (PT60M ⇒ hourly, PT15M ⇒ 15-min), decided per bidding zone
-  upstream. Always send both `from` and `to` on every price point.
+  upstream. Always send both `fromUtc` and `toUtc` on every price point.
 - **Device config** — intentionally **not** sent yet. Added later.
 
 ### Request shape
 
-```json
-{
-  "biddingZoneId": 6,
-  "from": "2026-07-24",
-  "to": "2026-07-24",
-  "prices": [
-    { "from": "2026-07-24T00:00:00Z", "to": "2026-07-24T00:15:00Z", "eurPerMwh": 155.26 }
-  ],
-  "weather": [
-    { "timeUtc": "2026-07-24T00:00:00Z", "temperatureC": 14.2 }
-  ]
-}
-```
+A bare array of price points — the trailing window, any resolution, any order
+(the service sorts by `fromUtc`).
 
-`weather` may be empty (`[]`) — there's no temperature data yet.
+```json
+[
+  { "fromUtc": "2026-07-24T00:00:00Z", "toUtc": "2026-07-24T00:15:00Z", "eurPerMwh": 155.26 }
+]
+```
 
 ### Response shape
 
-**To be defined** (your part). Likely on/off windows plus cost/saving estimates,
-e.g. `windows[]` of `{ from, to, on }`. Currently returns `{}`.
+```json
+{ "lowerQuantile": -12.4, "upperQuantile": 18.9 }
+```
+
+Cut-offs in EUR/MWh on the price *residual*: below `lowerQuantile` is cheap,
+above `upperQuantile` is expensive, between them is normal.

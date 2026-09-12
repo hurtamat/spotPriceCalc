@@ -15,7 +15,7 @@ import { publishSelection } from '../state/selectionStore';
 // Default selection until the user picks a zone on the map (Germany-Luxembourg = id 7).
 const DEFAULT_ZONE_ID = 7;
 
-// Mobile breakpoint — must match the `@media (max-width: 900px)` rules in spotbuddy.css.
+// Mobile breakpoint, must match the `@media (max-width: 900px)` rules in spotsteer.css.
 const MOBILE_QUERY = '(max-width: 900px)';
 const isMobileNow = () =>
   typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches;
@@ -27,20 +27,17 @@ type LoadState =
 
 export function PriceSection() {
   const [day, setDay] = useState<DayKey>('today');
-  // On mobile we start with NOTHING selected — the user is nudged to tap the map first.
-  // On desktop the map + chart sit side by side, so we keep the usual default selection.
+  // On mobile nothing starts selected; the user is nudged to tap the map first.
   const [zoneId, setZoneId] = useState<number | null>(() => (isMobileNow() ? null : DEFAULT_ZONE_ID));
-  // Mobile only: whether the chart panel has slid over the map. Ignored by the desktop CSS.
+  // Mobile only: whether the chart panel has slid over the map.
   const [panelOpen, setPanelOpen] = useState(false);
   // Cache each (zone, day) fetch so switching back is instant.
   const [cache, setCache] = useState<Record<string, LoadState>>({});
-  // Read the cache without making it an effect dependency (which would re-run
-  // the effect — and abort the in-flight request — every time we set loading).
+  // Read the cache without making it an effect dependency.
   const cacheRef = useRef(cache);
   cacheRef.current = cache;
 
-  // If the viewport grows to desktop while nothing is picked, fall back to the default
-  // zone so the (now always-visible) desktop chart isn't left empty.
+  // If the viewport grows to desktop while nothing is picked, fall back to the default zone.
   useEffect(() => {
     const mql = window.matchMedia(MOBILE_QUERY);
     const sync = () => {
@@ -50,8 +47,7 @@ export function PriceSection() {
     return () => mql.removeEventListener('change', sync);
   }, []);
 
-  // Picking a zone on the map: on mobile this slides the track over to the chart, after a
-  // short beat so the tapped zone's highlight is visible before the slide.
+  // Picking a zone on mobile slides the track over to the chart after a short beat.
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSelect = (id: number) => {
     setZoneId(id);
@@ -62,8 +58,7 @@ export function PriceSection() {
     if (openTimer.current) clearTimeout(openTimer.current);
   }, []);
 
-  // Finger-swipe between the two mobile stages. A tap (near-zero movement) or a mostly
-  // vertical drag (scrolling the chart) is ignored, so this never fights zone taps.
+  // Finger-swipe between the two mobile stages; a tap or vertical drag is ignored.
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const onTouchStart = (e: ReactTouchEvent) => {
     const t = e.touches[0];
@@ -77,12 +72,10 @@ export function PriceSection() {
     const dx = t.clientX - start.x;
     const dy = t.clientY - start.y;
     if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy)) return; // not a horizontal swipe
-    // Chart is the left stage, map the right stage. Swipe right reveals the chart on the
-    // left; swipe left reveals the map on the right.
     if (dx > 0) {
-      if (zoneId != null) setPanelOpen(true); // swipe right → chart (only if a zone is picked)
+      if (zoneId != null) setPanelOpen(true); // swipe right, only if a zone is picked
     } else {
-      setPanelOpen(false); // swipe left → back to map
+      setPanelOpen(false); // swipe left, back to map
     }
   };
 
@@ -90,9 +83,8 @@ export function PriceSection() {
   const key = `${zoneId}:${day}`;
 
   useEffect(() => {
-    if (zoneId == null) return; // nothing picked yet (mobile) — no fetch
-    // Already have a finished result for this zone+day? Show it, don't refetch.
-    if (cacheRef.current[key]?.status === 'ready') return;
+    if (zoneId == null) return; // nothing picked yet (mobile)
+    if (cacheRef.current[key]?.status === 'ready') return; // already fetched
 
     const controller = new AbortController();
     setCache((c) => ({ ...c, [key]: { status: 'loading' } }));
@@ -121,8 +113,7 @@ export function PriceSection() {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Large map as a background layer — bleeds off the right edge (Russia), zones stay
-          clickable and blue. The chart card floats over it on the left. */}
+      {/* Large map as a background layer, bleeds off the right edge. */}
       <div className="sb-zonemap-bleed">
         <ZoneMap selectedZoneId={zoneId} onSelect={handleSelect} />
       </div>
@@ -134,9 +125,7 @@ export function PriceSection() {
       </div>
 
       <div className="sb-price-inner">
-        {/* Mobile-only handle pinned to the chart stage's right edge (the map is to the
-            right): slides the track back to the map to re-pick. Sits on the stage (not
-            inside the scrolling column) so it stays put while the chart scrolls. */}
+        {/* Mobile-only handle that slides the track back to the map to re-pick. */}
         <button
           type="button"
           className="sb-chart-handle"
@@ -178,8 +167,7 @@ function Chart({
   const derived = useMemo(() => {
     if (state?.status !== 'ready' || state.data.points.length === 0) return null;
 
-    // Label and slice the day in the bidding ZONE's local time, not the viewer's browser timezone —
-    // and not the CET market day the API returns. See PriceBarChart for why those differ.
+    // Label and slice the day in the bidding zone's local time, not the viewer's or CET.
     const timeZone = state.data.timeZoneId;
     const slots = buildDaySlots(state.data.points, timeZone, dateForDay(day));
     if (slots.length === 0) return null;
@@ -200,27 +188,33 @@ function Chart({
     };
   }, [state, day]);
 
-  const fmt = (v: number | undefined) => (v == null ? '—' : v.toFixed(1));
+  const fmt = (v: number) => v.toFixed(1);
 
   return (
     <>
       <div className="sb-chart-stats">
+        {/* No curve means no numbers. Three empty value slots would read as a broken
+            widget; the states below already say what is actually going on. */}
         <div className="sb-chart-stats-group">
-          <Stat capClass="sb-stat-cap" cap="Avg" value={fmt(derived?.avg)} unit="c/kWh" />
-          <Stat
-            capClass="sb-stat-cap sb-stat-cap-accent"
-            cap="Cheapest"
-            value={fmt(derived?.min)}
-            unit={derived ? `c · ${derived.minPt.time}` : 'c'}
-            valueColor="var(--color-accent)"
-          />
-          <Stat
-            capClass="sb-stat-cap sb-stat-cap-pop"
-            cap="Peak"
-            value={fmt(derived?.max)}
-            unit={derived ? `c · ${derived.maxPt.time}` : 'c'}
-            valueColor="var(--color-pop)"
-          />
+          {derived && (
+            <>
+              <Stat capClass="sb-stat-cap" cap="Avg" value={fmt(derived.avg)} unit="c/kWh" />
+              <Stat
+                capClass="sb-stat-cap sb-stat-cap-accent"
+                cap="Cheapest"
+                value={fmt(derived.min)}
+                unit={`c at ${derived.minPt.time}`}
+                valueColor="var(--color-accent-strong)"
+              />
+              <Stat
+                capClass="sb-stat-cap sb-stat-cap-pop"
+                cap="Peak"
+                value={fmt(derived.max)}
+                unit={`c at ${derived.maxPt.time}`}
+                valueColor="var(--color-warm-strong)"
+              />
+            </>
+          )}
         </div>
         <div className="sb-day-tabs">
           {DAY_ORDER.map((k) => (
@@ -252,9 +246,6 @@ function Chart({
         <div className="sb-chart-state">
           No prices stored for {DAY_LABELS[day].toLowerCase()} yet.
           <br />
-          <span style={{ fontSize: 12.5 }}>
-            Populate the backend first: <code>POST /api/spotprices/populate?day={day}</code>
-          </span>
         </div>
       )}
 
@@ -275,12 +266,11 @@ function Chart({
               <i className="sb-dot" style={{ background: 'var(--color-q-red)' }} /> Expensive
             </span>
             <span>
-              {zoneName} · {DAY_LABELS[day]} · c/kWh
+              {zoneName}, {DAY_LABELS[day].toLowerCase()}, in c/kWh
             </span>
           </div>
 
-          {/* The x axis is the zone's own wall clock, which is NOT the viewer's and not UTC —
-              say so, and give the offset, so a Greek 01:00 bar doesn't read as a Berlin one. */}
+          {/* The x axis is the zone's own wall clock, not the viewer's and not UTC. */}
           <div className="sb-chart-tz">
             Local time in {zoneName} ({derived.offset})
           </div>

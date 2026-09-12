@@ -4,9 +4,7 @@ using spotPriceCalc.Domain;
 
 namespace spotPriceCalc.Infrastructure.Persistence.Configurations;
 
-// Maps the BiddingZone domain entity. The rows themselves are seeded at runtime by
-// DbInitializer.SeedBiddingZonesAsync from BiddingZoneSeedData (the code source of truth), NOT via
-// HasData — so editing the hardcoded zone list is a code change + restart, not a schema migration.
+// Maps the BiddingZone domain entity. Rows are seeded at runtime by DbInitializer, not via HasData.
 public class BiddingZoneConfiguration : IEntityTypeConfiguration<BiddingZone>
 {
     public void Configure(EntityTypeBuilder<BiddingZone> builder)

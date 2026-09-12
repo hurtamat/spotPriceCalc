@@ -1,12 +1,5 @@
-// Bidding-zone catalog: maps the GeoJSON `zoneName` (electricitymaps keys) to our
-// backend bidding-zone ids (BiddingZoneSeedData). This is the bridge the map uses to
-// turn a clicked polygon into a `biddingZoneId` for the price API.
-//
-// Notes on the many-features-to-one-zone cases:
-//   - DE + LU        → zone 7 (Germany-Luxembourg is one bidding zone)
-//   - FR + FR-COR    → zone 11 (Corsica sits in the French bidding zone)
-// Italy Calabria (zone 41) has no separate polygon in the dataset — its area is folded
-// into IT-SO, so it isn't independently selectable on the map.
+// Bidding-zone catalog: maps the GeoJSON `zoneName` to our backend bidding-zone ids.
+// Some keys share an id: DE + LU are one zone (7), FR + FR-COR are one zone (11).
 
 export interface Zone {
   id: number;
@@ -56,13 +49,13 @@ export const ZONE_BY_MAPKEY: Record<string, Zone> = {
   'IT-SAR': { id: 37, name: 'Italy Sardinia' },
   'IT-SIC': { id: 38, name: 'Italy Sicily' },
   'IT-CAL': { id: 41, name: 'Italy Calabria' },
-  // Western Balkans + all-island Ireland (SEM), added when support was extended.
+  // Western Balkans.
   AL: { id: 44, name: 'Albania' },
   ME: { id: 45, name: 'Montenegro' },
   XK: { id: 46, name: 'Kosovo' },
   MK: { id: 47, name: 'North Macedonia' },
   RS: { id: 48, name: 'Serbia' },
-  // The IE polygon covers the whole island (Republic + Northern Ireland) — one all-island SEM zone.
+  // The IE polygon covers the whole island, one all-island SEM zone.
   IE: { id: 49, name: 'Ireland (SEM)' },
 };
 
@@ -74,3 +67,38 @@ export const ZONE_BY_ID: Record<number, Zone> = Object.values(ZONE_BY_MAPKEY).re
   },
   {} as Record<number, Zone>,
 );
+
+// ---------------------------------------------------------------------------
+// Backend zone catalog (GET /api/zones), keyed by ENTSO-E code.
+//
+// Separate from ZONE_BY_MAPKEY above: that one joins GeoJSON polygons to our internal ids for the map,
+// while devices name their zone by code and never see an id. The wizard needs codes, so it asks the
+// backend rather than shipping a second copy of the list.
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5262';
+
+/** A zone as the backend describes it. `code` is the ENTSO-E area code baked into device scripts. */
+export interface ZoneOption {
+  code: string;
+  name: string;
+  /** IANA id, e.g. "Europe/Prague". Display-only — it names the clock the wizard's hours belong to. */
+  time_zone_id: string;
+}
+
+export async function fetchZones(signal?: AbortSignal): Promise<ZoneOption[]> {
+  const res = await fetch(`${API_BASE}/api/zones`, { signal });
+  if (!res.ok) throw new Error(`GET /api/zones failed: ${res.status}`);
+  return res.json();
+}
+
+/** The zone covering a location, for preselecting the dropdown. Null when the backend has no match. */
+export async function resolveZone(
+  lat: number,
+  lon: number,
+  signal?: AbortSignal,
+): Promise<ZoneOption | null> {
+  const res = await fetch(`${API_BASE}/api/zones/resolve?lat=${lat}&lon=${lon}`, { signal });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`GET /api/zones/resolve failed: ${res.status}`);
+  return res.json();
+}

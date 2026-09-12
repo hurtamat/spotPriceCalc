@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="100" viewBox="0 0 420 100">
+  <title>SpotSteer logo, light</title>
+  <!-- Light-ground variant of spotsteer-logo.svg for dark surfaces. Mark geometry and both brand
+       colours are identical to the original; only the wordmark fill changes, #1E2229 -> #E8EDF1. -->
+  <g>
+    <circle cx="50" cy="50" r="34" fill="none" stroke="#1B7EA6" stroke-width="14" stroke-dasharray="150 64" stroke-linecap="round"></circle>
+    <circle cx="71" cy="23" r="13" fill="#E8952B"></circle>
+  </g>
+  <text x="104" y="66" font-family="'Space Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="54" letter-spacing="-1.6" fill="#E8EDF1"><tspan font-weight="700">Spot</tspan><tspan font-weight="400">Steer</tspan></text>
+</svg>

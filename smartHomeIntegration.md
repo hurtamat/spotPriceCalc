@@ -4,10 +4,12 @@ How the smart-home control endpoint works today, the reasoning behind its shape,
 problem left to solve. For the broader product vision see [IDEA.md](./IDEA.md); for the price-data layer this
 sits on top of see [DESIGN.md](./DESIGN.md).
  
-> **Status in one line:** a stateless `POST /api/schedule` takes a thin device's tasks (each: "I need N hours of
-> power by deadline X"), ranks the stored spot-price curve, and returns the **merged run blocks** per task;
-> `GET /api/schedule/status` returns the current price colour for a location. Coordinate→zone resolution works
-> (nearest zone centre). The daily commit model (see the end) is not built yet.
+> **Status in one line:** a stateless `POST /api/shelly/schedule` takes one job ("I need N hours of power by
+> deadline X"), ranks the stored spot-price curve, and returns the **merged run blocks**;
+> `GET /api/shelly/schedule/status` returns the current price colour for a zone, and `GET /api/zones`
+> lists the zones a client can pick from. Coordinate→zone resolution works (nearest zone centre) and is
+> used once at setup, not per request. The commit model is **device-stores** (see the end): the API stays
+> stateless and the device holds its plan.
 
 ---
 
@@ -21,22 +23,25 @@ The design goal throughout is a **thin client**: the device should read one bool
 real thinking (price ranking, windowing, exclusions) happens server-side, once, and is reusable across every
 integration (Shelly first, Home Assistant and others later).
 
-### Device onboarding (planned, not built)
+### Device onboarding (built)
 
-The end-user onboarding is a **separate frontend screen — a step-by-step wizard**. It collects the user's
-parameters (location/zone, hours needed, ready-by time, continuous vs. split, unavailable window,
-switch/channel) and then **outputs a ready-to-paste device script with those values pre-filled**; the user
-copies it into the Shelly Scripts UI. No hand-editing of config, no on-device settings screen. Values are
-**baked in at generation time**, so changing a setting later means re-running the wizard and re-pasting —
-acceptable for set-and-forget appliances. Decided, but not implemented yet. See
-[`scripts/shelly/README.md`](./scripts/shelly/README.md).
+The end-user onboarding is a **separate frontend screen at `/shelly`** — `ShellyWizard.tsx`. It asks the
+browser for coordinates, resolves the zone with `GET /api/zones/resolve`, prefills a dropdown of every zone
+from `GET /api/zones`, and **outputs a ready-to-paste device script** with the answers filled in.
+
+Only what the device cannot change is baked in: the backend URL and the zone code. **The job stays editable
+on the device** through the Virtual Components, so a user changing their deadline does not re-run the wizard
+and re-paste — the wizard's answers are only the starting values. That is the difference from the original
+plan, and it exists because re-pasting a script to move a slider is not something anyone will do.
+
+See [`scripts/shelly/README.md`](./scripts/shelly/README.md) for how the values get into the script.
 
 ---
 
 ## The endpoint
 
 ```
-POST /api/schedule
+POST /api/shelly/schedule
 ```
 
 POST (not GET) so the device can send a structured JSON body instead of a long query string. The device polls
@@ -47,72 +52,106 @@ this periodically, reads the result, and sets its relay.
 ```json
 {
   "device_id": "shelly-1",
-  "lat": 50.08,
-  "lon": 14.44,
-  "date": "2026-08-13",
-  "unavailable": { "from": "07:00:00", "to": "09:00:00" },
-  "tasks": [
-    { "task_id": 1, "duration_hours": 3, "ready_by": "06:00:00", "continuous_block": false }
-  ]
+  "zone_code": "10YCZ-CEPS-----N",
+  "duration_hours": 3,
+  "ready_by_utc": "2026-08-13T04:00:00Z",
+  "continuous_block": false,
+  "unavailable": { "from": "07:00:00", "to": "09:00:00" }
 }
 ```
-
-**Global (device context):**
 
 | Field | Meaning |
 | --- | --- |
 | `device_id` | Identifies the device (logging, later rate-limiting / state). |
-| `lat` / `lon` | GPS. Resolved server-side to a bidding zone. **`decimal`**, matching the exact-value lat/lng convention used everywhere else. |
-| `date` | **Required.** The day to schedule for. The eligible window is this whole day, or the 24h before a task's `ready_by`. |
-| `unavailable` | *Optional.* A single "do not run" window, **time-of-day only** (no date). Applies to every task. May wrap past midnight (`from > to`, e.g. `22:00–06:00`). |
-
-**Tasks (the jobs):** an array so a user can express several needs at once ("1h wash by 14:00" *and* "4h EV
-charge by 07:00").
-
-| Field | Meaning |
-| --- | --- |
-| `task_id` | **`int`**, always supplied by the device script. |
-| `duration_hours` | The one field that's always required — total hours of power the task needs. |
-| `ready_by` | *Optional.* **The anchor** — deadline **time-of-day (UTC)** on `date` that the task must finish by; the window is the 24h before it. Null ⇒ the whole of `date`. |
+| `zone_code` | **Required.** ENTSO-E area code, e.g. `10YCZ-CEPS-----N`. A string, so no client depends on our own zone ids. `GET /api/zones` lists them, and `GET /api/zones/resolve?lat=&lon=` names the one covering a location so a client can preselect it. |
+| `duration_hours` | The one field that's always required — total hours of power the job needs. |
+| `ready_by_local` | *Optional, Shelly only.* The deadline as a **wall clock** in the zone's own local time, e.g. `"06:00:00"`. `SmartHomeShellyController` turns it into an instant against the zone's IANA timezone, taken from the zone catalog — so no timezone is sent. It exists because a Shelly cannot convert: mJS has no timezone database, and a UTC hour baked in by the wizard would drift an hour at every DST switch. `ready_by_utc` wins when both are given. The same conversion shifts `unavailable` from local hours to UTC. |
+| `ready_by_utc` | *Optional.* **The anchor** — the **instant (UTC)** the job must finish by; the window is the 24h before it, never reaching earlier than now. One instant rather than a date plus a wall clock, because only the client knows which timezone the user's clock belongs to. Null ⇒ 24h from now (`ResolveDeadlineUtc`), so "no deadline" means the cheapest hours in the coming day. Not a midnight: that cuts the window at a fixed hour, and a plan made in the evening could not reach the cheap night hours past it. |
 | `continuous_block` | `true` ⇒ hours must run back-to-back (boiler, washer). `false` (default) ⇒ split for the absolute cheapest hours (EV charging, the "don't care" case). |
+| `unavailable` | *Optional.* A "do not run" window, **time-of-day only** (no date), and **in UTC** — the scheduler matches it against each slot's UTC time-of-day. May wrap past midnight (`from > to`, e.g. `22:00–06:00`). A client holding a local wall clock converts it itself, taking the offset **at the deadline**: a time-of-day has no date, so some date has to be picked, and the deadline is the one the window is anchored to. A window straddling a DST switch is then an hour out that day, the same compromise a wall-clock timer makes. Both shipped clients do this — `ShellyLocalTime.ToUtcWindow` server-side for Shelly, `_to_utc_time` in the Home Assistant coordinator. |
 
-The minimal valid request is just a device id, coordinates, and one task with a `duration_hours`.
+**The Shelly response is its own shape.** `ShellyScheduleResponse` is not a `ScheduleResponse`: it sends
+`slots` as bare `[start, end]` string pairs plus the two local-time label strings, and drops the per-block
+price the device never reads. A Shelly has roughly 8 KB of script heap and pays for every byte twice, in the
+response buffer and again in the parsed object graph. The timestamps are formatted `yyyy-MM-ddTHH:mm:ssZ`
+explicitly, because the device compares them as plain strings — that only works while the form is
+fixed-width, so it is a contract rather than a serialisation detail.
+
+**Local time is resolved in the Shelly controller, never in the service.** `ShellyLocalTime` sits beside
+`SmartHomeShellyController`, and `ScheduleService` stays UTC-in/UTC-out for every integration. Home
+Assistant converts properly at its own edge and keeps sending `ready_by_utc`, so nothing shared had to learn
+about wall clocks. The Shelly request is its own DTO, `ShellyScheduleRequest`, for the same reason.
+
+**One request is one job.** The body was a `tasks[]` array; both clients only ever sent one entry, so it is
+flat. Reintroducing the array later is additive.
+
+The minimal valid request is a device id, a zone code, and `duration_hours`.
 
 ### Response
 
+Two shapes, because two clients with very different budgets read it.
+
+**`ScheduleResponse`** — the general one, and what Home Assistant's response is built from:
+
 ```json
 {
-  "device_id": "shelly-1",
+  "device_id": "ha-1",
   "zone_name": "Czech Republic",
-  "tasks": [
-    {
-      "task_id": 1,
-      "scheduled": true,
-      "blocks": [
-        { "start_utc": "2026-08-13T23:00:00Z", "end_utc": "2026-08-14T02:00:00Z", "eur_per_mwh": 42.1 }
-      ]
-    }
+  "scheduled": true,
+  "blocks": [
+    { "start_utc": "2026-08-13T23:00:00Z", "end_utc": "2026-08-14T02:00:00Z", "eur_per_mwh": 42.1 }
   ]
 }
 ```
 
 | Field | Meaning |
 | --- | --- |
-| `zone_name` | Which bidding zone the coordinates resolved to — the only human-readable field, for sanity-checking. |
-| `tasks[].scheduled` | `false` ⇒ the task couldn't be placed (e.g. window too short, or no prices stored). |
-| `tasks[].blocks` | The chosen run-time as **merged contiguous blocks** (UTC, sorted), not individual slots. `eur_per_mwh` is the duration-weighted average across the block. |
+| `zone_name` | The zone `zone_code` named — the only human-readable field, for sanity-checking. |
+| `scheduled` | `false` ⇒ the job couldn't be placed — the eligible window is too short to cover `duration_hours`, no back-to-back run is long enough, or no prices are stored. **Never a partial plan:** a job that can only be half placed comes back `false` with no blocks, because a half-charged car is a failed job, not a cheap one. |
+| `blocks` | The chosen run-time as **merged contiguous blocks** (UTC, sorted), not individual slots. `eur_per_mwh` is the duration-weighted average across the block. |
+
+**`ShellyScheduleResponse`** — what `POST /api/shelly/schedule` actually returns:
+
+```json
+{
+  "device_id": "shelly-1",
+  "scheduled": true,
+  "slots": [["2026-08-13T23:00:00Z", "2026-08-14T02:00:00Z"]],
+  "today_local": "01:00-04:00",
+  "tomorrow_local": "—"
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `slots` | The same blocks as bare `[start, end]` pairs. No price: the script read the two timestamps and threw the object away, and an ~8 KB script heap pays for every byte twice — once in the response buffer, again in the parsed graph. |
+| `today_local` / `tomorrow_local` | Ready-made text for the device's two read-only labels, e.g. `"01:00-04:00, 22:00-23:00"` or `"—"`. Formatted in the zone's own timezone, because mJS has no timezone database and cannot render a UTC instant as local time. |
+
+`zone_name` is absent from the Shelly shape — nothing on the device displayed it.
+
+Slot timestamps are always `yyyy-MM-ddTHH:mm:ssZ`, formatted explicitly rather than left to the serialiser.
+The device compares them as **plain strings**, which is only valid while the form is fixed-width and sorts
+chronologically, so the format is a contract rather than a serialisation detail.
 
 **There is no `relay_state` / `now_utc` / `next_toggle_utc`.** The model changed: the device is handed the
 blocks and runs its relay locally against them, rather than asking "on or off right now?" on every poll. That
 means one call per day instead of one per polling interval — and it sidesteps the recompute-drift problem
 described at the end of this doc, at the cost of the device needing a clock.
 
-The response is **deliberately lean** — it's consumed by a device script, not a human. No display strings, no
-labels, no reasons. Everything is UTC.
+### `POST /api/homeassistant/schedule`
 
-### `GET /api/schedule/status?lat=&lon=&time=`
+The same request, the same `ScheduleService`, a wider response: the committed plan **plus** the price
+curve and the current price level in one payload. Home Assistant publishes price sensors as well as a
+run-block sensor, so folding them together turns three calls per refresh into one. Each controller
+shapes its own response; the base holds only what they share. See [homeAssistantIntegration.md](./homeAssistantIntegration.md).
+
+### `GET /api/shelly/schedule/status?zoneCode=&time=`
 
 A second, much simpler endpoint for ambient display: what colour is the price at this instant?
+
+Keyed by **zone code**, like the schedule POST — a device never sends coordinates. Resolution is a
+setup-time question answered once by `GET /api/zones/resolve`, so `ZoneLocatorService` is now used only
+there and `ScheduleService` no longer depends on it.
 
 | Response | Meaning |
 | --- | --- |
@@ -135,19 +174,29 @@ controller layer is for.
 
 ```
 Controllers/
-├─ SmartHomeIntegrationController.cs   abstract base: the shared HTTP adapter.
-│                                       Holds the scheduler, exposes one virtual step (BuildScheduleAsync).
-└─ SmartHomeShellyController.cs        concrete: POST /api/schedule + GET /api/schedule/status. Inherits
-                                        the base; a vendor controller would override only the mapping.
+├─ SmartHomeController.cs              abstract base: the scheduler, the zone catalog, the clock,
+│                                       and the request validation every integration repeats.
+├─ SmartHomeShellyController.cs        concrete: POST /api/shelly/schedule + GET /api/shelly/schedule/status.
+│                                       Resolves the device's local wall clock, then shapes its own response.
+├─ SmartHomeHomeAssistantController.cs concrete: POST /api/homeassistant/schedule. Same plan, plus the
+│                                       price curve, so the integration needs one call per refresh.
+├─ ShellyLocalTime.cs                  Shelly only: wall clock -> instant, and blocks -> label text,
+│                                       both against the zone's IANA timezone. Beside the controller
+│                                       because ScheduleService stays UTC-in/UTC-out.
+└─ BiddingZonesController.cs           GET /api/zones and /api/zones/resolve, so a client can offer a
+                                        zone picker without shipping its own copy of the list.
 Services/SmartHome/
 ├─ IZoneLocatorService.cs             coordinates → bidding zone (own responsibility).
 ├─ ZoneLocatorService.cs             nearest zone centre (Haversine). Works; wrong right at internal borders.
-├─ IScheduleService.cs               the decision engine's contract.
+├─ IScheduleService.cs               the decision engine's contract. Takes a resolved BiddingZone,
+                                     not a code, so an unknown zone is rejected once at the edge.
 └─ ScheduleService.cs                the brain. Regions: Schedule building / Slot selection / Price colour.
 Dtos/Schedule/
-├─ ScheduleRequest.cs                request + UnavailableWindow + TaskRequest.
-└─ ScheduleResponse.cs               response + TaskResult + ScheduledBlock.
-StatusSchedule.cs                 the colour query (lat, lon, dateTime).
+├─ ScheduleRequest.cs                request + UnavailableWindow, and ResolveDeadlineUtc.
+├─ ScheduleResponse.cs               response + ScheduledBlock.
+├─ ShellyScheduleRequest.cs          adds ready_by_local, the wall-clock deadline.
+├─ ShellyScheduleResponse.cs         the flat device shape: slots + the two label strings.
+├─ HomeAssistantScheduleResponse.cs  the HA response + PriceCurvePoint.
 ```
 
 **Why an abstract base controller *and* a service?** The service is the reusable brain — testable with no HTTP.
@@ -166,36 +215,38 @@ things (`BiddingZoneSeedData`, the private math helpers).
 
 ## The scheduling logic (`ScheduleService`)
 
-For each task, independently:
-
-1. **Anchor on the deadline.** The eligible window is the 24h *before* `ready_by`, or the whole day if there
-   isn't one:
+1. **Anchor on the deadline.** The eligible window is always the 24h *before* it:
    ```
-   ready_by given:  anchor = date @ ready_by (UTC);  windowStart = anchor − 24h
-   ready_by null:   windowStart = date @ 00:00 UTC;  anchor = windowStart + 24h
-   eligible = price slots fully inside [windowStart, anchor]  minus  the unavailable window
+   anchor      = ready_by_utc, or now + 24h when it is null
+   windowStart = max(anchor − 24h, now)
+   eligible    = price slots fully inside [windowStart, anchor]  minus  the unavailable window
    ```
-   With a deadline this is deliberately **not** a calendar day: anchoring on it and looking back keeps the cheap
-   overnight block (e.g. 23:00→05:00) whole instead of slicing it at midnight. `LoadSlotsAsync` therefore reads
-   `date ± 1` so the look-back can reach into the previous day.
+   The `max(…, now)` matters whenever a client sends a deadline closer than 24h — the cheapest hours of a
+   look-back window are often ones that have already passed, and a device cannot run in them.
+   This is deliberately **not** a calendar day: anchoring on the deadline and looking back keeps the cheap
+   overnight block (e.g. 23:00→05:00) whole instead of slicing it at midnight. `LoadSlotsAsync` reads a day
+   either side of the deadline so the look-back can reach into the previous day.
 
 2. **Exclude the unavailable window** — any slot whose UTC time-of-day falls inside it is dropped (wrap-around
    past midnight supported).
 
 3. **Select the hours:**
    - `continuous_block = false` → greedily take the cheapest slots until `duration_hours` is covered.
-   - `continuous_block = true` → slide a back-to-back block of the required length over the eligible slots and
-     pick the cheapest valid position.
+   - `continuous_block = true` → grow a back-to-back run from each start until it covers `duration_hours`, and
+     keep the cheapest, comparing runs by duration-weighted cost rather than a raw price sum.
 
-The per-task evaluation is factored into its own `EvaluateTask` helper (self-contained, static, testable).
-`relay_state` is then the OR of "is now inside any chosen slot" across all tasks.
+   Either way, **not covering the duration returns nothing**, so `scheduled` is `false` rather than a short plan.
 
-### Everything is UTC (for now)
+Durations are `TimeSpan`, never fractional hours: ticks are integers, so "did we cover the job?" is an exact
+comparison with no floating-point tolerance. `Evaluate` is a static helper taking `nowUtc` as a parameter, so
+it is a pure function of its inputs and testable with no clock.
 
-The whole computation is UTC in / UTC out; we assume the client sends UTC and we return UTC. Slot granularity
-follows the stored price curve (hourly today, but 15-minute is handled if the data has it). There's a
-`TODO(timezone)` throughout: the proper design resolves the zone's IANA `TimeZoneId`, keeps the math in UTC,
-and converts to the device's local time at the controller edge for display.
+### Everything is UTC
+
+UTC in / UTC out. The deadline arrives as an **instant**, so nothing here has to guess what a wall clock
+meant — a client whose user picks a local time converts at its own edge, where the timezone is known. The
+one wall-clock value left is the unavailable window, a UTC time-of-day pair. Slot granularity follows the
+stored price curve (hourly today, 15-minute handled if the data has it).
 
 ---
 
@@ -205,15 +256,16 @@ and converts to the device's local time at the controller edge for display.
   centre by Haversine distance. Good enough away from borders, **wrong right at internal ones** (and inside
   multi-zone countries like Italy, Sweden and Norway it's essentially a guess). `TODO(geojson)`: point-in-polygon,
   keeping nearest-centre as the no-match fallback.
-- **Timezone handling is deferred** — UTC assumed end to end. Note the *market* day is CET (see DESIGN.md), so
-  for the 9 non-CET zones a "day" of prices doesn't start at the user's local midnight.
+- **Timezones are the client's job** — the deadline arrives as an instant, so the API never guesses. Note the
+  *market* day is CET (see DESIGN.md), so for the 9 non-CET zones a "day" of prices doesn't start at the
+  user's local midnight.
 - **The read depends on populated prices** — the scheduler only sees what's in the DB. `PriceDataScheduler`
   handles that automatically now (startup catch-up + a daily run), so this is only a problem on a fresh DB.
 - **`/status` returns 204 until prices are classified**, which needs the calc-service running during populate.
 
 ---
 
-## Open problem: stateless recompute drifts — commit vs. track
+## Commit vs. track — the drift problem, and what was decided
 
 The endpoint today is **stateless**: it recomputes the plan from scratch on every call. That's simple, but it's
 **wrong across a day** if the device polls repeatedly, because the optimization *moves* as time advances.
@@ -245,9 +297,23 @@ That leaves one choice — **where the frozen plan lives:**
   a reboot re-fetch should still return the *same* committed plan, so we'd likely persist it server-side
   anyway.
 
-**Progress-tracking** ("how many hours done") only returns if we want the system to be **adaptive** — e.g. the
-device was offline during a committed ON-hour and missed charge, so it should make it up. That's a v2 robustness
-feature, not part of the first commit model.
+### Decided: device-stores
 
-**Next step:** decide server-stores vs. device-stores, then add the committed-schedule persistence and switch
-the endpoint from "optimize live" to "read the committed plan."
+**Device-stores is what shipped**, and the API is still stateless — there is no `committed_schedule` table.
+The device fetches a plan, writes it to KVS, and its own 5-minute tick drives the relay from that stored copy.
+Drift is gone because it *does not re-fetch per poll*: it re-fetches only when the day rolls over, when the
+day-ahead prices publish, or when the user edits a Virtual Component. A reboot reloads the plan from KVS
+rather than asking again.
+
+Server-stores was the recommendation above and is still the better shape on paper. It lost on cost: it needs a
+new table, a commit step in the daily job, and per-device identity and auth that do not exist yet, and the
+device has to keep a plan across reboots either way. When device identity arrives, this is worth revisiting.
+
+**What device-stores does not solve:** an edit mid-plan re-optimises the *remaining* window with no memory of
+hours already delivered. Change "hours needed" at 02:30 having already charged two hours and the fresh plan
+schedules the full duration again. It is the same over-delivery as the polling example above, now triggered by
+a deliberate act rather than by every poll — rare and user-initiated instead of constant and invisible, which
+is why it was accepted. Fixing it properly is the progress-tracking work below.
+
+**Progress-tracking** ("how many hours done") is still the v2 robustness feature: it would also cover a device
+that was offline during a committed ON-hour and should make the time up.

@@ -28,7 +28,7 @@ services:
       postgres:
         condition: service_healthy
       calc-service:
-        condition: service_started
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # Overrides ConnectionStrings:Postgres from appsettings — talks to the db container over the
@@ -48,6 +48,11 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:

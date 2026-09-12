@@ -1,11 +1,14 @@
-using spotPriceCalc.Infrastructure.Persistence;
+using spotPriceCalc.Services.Zones;
 
 namespace spotPriceCalc.Services.SmartHome;
 
-// Coordinates → bidding zone by nearest zone centre. First cut: wrong right at internal borders (only
-// centres, no polygons). TODO(geojson): point-in-polygon, keeping nearest-centre as the no-match fallback.
+// Coordinates → bidding zone by nearest zone centre. TODO(geojson): point-in-polygon.
 public class ZoneLocatorService : IZoneLocatorService
 {
+    private readonly IBiddingZoneCatalog _zones;
+
+    public ZoneLocatorService(IBiddingZoneCatalog zones) => _zones = zones;
+
     public int ResolveBiddingZone(decimal latitude, decimal longitude)
     {
         var lat = (double)latitude;
@@ -13,7 +16,7 @@ public class ZoneLocatorService : IZoneLocatorService
 
         int nearestId = 0;
         double nearestKm = double.MaxValue;
-        foreach (var zone in BiddingZoneSeedData.Zones)
+        foreach (var zone in _zones.All)
         {
             var km = HaversineKm(lat, lon, (double)zone.Latitude, (double)zone.Longitude);
             if (km < nearestKm)

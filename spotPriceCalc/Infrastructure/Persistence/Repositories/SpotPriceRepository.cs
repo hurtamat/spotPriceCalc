@@ -21,19 +21,7 @@ public class SpotPriceRepository : ISpotPriceRepository
         return new ZoneSpotPrices { BiddingZoneId = biddingZoneId, Points = points };
     }
 
-    public async Task<IReadOnlyList<decimal>> GetPriceValuesAsync(
-        int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct)
-    {
-        return await _db.SpotPrices
-            .Where(p => p.BiddingZoneId == biddingZoneId && p.From >= fromUtc && p.From < toUtcExclusive)
-            .OrderBy(p => p.From)
-            .Select(p => p.Price)
-            .ToListAsync(ct);
-    }
-
-    // Minimum stored slots for a day to count as populated. Below both a full hourly day (24) and a full
-    // 15-minute day (96), but above the handful a wrong/edge window could contain — so a genuinely missing
-    // day is never mistaken for present.
+    // Minimum stored slots for a day to count as populated more than where CET is +2 with 15min slots so 8. It's a rough assumption.
     private const int MinSlotsForDay = 12;
 
     public async Task<bool> HasDayAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct)
@@ -49,8 +37,7 @@ public class SpotPriceRepository : ISpotPriceRepository
         if (prices.Points.Count == 0)
             return;
 
-        // Skip slots already stored (unique index is BiddingZoneId + From), so re-saving a day is a no-op
-        // rather than a duplicate-key error.
+        // Skip slots already stored, so re-saving a day is a no-op rather than a duplicate-key error.
         var incomingStarts = prices.Points.Select(p => p.From).ToList();
         var existingStarts = await _db.SpotPrices
             .Where(p => p.BiddingZoneId == prices.BiddingZoneId && incomingStarts.Contains(p.From))
@@ -72,18 +59,12 @@ public class SpotPriceRepository : ISpotPriceRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task SetQuantilesAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive,
-        decimal lower, decimal upper, CancellationToken ct)
-    {
-        var rows = await _db.SpotPrices
+    public Task SetQuantilesAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive,
+        decimal lower, decimal upper, CancellationToken ct) =>
+        _db.SpotPrices
             .Where(p => p.BiddingZoneId == biddingZoneId && p.From >= fromUtc && p.From < toUtcExclusive)
-            .ToListAsync(ct);
-
-        foreach (var row in rows)
-            row.Quantile = row.Price < lower ? PriceQuantile.Green
-                : row.Price > upper ? PriceQuantile.Red
-                : PriceQuantile.Yellow;
-
-        await _db.SaveChangesAsync(ct);
-    }
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Quantile,
+                p => p.Price < lower ? (PriceQuantile?)PriceQuantile.Green
+                    : p.Price > upper ? PriceQuantile.Red
+                    : PriceQuantile.Yellow), ct);
 }

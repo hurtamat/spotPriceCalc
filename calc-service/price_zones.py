@@ -1,8 +1,8 @@
+import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException
-import numpy as np
 
-from wire import WireModel
+from wire import PricePoint, WireModel
 
 router = APIRouter(tags=["price-zones"])
 
@@ -19,9 +19,13 @@ class PriceZonesResponse(WireModel):
 
 
 @router.post("/price-zones", response_model=PriceZonesResponse)
-def price_zones(eur_per_mwh: list[float]) -> PriceZonesResponse:
+def price_zones(prices: list[PricePoint]) -> PriceZonesResponse:
+    if not prices:
+        raise HTTPException(status_code=422, detail="prices must not be empty")
 
-    pandas_list = pd.Series(eur_per_mwh)
+    ordered = sorted(prices, key=lambda p: p.from_utc)
+
+    pandas_list = pd.Series([p.eur_per_mwh for p in ordered])
     ma = pandas_list.rolling(MA_WINDOW, min_periods=1).mean()
 
     residuals = pandas_list - ma

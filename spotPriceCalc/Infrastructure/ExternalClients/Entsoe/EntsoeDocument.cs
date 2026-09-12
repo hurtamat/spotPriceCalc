@@ -2,9 +2,7 @@ using System.Xml.Serialization;
 
 namespace spotPriceCalc.Infrastructure.ExternalClients.Entsoe;
 
-// Plain DTOs that mirror the ENTSO-E A44 XML 1:1. No logic, no date math — just the shape of the
-// document, so XmlSerializer can fill them straight from the response. Element names match the XML
-// exactly (dots and all).
+// Plain DTOs that mirror the ENTSO-E A44 XML 1:1, no logic.
 
 [XmlRoot("Publication_MarketDocument")]
 public class PublicationMarketDocument
@@ -19,7 +17,6 @@ public class TimeSeriesXml
     public string ContractType { get; set; } = "";
 
     // Absent on the authoritative (SDAC) series, present on secondary auctions (EXAA / intraday).
-    // Nullable => stays null when the element isn't in the XML, which is exactly how we tell them apart.
     [XmlElement("classificationSequence_AttributeInstanceComponent.position")]
     public int? ClassificationSequencePosition { get; set; }
 

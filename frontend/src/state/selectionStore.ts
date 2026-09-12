@@ -1,13 +1,10 @@
-// One-way broadcast of the zone/day picked on the price map.
-//
-// PriceSection still owns that state; this is write-only from its side. It exists because the
-// Individual-savings section renders outside PriceSection (a full-bleed slider with a fixed mobile
-// height, so it can't host more content) but needs the same selection and the same fetched curve.
+// One-way broadcast of the zone/day picked on the price map, so Individual-savings
+// (which renders outside PriceSection) can follow the same selection and curve.
 import { useSyncExternalStore } from 'react';
 import type { DayKey, ZoneSpotPrices } from '../api/spotPrices';
 import { ZONE_BY_ID } from '../api/zones';
 
-/** Germany-Luxembourg — the same default PriceSection starts on. */
+/** Germany-Luxembourg, the same default PriceSection starts on. */
 const DEFAULT_ZONE_ID = 7;
 
 export interface Selection {
@@ -29,8 +26,7 @@ const INITIAL: Selection = {
 let current: Selection = INITIAL;
 const listeners = new Set<() => void>();
 
-/** PriceSection only. `zoneId: null` is the mobile "nothing tapped yet" state — we keep the last
- *  real zone rather than propagate a null. */
+/** PriceSection only. `zoneId: null` is the mobile "nothing tapped yet" state; keeps the last zone. */
 export function publishSelection(next: {
   zoneId: number | null;
   day: DayKey;

@@ -5,61 +5,51 @@ using spotPriceCalc.Infrastructure.Persistence;
 
 namespace spotPriceCalc.Services.SmartHome;
 
-// Price-ranking scheduler (v1): cheapest hours under the given constraints. Thermal/comfort optimisation is
-// planned for the Python calc-service. TODO(timezone): UTC in / UTC out; convert to device-local at the edge.
+// Price-ranking scheduler, cheapest hours under the given constraints. UTC in, UTC out.
 public class ScheduleService : IScheduleService
 {
     private readonly ISpotPriceService _prices;
-    private readonly IZoneLocatorService _zoneLocator;
+    private readonly TimeProvider _clock;
     private readonly ILogger<ScheduleService> _logger;
 
-    public ScheduleService(ISpotPriceService prices, IZoneLocatorService zoneLocator, ILogger<ScheduleService> logger)
+    // No IZoneLocatorService: every request names its zone by code. Coordinates are resolved once at
+    // setup time via GET /api/zones/resolve, which is where the locator now lives.
+    public ScheduleService(ISpotPriceService prices, TimeProvider clock, ILogger<ScheduleService> logger)
     {
         _prices = prices;
-        _zoneLocator = zoneLocator;
+        _clock = clock;
         _logger = logger;
     }
     
     private record Slot(DateTime Start, DateTime End, decimal Price)
     {
-        public double Hours => (End - Start).TotalHours;
+        public TimeSpan Length => End - Start;
+        public decimal Cost => Price * (decimal)Length.TotalHours;
     }
 
     #region Schedule building
 
-    public async Task<ScheduleResponse> BuildAsync(ScheduleRequest request, CancellationToken ct)
+    public async Task<ScheduleResponse> BuildAsync(BiddingZone zone, ScheduleRequest request, CancellationToken ct)
     {
-        var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
-        if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out var zone))
-            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
-
-        var slots = await LoadSlotsAsync(biddingZoneId, request.Date, ct);
-
-        var taskResults = new List<TaskResult>();
-        foreach (var task in request.Tasks)
-        {
-            var chosen = EvaluateTask(task, slots, request.Date, request.Unavailable);
-            taskResults.Add(new TaskResult
-            {
-                TaskId = task.TaskId,
-                Scheduled = chosen.Count > 0,
-                Blocks = MergeIntoBlocks(chosen),
-            });
-        }
+        var nowUtc = _clock.GetUtcNow().UtcDateTime;
+        var deadline = request.ResolveDeadlineUtc(nowUtc);
+        var slots = await LoadSlotsAsync(zone.Id, deadline, ct);
+        var chosen = Evaluate(request, slots, deadline, nowUtc);
 
         return new ScheduleResponse
         {
             DeviceId = request.DeviceId,
             ZoneName = zone.Name,
-            Tasks = taskResults,
+            Scheduled = chosen.Count > 0,
+            Blocks = MergeIntoBlocks(chosen),
         };
     }
 
-    // Fetch the stored curve as UTC slots over a ±1-day window (the 24h-before-ready_by window can reach
-    // into the previous day).
-    private async Task<List<Slot>> LoadSlotsAsync(int zoneId, DateOnly date, CancellationToken ct)
+    // The stored curve as UTC slots, padded a day each side so the 24h look-back is covered.
+    private async Task<List<Slot>> LoadSlotsAsync(int zoneId, DateTime deadlineUtc, CancellationToken ct)
     {
-        var priced = await _prices.GetPricesAsync(zoneId, date.AddDays(-1), date.AddDays(1), ct);
+        var day = MarketDay.ContainingDay(deadlineUtc);
+        var priced = await _prices.GetPricesAsync(zoneId, day.AddDays(-1), day.AddDays(1), ct);
 
         return priced.Points
             .Select(p => new Slot(
@@ -70,100 +60,96 @@ public class ScheduleService : IScheduleService
             .ToList();
     }
 
-    private static List<Slot> EvaluateTask(
-        TaskRequest task,
-        List<Slot> slots,
-        DateOnly date,
-        UnavailableWindow? unavailable)
+    private static List<Slot> Evaluate(
+        ScheduleRequest request, List<Slot> slots, DateTime deadlineUtc, DateTime nowUtc)
     {
-        // ready by means 24 horus before otherwise the whole day 
-        DateTime windowStart, anchor;
-        if (task.ReadyBy is TimeOnly readyBy)
-        {
-            anchor = date.ToDateTime(readyBy, DateTimeKind.Utc);
-            windowStart = anchor.AddHours(-24);
-        }
-        else
-        {
-            windowStart = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            anchor = windowStart.AddDays(1);
-        }
+        var lookBack = deadlineUtc.AddHours(-24);
+        var windowStart = lookBack < nowUtc ? nowUtc : lookBack;
 
         var eligible = slots
-            .Where(s => s.Start >= windowStart && s.End <= anchor)
-            .Where(s => !IsExcluded(s, unavailable))
+            .Where(s => s.Start >= windowStart && s.End <= deadlineUtc)
+            .Where(s => !IsExcluded(s, request.Unavailable))
             .OrderBy(s => s.Start)
             .ToList();
 
-        return task.ContinuousBlock
-            ? SelectContiguous(eligible, task)
-            : SelectCheapest(eligible, task);
+        var needed = TimeSpan.FromHours(request.DurationHours);
+        return request.ContinuousBlock
+            ? SelectContiguous(eligible, needed)
+            : SelectCheapest(eligible, needed);
     }
 
     #endregion
 
     #region Slot selection
 
-    private static List<Slot> SelectCheapest(List<Slot> eligible, TaskRequest task)
+    private static List<Slot> SelectCheapest(List<Slot> eligible, TimeSpan needed)
     {
         var chosen = new List<Slot>();
-        var covered = 0.0;
+        var covered = TimeSpan.Zero;
         foreach (var s in eligible.OrderBy(s => s.Price).ThenBy(s => s.Start))
         {
-            if (covered >= task.DurationHours) break;
+            if (covered >= needed) break;
             chosen.Add(s);
-            covered += s.Hours;
+            covered += s.Length;
         }
+        
+        if (covered < needed)
+            return new List<Slot>();
+
         return chosen.OrderBy(s => s.Start).ToList();
     }
 
-    private static List<Slot> SelectContiguous(List<Slot> eligible, TaskRequest task)
+    // Cheapest back-to-back run covering the job
+    private static List<Slot> SelectContiguous(List<Slot> eligible, TimeSpan needed)
     {
         var byTime = eligible.OrderBy(s => s.Start).ToList();
-        if (byTime.Count == 0) return new List<Slot>();
-
-        var slotHours = byTime[0].Hours;
-        var needed = Math.Max(1, (int)Math.Ceiling(task.DurationHours / slotHours - 1e-9));
 
         List<Slot>? best = null;
         decimal bestCost = decimal.MaxValue;
 
-        for (var i = 0; i + needed <= byTime.Count; i++)
+        for (var i = 0; i < byTime.Count; i++)
         {
-            var block = byTime.GetRange(i, needed);
-            if (!IsContiguous(block)) continue;
+            var covered = TimeSpan.Zero;
+            var cost = 0m;
 
-            var cost = block.Sum(s => s.Price);
-            if (cost < bestCost)
+            for (var j = i; j < byTime.Count; j++)
             {
-                bestCost = cost;
-                best = block;
+                if (j > i && byTime[j].Start != byTime[j - 1].End) break; // gap
+
+                covered += byTime[j].Length;
+                cost += byTime[j].Cost;
+                if (covered < needed) continue;
+
+                if (cost < bestCost)
+                {
+                    bestCost = cost;
+                    best = byTime.GetRange(i, j - i + 1);
+                }
+                break;
             }
         }
 
         return best ?? new List<Slot>();
     }
 
-    // Is the slot inside the "do not run" window (by UTC time-of-day)? from > to wraps past midnight.
+    // Does the slot overlap the "do not run" window at all?
     private static bool IsExcluded(Slot s, UnavailableWindow? window)
     {
         if (window is null) return false;
-        var t = TimeOnly.FromDateTime(s.Start);
-        return window.From <= window.To
-            ? t >= window.From && t < window.To          // same-day range
-            : t >= window.From || t < window.To;          // wraps past midnight
+
+        var start = TimeOnly.FromDateTime(s.Start);
+        var end = TimeOnly.FromDateTime(s.End);
+
+        return InRange(start, window.From, window.To) || InRange(window.From, start, end);
     }
 
-    private static bool IsContiguous(IReadOnlyList<Slot> block)
-    {
-        for (var i = 1; i < block.Count; i++)
-            if (block[i].Start != block[i - 1].End)
-                return false;
-        return true;
-    }
+    // Half-open [from, to) on the 24h clock; from > to wraps past midnight.
+    private static bool InRange(TimeOnly t, TimeOnly from, TimeOnly to) =>
+        from <= to
+            ? t >= from && t < to
+            : t >= from || t < to;
 
-    // Collapse contiguous chosen slots into single blocks so we don't emit every 15-min/hourly slot
-    // separately. Split (non-continuous) selections naturally yield multiple blocks.
+    // Collapse contiguous chosen slots into single blocks.
     private static List<ScheduledBlock> MergeIntoBlocks(List<Slot> chosen)
     {
         var ordered = chosen.OrderBy(s => s.Start).ToList();
@@ -174,15 +160,15 @@ public class ScheduleService : IScheduleService
         {
             var start = ordered[i].Start;
             var end = ordered[i].End;
-            var weightedPrice = ordered[i].Price * (decimal)ordered[i].Hours;
-            var hours = ordered[i].Hours;
+            var cost = ordered[i].Cost;
+            var length = ordered[i].Length;
 
             var j = i + 1;
             while (j < ordered.Count && ordered[j].Start == end)
             {
                 end = ordered[j].End;
-                weightedPrice += ordered[j].Price * (decimal)ordered[j].Hours;
-                hours += ordered[j].Hours;
+                cost += ordered[j].Cost;
+                length += ordered[j].Length;
                 j++;
             }
 
@@ -190,7 +176,9 @@ public class ScheduleService : IScheduleService
             {
                 StartUtc = start,
                 EndUtc = end,
-                EurPerMwh = hours > 0 ? decimal.Round(weightedPrice / (decimal)hours, 4) : ordered[i].Price,
+                EurPerMwh = length > TimeSpan.Zero
+                    ? decimal.Round(cost / (decimal)length.TotalHours, 4)
+                    : ordered[i].Price,
             });
             i = j;
         }
@@ -203,14 +191,12 @@ public class ScheduleService : IScheduleService
     #region Price colour
 
     // Null = no colour applies (day missing or not yet classified); the caller turns the indicator off.
-    public async Task<PriceColor?> ResolveStatus(StatusSchedule request, CancellationToken ct)
+    public async Task<PriceColor?> ResolveStatus(BiddingZone zone, DateTime atUtc, CancellationToken ct)
     {
-        var biddingZoneId = _zoneLocator.ResolveBiddingZone(request.Lat, request.Lon);
-        if (!BiddingZoneSeedData.ById.TryGetValue(biddingZoneId, out _))
-            throw new ArgumentException($"Unknown bidding zone id {biddingZoneId}.", nameof(request));
+        var biddingZoneId = zone.Id;
 
-        // Client timestamps are UTC by contract (see SmartHomeIntegrationController).
-        var at = DateTime.SpecifyKind(request.StatusTime, DateTimeKind.Utc);
+        // Client timestamps are UTC by contract (see SmartHomeController).
+        var at = DateTime.SpecifyKind(atUtc, DateTimeKind.Utc);
         var prices = await _prices.GetPricesAsync(biddingZoneId, at, ct);
 
         // Quantile is stamped at populate time, so this is a lookup. Half-open [From, To) as everywhere else.
@@ -218,18 +204,53 @@ public class ScheduleService : IScheduleService
 
         if (slot?.Quantile is not { } quantile)
         {
-            // Better dark than a guessed colour. A steady stream of these means populate is behind.
-            _logger.LogWarning("No classified slot for zone {ZoneId} at {At:o} — no colour", biddingZoneId, at);
+            // Better dark than a guessed colour.
+            _logger.LogWarning("No classified slot for zone {ZoneId} at {At:o}: no colour", biddingZoneId, at);
             return null;
         }
 
-        return quantile switch
-        {
-            PriceQuantile.Green => PriceColor.Green,
-            PriceQuantile.Red => PriceColor.Red,
-            _ => PriceColor.Yellow,
-        };
+        return ToColor(quantile);
     }
+
+    // The curve for the instant's day and the next. Null when the zone has nothing stored.
+    public async Task<IReadOnlyList<PriceCurvePoint>?> ResolvePriceCurveAsync(
+        BiddingZone zone, DateTime atUtc, CancellationToken ct)
+    {
+        var biddingZoneId = zone.Id;
+        var at = DateTime.SpecifyKind(atUtc, DateTimeKind.Utc);
+        var day = MarketDay.ContainingDay(at);
+
+        // Today and tomorrow. Tomorrow is simply absent until the day-ahead prices publish.
+        var prices = await _prices.GetPricesAsync(biddingZoneId, day, day.AddDays(1), ct);
+
+        var curve = prices.Points
+            .OrderBy(p => p.From)
+            .Select(p => new PriceCurvePoint
+            {
+                StartUtc = DateTime.SpecifyKind(p.From, DateTimeKind.Utc),
+                EndUtc = DateTime.SpecifyKind(p.To, DateTimeKind.Utc),
+                EurPerMwh = p.Price,
+                Level = ToColor(p.Quantile),
+            })
+            .ToList();
+
+        if (curve.Count == 0)
+        {
+            _logger.LogWarning("No stored prices for zone {ZoneId} on {Day}: no curve", biddingZoneId, day);
+            return null;
+        }
+
+        return curve;
+    }
+
+    // Null quantile stays null: better no colour than a guessed one.
+    private static PriceColor? ToColor(PriceQuantile? quantile) => quantile switch
+    {
+        PriceQuantile.Green => PriceColor.Green,
+        PriceQuantile.Red => PriceColor.Red,
+        null => null,
+        _ => PriceColor.Yellow,
+    };
 
     #endregion
 }

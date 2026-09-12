@@ -15,10 +15,16 @@ node_modules/
 dist/
 .vite/
 
+# script generated minified versions served to users. 
+!/scripts/shelly/dist/
+
 # IDE
 .idea/
 .claude/
 CLAUDE.md
+
+# Agent skills (taste-skill), reinstallable from skills-lock.json
+.agents/
 
 # Terraform
 .terraform/

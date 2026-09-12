@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using spotPriceCalc.Dtos;
 using spotPriceCalc.Dtos.PriceZones;
 
 namespace spotPriceCalc.Infrastructure.ExternalClients;
@@ -10,9 +11,9 @@ public class CalcServicePriceZoneClient : IPriceZoneProvider
 
     public CalcServicePriceZoneClient(HttpClient httpClient) => _httpClient = httpClient;
 
-    public async Task<PriceZonesResponse> GetPriceZonesAsync(IReadOnlyList<decimal> eurPerMwh, CancellationToken ct)
+    public async Task<PriceZonesResponse> GetPriceZonesAsync(IReadOnlyList<PricePointDto> prices, CancellationToken ct)
     {
-        var response = await _httpClient.PostAsJsonAsync("price-zones", eurPerMwh, ct);
+        var response = await _httpClient.PostAsJsonAsync("price-zones", prices, ct);
 
         // FastAPI answers a bad payload with 422 + a detail body; surface it instead of a bare status code.
         if (!response.IsSuccessStatusCode)

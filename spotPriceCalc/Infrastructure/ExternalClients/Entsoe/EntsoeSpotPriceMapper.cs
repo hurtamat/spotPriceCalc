@@ -4,18 +4,16 @@ using spotPriceCalc.Domain;
 
 namespace spotPriceCalc.Infrastructure.ExternalClients.Entsoe;
 
-// Turns the raw XML DTOs into zone-agnostic PricePoints — the only place doing date math and A03
-// carry-forward. Zone id is stamped later by the client.
+// Turns the raw XML DTOs into zone-agnostic PricePoints. Zone id is stamped later by the client.
 public static class EntsoeSpotPriceMapper
 {
-    // Expands one Period into one PricePoint per slot. Positions are sparse (A03): a missing position means
-    // "same price as previous", so we walk 1..N carrying the last seen price forward.
+    // Expands one Period into one PricePoint per slot, carrying the last seen price forward.
     public static IReadOnlyList<PricePoint> ToPricePoints(this PeriodXml period)
     {
         var start = ParseUtc(period.TimeInterval.Start);
         var end = ParseUtc(period.TimeInterval.End);
 
-        // "PT15M" / "PT60M" -> a TimeSpan. Slot count = window length / resolution.
+        // Slot count = window length / resolution.
         var resolution = XmlConvert.ToTimeSpan(period.Resolution);
         var slotCount = (int)((end - start) / resolution);
 

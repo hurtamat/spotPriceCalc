@@ -1,38 +1,54 @@
 using Microsoft.AspNetCore.Mvc;
+using spotPriceCalc.Services.Zones;
 using spotPriceCalc.Dtos.Schedule;
 using spotPriceCalc.Services.SmartHome;
 
 namespace spotPriceCalc.Controllers;
 
-/// <summary>Shelly integration endpoint. POST /api/schedule — a Shelly device sends its availability window
-/// and tasks, gets back the current relay state plus the per-task plan. Inherits the shared pipeline from
-/// <see cref="SmartHomeIntegrationController"/>; if Shelly ever needs a vendor-specific request/response
-/// shape, override <c>BuildScheduleAsync</c> here rather than touching the base.</summary>
+/// <summary>Shelly integration endpoints: POST /api/shelly/schedule and GET /api/shelly/schedule/status.</summary>
 [ApiController]
-[Route("api/schedule")]
-public class SmartHomeShellyController : SmartHomeIntegrationController
+[Route("api/shelly")]
+public class SmartHomeShellyController : SmartHomeController
 {
-    public SmartHomeShellyController(IScheduleService schedule) : base(schedule)
+    public SmartHomeShellyController(
+        IScheduleService schedule, IBiddingZoneCatalog zones, TimeProvider clock)
+        : base(schedule, zones, clock)
     {
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Post([FromBody] ScheduleRequest request, CancellationToken ct)
+    [HttpPost("schedule")]
+    public async Task<IActionResult> Post([FromBody] ShellyScheduleRequest request, CancellationToken ct)
     {
-        if (request.Tasks is null || request.Tasks.Count == 0)
-            return BadRequest("At least one task is required.");
+        if (Validate(request.ZoneCode, request.DurationHours, out var zone) is { } error)
+            return error;
 
-        var response = await BuildScheduleAsync(request, ct);
-        return Ok(response);
+        // The device sends a wall clock in its zone's local time; the scheduler only sees instants.
+        // Read once, so the deadline and the two labels agree.
+        var now = UtcNow;
+        var resolved = ShellyLocalTime.Resolve(request, zone.TimeZoneId, now);
+
+        var schedule = await _schedule.BuildAsync(zone, resolved, ct);
+
+        return Ok(new ShellyScheduleResponse
+        {
+            DeviceId = schedule.DeviceId,
+            Scheduled = schedule.Scheduled,
+            Slots = schedule.Blocks.Select(ShellyScheduleResponse.ToPair).ToList(),
+            // The device shows these verbatim; it cannot convert UTC to local itself.
+            TodayLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 0, now),
+            TomorrowLocal = ShellyLocalTime.FormatLocalDay(schedule.Blocks, zone.TimeZoneId, 1, now),
+        });
     }
 
-    [HttpGet("status")]
-    public async Task<IActionResult> Status([FromQuery] decimal lat, decimal lon, DateTime time, CancellationToken ct)
+    [HttpGet("schedule/status")]
+    public async Task<IActionResult> Status([FromQuery] string zoneCode, DateTime time, CancellationToken ct)
     {
-        var response = await _schedule.ResolveStatus(
-            new StatusSchedule { Lat = lat, Lon = lon, StatusTime = time }, ct);
+        if (Validate(zoneCode, durationHours: null, out var zone) is { } error)
+            return error;
 
-        // 204 when no colour applies — the device script clears its LEDs on anything that isn't a 200.
+        var response = await _schedule.ResolveStatus(zone, time, ct);
+
+        // 204 when no colour applies; the device script clears its LEDs on anything that isn't a 200.
         return response is null ? NoContent() : Ok(response);
     }
 }

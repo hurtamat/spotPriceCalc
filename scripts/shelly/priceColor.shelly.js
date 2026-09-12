@@ -1,21 +1,19 @@
-// price-color client — show the current price colour (green/yellow/red) on the device.
+// price-color client: shows the current price colour (green/yellow/red) on the device.
 
+// Plain http:// to the dev machine on the LAN — the TLS handshake OOMs this device. See README.md.
+// The placeholder values below are filled in by the setup wizard before the user pastes this. Strings
+// only, so the minifier cannot fold them away — see minify.sh.
 let COLOR_CONFIG = {
-  backendUrl: "https://spotbuddy-backend.yellowsea-e9574071.westeurope.azurecontainerapps.io",
-  endpoint: "/api/schedule/status",
+  backendUrl: "__BACKEND_URL__",
+  endpoint: "/api/shelly/schedule/status",
   timeoutSec: 15,
   fetchSec: 300,
-  lat: 50.08,   // location fallback
-  lon: 14.44,
+  // ENTSO-E area code, resolved from the user's coordinates at wizard time — same contract as
+  // schedule.shelly.js, so neither script resolves geography on the device.
+  zoneCode: "__ZONE_CODE__",
 };
 
 function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }
-
-function deviceLocation() {
-  let sys = Shelly.getComponentConfig("sys");
-  if (sys && sys.location && typeof sys.location.lat === "number") return sys.location;
-  return null;
-}
 
 // 0=green, 1=yellow, 2=red.
 function parseCode(body) {
@@ -28,7 +26,7 @@ function parseCode(body) {
 // regardless of relay state.
 function rgbFor(code) {
   if (code === 0) return [0, 100, 0];    // green
-  if (code === 1) return [100, 55, 0];   // yellow/amber — green pulled down so it isn't greenish
+  if (code === 1) return [100, 55, 0];   // yellow/amber, green pulled down so it isn't greenish
   if (code === 2) return [100, 0, 0];    // red
   return null;
 }
@@ -53,10 +51,8 @@ function clearColor() {
 }
 
 function fetchColor() {
-  let loc = deviceLocation();
   let url = COLOR_CONFIG.backendUrl + COLOR_CONFIG.endpoint +
-    "?lat=" + (loc ? loc.lat : COLOR_CONFIG.lat) +
-    "&lon=" + (loc ? loc.lon : COLOR_CONFIG.lon) +
+    "?zoneCode=" + COLOR_CONFIG.zoneCode +
     "&time=" + nowIso();
 
   print("fetching colour @ " + nowIso());

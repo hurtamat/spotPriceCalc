@@ -1,10 +1,8 @@
 // Client for the .NET spot-price API (GET /api/spotprices).
-// `date` is the zone's LOCAL delivery day; the backend resolves it to a UTC window via the zone's
-// timezone and returns the stored day-ahead curve (points are UTC; `timeZoneId` says how to label them).
+// `date` is the zone's local delivery day; the backend resolves it to a UTC window.
 
-/** Where a slot sits in its zone's trailing-7-day price distribution, as stamped by the backend.
- *  `null` = never classified (too little history, or the calc-service was down when the day landed)
- *  — render it as unknown, never guess a colour. */
+/** Where a slot sits in its zone's trailing-7-day price distribution.
+ *  `null` means never classified, render as unknown rather than guessing a colour. */
 export type PriceQuantile = 'Green' | 'Yellow' | 'Red';
 
 export interface PricePoint {
@@ -17,14 +15,12 @@ export interface PricePoint {
 
 export interface ZoneSpotPrices {
   biddingZoneId: number;
-  /** IANA timezone of the bidding zone (e.g. "Europe/Berlin"). Points stay UTC; use this to label
-   *  them in the zone's local time rather than the viewer's browser timezone. */
+  /** IANA timezone of the bidding zone (e.g. "Europe/Berlin"); points stay UTC. */
   timeZoneId: string;
   points: PricePoint[];
 }
 
 // Override at build/dev time with VITE_API_BASE_URL (see .env.example).
-// Default targets the API's `http` launch profile.
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5262';
 
 export type DayKey = 'yesterday' | 'today' | 'tomorrow';

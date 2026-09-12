@@ -1,16 +1,40 @@
+// Plain http:// on purpose: the TLS handshake needs a transient buffer this device cannot spare and
+// fails with "out of memory" before any response. So this points at the dev machine on the LAN, not
+// at the deployed backend (whose ingress redirects http:// to https://). Run the `http` profile —
+// it binds 0.0.0.0:5262 — and put your machine's LAN address here.
+// The placeholder values below are filled in by the setup wizard (frontend ConfigurePage) before the
+// user pastes this. They are all strings: the minifier mangles identifiers and folds literal
+// expressions, but never touches the contents of a string. See minify.sh, which enforces it.
 let CONFIG = {
-  backendUrl: "https://spotbuddy-backend.yellowsea-e9574071.westeurope.azurecontainerapps.io",
-  endpoint: "/api/schedule",
+  backendUrl: "__BACKEND_URL__",
+  endpoint: "/api/shelly/schedule",
 
-  switchId: 0,
+  switchId: 0,   // 0 on a single-channel plug; multi-channel devices number theirs 0, 1, 2
 
   tickSec: 300,
   fetchHourUtc: 13,
 
-  lat: 50.08,
-  lon: 14.44,
+  // ENTSO-E area code, resolved from the user's coordinates at wizard time. It also tells the backend
+  // which timezone the hours below are in — the zone catalog carries that, so we never send one.
+  zoneCode: "__ZONE_CODE__",
   deviceId: "shelly-1",
+
+  // Starting values for the Virtual Components below. The user changes them on the device afterwards;
+  // these only decide what the sliders read on first run.
+  hours: "__HOURS__",
+  deadline: "__DEADLINE__",
+  continuous: "__CONTINUOUS__",   // "1" or "0"
+  unavailFrom: "__UNAVAIL_FROM__",
+  unavailTo: "__UNAVAIL_TO__",
 };
+
+// Every token is a string because the minifier folds Number("literal") straight to NaN, which would
+// erase the placeholder before the wizard ever saw it. Coerce here instead, once.
+CONFIG.hours = Number(CONFIG.hours);
+CONFIG.deadline = Number(CONFIG.deadline);
+CONFIG.unavailFrom = Number(CONFIG.unavailFrom);
+CONFIG.unavailTo = Number(CONFIG.unavailTo);
+CONFIG.continuous = CONFIG.continuous === "1";
 
 let KVS_VC = "sched_vc";
 let KVS_PLAN = "sched_plan";
@@ -35,13 +59,14 @@ function typeForRole(role) {
 
 // Built on demand only during creation, so these strings/objects aren't held in RAM the rest of the time.
 function configFor(role) {
-  if (role === "continuous")  return { name: "Continuous block", default_value: false, meta: { ui: { view: "toggle" } } };
-  if (role === "hours")       return { name: "Hours needed", default_value: 3, min: 0, max: 24, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
-  if (role === "deadline")    return { name: "Charged by (hour UTC)", default_value: 6, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
-  if (role === "unavailFrom") return { name: "Unavailable from (hour UTC)", default_value: 0, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
-  if (role === "unavailTo")   return { name: "Unavailable to (hour UTC)", default_value: 0, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
-  if (role === "today")       return { name: "Charging today", default_value: "—", meta: { ui: { view: "label" } } };
-  if (role === "tomorrow")    return { name: "Charging tomorrow", default_value: "—", meta: { ui: { view: "label" } } };
+  // Hours are the user's own local clock — the backend converts them using CONFIG.timeZone.
+  if (role === "continuous")  return { name: "Continuous block", default_value: CONFIG.continuous, meta: { ui: { view: "toggle" } } };
+  if (role === "hours")       return { name: "Hours needed", default_value: CONFIG.hours, min: 0, max: 24, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "deadline")    return { name: "Ready by (hour)", default_value: CONFIG.deadline, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "unavailFrom") return { name: "Unavailable from (hour)", default_value: CONFIG.unavailFrom, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "unavailTo")   return { name: "Unavailable to (hour)", default_value: CONFIG.unavailTo, min: 0, max: 23, meta: { ui: { view: "slider", unit: "h", step: 1 } } };
+  if (role === "today")       return { name: "Running today", default_value: "—", meta: { ui: { view: "label" } } };
+  if (role === "tomorrow")    return { name: "Running tomorrow", default_value: "—", meta: { ui: { view: "label" } } };
   return null;
 }
 
@@ -63,8 +88,7 @@ function createAllComponents(cb) {
     if (i >= ROLES.length) { cb(ids); return; }
     let role = ROLES[i][0];
     Shelly.call("Virtual.Add", /** @type {*} */ ({ type: ROLES[i][1], config: configFor(role) }), function (res, ec, em) {
-      if (ec !== 0) print("Virtual.Add failed for " + role + ": " + em);
-      else ids[role] = normalizeKey(role, res.id);
+      if (ec === 0) ids[role] = normalizeKey(role, res.id);
       i++;
       next();
     });
@@ -107,12 +131,19 @@ function getBool(key, dflt) {
 }
 function readInputs() {
   return {
-    continuous: getBool(VC.continuous, false),
-    hours: getNum(VC.hours, 0),
-    deadline: getNum(VC.deadline, 0),
-    unavailFrom: getNum(VC.unavailFrom, 0),
-    unavailTo: getNum(VC.unavailTo, 0),
+    continuous: getBool(VC.continuous, CONFIG.continuous),
+    hours: getNum(VC.hours, CONFIG.hours),
+    deadline: getNum(VC.deadline, CONFIG.deadline),
+    unavailFrom: getNum(VC.unavailFrom, CONFIG.unavailFrom),
+    unavailTo: getNum(VC.unavailTo, CONFIG.unavailTo),
   };
+}
+
+// Fingerprint of the settings a plan was built from. Comparing it against the sliders is how an edit
+// gets noticed — the device has no change event we can afford to listen for, and the 5-minute tick is a
+// free debounce for a slider drag.
+function inputsSig(i) {
+  return i.hours + "|" + i.deadline + "|" + (i.continuous ? 1 : 0) + "|" + i.unavailFrom + "|" + i.unavailTo;
 }
 
 function setText(role, str) {
@@ -122,40 +153,32 @@ function setText(role, str) {
   Shelly.call("Text.Set", { id: id, value: str }, null);
 }
 
+// The backend sends these already formatted in local time — the device has no timezone database, so it
+// could not build them itself, and this way it carries no formatting code either.
+function updateDisplays() {
+  if (!PLAN) return;
+  // A plan stored by an older version of this script has no strings; show a dash until the next fetch.
+  setText("today", PLAN.today || "—");
+  setText("tomorrow", PLAN.tomorrow || "—");
+}
+
 function pad2(n) { return (n < 10 ? "0" : "") + n; }
 function nowIso() { return new Date().toISOString().slice(0, 19) + "Z"; }
 function todayStr() { return nowIso().slice(0, 10); }
-function tomorrowStr() { return new Date(Date.now() + 86400000).toISOString().slice(0, 10); }
 function nowHourUtc() { return Number(nowIso().slice(11, 13)); }
-// Next future deadline as canonical UTC ISO (today if the hour is still ahead, else tomorrow).
-function nextDeadlineIso(hour) {
-  let cand = todayStr() + "T" + pad2(hour) + ":00:00Z";
-  if (cand <= nowIso()) cand = tomorrowStr() + "T" + pad2(hour) + ":00:00Z";
-  return cand;
-}
-
-function deviceLocation() {
-  let sys = Shelly.getComponentConfig("sys");
-  if (sys && sys.location && typeof sys.location.lat === "number") return sys.location;
-  return null;
-}
-
+// One request is one job, so the body is flat. The zone is the baked-in code, never coordinates.
+//
+// Hours go out as the zone's local wall clock and the backend turns them into instants. The device
+// cannot: mJS has no timezone database, and a UTC hour baked in at wizard time would drift an hour at
+// every DST switch.
 function buildBody(inputs) {
   let info = Shelly.getDeviceInfo();
-  let loc = deviceLocation();
-  // Backend wants date (the deadline's day) + ready_by as time-of-day. Derive both from one deadline.
-  let dl = nextDeadlineIso(inputs.deadline);   // e.g. "2026-08-09T06:00:00Z"
   let body = {
     device_id: info ? info.id : CONFIG.deviceId,
-    lat: loc ? loc.lat : CONFIG.lat,
-    lon: loc ? loc.lon : CONFIG.lon,
-    date: dl.slice(0, 10),
-    tasks: [{
-      task_id: 1,
-      duration_hours: inputs.hours,
-      ready_by: dl.slice(11, 19),
-      continuous_block: inputs.continuous,
-    }],
+    zone_code: CONFIG.zoneCode,
+    duration_hours: inputs.hours,
+    ready_by_local: pad2(inputs.deadline) + ":00:00",
+    continuous_block: inputs.continuous,
   };
   // from == to means "no unavailable window".
   if (inputs.unavailFrom !== inputs.unavailTo) {
@@ -166,35 +189,41 @@ function buildBody(inputs) {
 
 function fetchPlan() {
   let inputs = readInputs();
-  if (inputs.hours <= 0) { print("hours needed = 0 — nothing to schedule"); return; }
+  if (inputs.hours <= 0) return;
+
+  let body = JSON.stringify(buildBody(inputs));
 
   Shelly.call("HTTP.POST", {
     url: CONFIG.backendUrl + CONFIG.endpoint,
-    body: JSON.stringify(buildBody(inputs)),
+    body: body,
     content_type: "application/json",
     timeout: 15,
   }, function (res, ec, em) {
-    if (ec !== 0) { print("schedule POST failed: " + em); return; }
-    if (res.code !== 200) { print("schedule HTTP " + res.code + ": " + res.body); return; }
+    if (ec !== 0 || res.code !== 200) return;
     let resp;
-    try { resp = JSON.parse(res.body); } catch (e) { print("Failed to parse response"); return; }
-    onPlan(resp);
+    try { resp = JSON.parse(res.body); } catch (e) { return; }
+    onPlan(resp, inputsSig(inputs));
   });
 }
 
-function onPlan(resp) {
-  let task = (resp.tasks && resp.tasks.length > 0) ? resp.tasks[0] : null;
-  let slots = [];
-  if (task && task.blocks) {
-    for (let i = 0; i < task.blocks.length; i++) slots.push([task.blocks[i].start_utc, task.blocks[i].end_utc]);
-  }
-
-  PLAN = { day: todayStr(), afterPublish: nowHourUtc() >= CONFIG.fetchHourUtc, slots: slots };
+// No print() anywhere: every string literal is resident in an ~8 KB heap, and the two "Running
+// today/tomorrow" labels report the same thing where the user can actually see it.
+//
+// resp.slots is already [start, end] pairs, so it is stored as it arrives — no per-block objects to
+// build and discard, which is the whole reason the Shelly response has its own shape.
+function onPlan(resp, sig) {
+  PLAN = {
+    day: todayStr(),
+    afterPublish: nowHourUtc() >= CONFIG.fetchHourUtc,
+    slots: resp.slots || [],
+    sig: sig,
+    today: resp.today_local || "—",
+    tomorrow: resp.tomorrow_local || "—",
+  };
   Shelly.call("KVS.Set", { key: KVS_PLAN, value: JSON.stringify(PLAN) }, null);
 
   updateDisplays();
   applyRelay();
-  print("plan stored: " + slots.length + " on-slot(s)");
 }
 
 function isNowWithin(slot) {
@@ -209,26 +238,7 @@ function applyRelay() {
       if (isNowWithin(PLAN.slots[i])) { on = true; break; }
     }
   }
-  Shelly.call("Switch.Set", { id: CONFIG.switchId, on: on }, function (res, ec, em) {
-    if (ec !== 0) print("Switch.Set failed: " + em);
-  });
-}
-
-function formatDay(dayStr) {
-  let s = "";
-  if (PLAN && PLAN.slots) {
-    for (let i = 0; i < PLAN.slots.length; i++) {
-      if (PLAN.slots[i][0].slice(0, 10) === dayStr) {
-        s += (s === "" ? "" : ", ") + PLAN.slots[i][0].slice(11, 16) + "-" + PLAN.slots[i][1].slice(11, 16);
-      }
-    }
-  }
-  return s === "" ? "—" : s;
-}
-
-function updateDisplays() {
-  setText("today", formatDay(todayStr()));
-  setText("tomorrow", formatDay(tomorrowStr()));
+  Shelly.call("Switch.Set", { id: CONFIG.switchId, on: on }, null);
 }
 
 function maybeDailyFetch() {
@@ -237,8 +247,10 @@ function maybeDailyFetch() {
 
   let stale = (PLAN === null) || (PLAN.day !== today);
   let needTomorrow = PLAN && PLAN.day === today && !PLAN.afterPublish && hourUtc >= CONFIG.fetchHourUtc;
+  // A plan built from settings the user has since changed is as stale as yesterday's.
+  let edited = PLAN && PLAN.sig !== inputsSig(readInputs());
 
-  if (stale || needTomorrow) fetchPlan();
+  if (stale || needTomorrow || edited) fetchPlan();
 }
 
 function tick() {
@@ -247,28 +259,32 @@ function tick() {
   applyRelay();
 }
 
-// Refetch when the user edits a setting. Only the input components count (not our own today/tomorrow
-// writes, which would loop). Debounced: a slider drag emits a burst of changes, and each fetch is an
-// HTTPS POST (memory-heavy), so we wait until the changes settle, then fetch once and overwrite the plan.
-let INPUT_ROLES = ["continuous", "hours", "deadline", "unavailFrom", "unavailTo"];
+// React to an edit straight away instead of waiting for the tick.
+//
+// The handler only wakes a debounced maybeDailyFetch, and that compares PLAN.sig — so an event that
+// changed nothing relevant (our own Text.Set on the labels, say) costs a string compare and stops there.
+// That is why no role filtering beyond "is it one of ours" is needed, and why the two mechanisms compose:
+// the tick is the safety net if an event is ever missed.
+//
+// Components we did not create are ignored on purpose. A metering plug emits switch:0 status constantly,
+// and each one would reset the debounce, so an unfiltered handler would never fire at all.
 let refetchTimer = null;
 
-function isInputComponent(comp) {
-  for (let i = 0; i < INPUT_ROLES.length; i++) if (VC[INPUT_ROLES[i]] === comp) return true;
+function isOurComponent(comp) {
+  for (let i = 0; i < ROLES.length; i++) if (VC[ROLES[i][0]] === comp) return true;
   return false;
 }
 
-function scheduleRefetch() {
+function onComponentChanged() {
   if (refetchTimer !== null) Timer.clear(refetchTimer);
-  refetchTimer = Timer.set(3000, false, function () {
+  // Long enough that dragging a slider through twenty values asks once.
+  refetchTimer = Timer.set(2000, false, function () {
     refetchTimer = null;
-    print("inputs changed — refetching");
-    fetchPlan();   // onPlan overwrites PLAN + sched_plan
+    maybeDailyFetch();
   });
 }
 
 // Boot: ensure components, load the stored plan, then run.
-print("spot-price scheduler starting");
 loadOrCreateComponents(function () {
   Shelly.call("KVS.Get", { key: KVS_PLAN }, function (res, ec) {
     if (ec === 0 && res && res.value) {
@@ -276,9 +292,11 @@ loadOrCreateComponents(function () {
     }
     applyRelay();
     maybeDailyFetch();
+    // Edits to the Virtual Components apply on the next tick, not instantly — the status handler
+    // that made them immediate cost more heap than the 5-minute wait is worth.
     Timer.set(CONFIG.tickSec * 1000, true, tick);
     Shelly.addStatusHandler(function (e) {
-      if (e && e.component && isInputComponent(e.component)) scheduleRefetch();
+      if (e && e.component && isOurComponent(e.component)) onComponentChanged();
     });
   });
 });

@@ -1,0 +1,3569 @@
+/* ────────────────────────────────────────────────────────────────
+   SpotSteer design tokens + base + shared styles
+
+   Dark-first. The dark values are authored on :root, not inside a
+   prefers-color-scheme block, because dark IS the product's theme; the
+   light block below is the override, not the other way round. Every
+   surface on every route reads from these names, so the whole site
+   turns over together and no page can flip theme mid-scroll.
+
+   Both brand colours are taken verbatim from public/spotsteer-mark.svg:
+   the dial ring #1B7EA6 and the marker dot #E8952B. They are never
+   redefined; --color-accent is a lifted tint of the ring used for text
+   and small UI, because #1B7EA6 alone does not clear WCAG AA on the
+   dark ground.
+   ──────────────────────────────────────────────────────────────── */
+
+/* Self-hosted so the first paint owes nothing to fonts.googleapis.com.
+   Both families ship as variable fonts, so one file per subset covers
+   every weight we use. */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/spacegrotesk-var-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/spacegrotesk-var-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('/fonts/jetbrainsmono-var-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('/fonts/jetbrainsmono-var-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* ── ground and surfaces ──────────────────────────────────────
+     A cool near-black built off the logotype ink #1E2229, never #000.
+     Three steps only: page, card, raised. */
+  --color-bg: #0f1418;
+  --color-bg-deep: #0a0e11;
+  --color-surface: #161d23;
+  --color-surface-2: #1d262d;
+  --color-divider: #26313a;
+  --color-hairline: rgba(232, 237, 241, 0.09);
+
+  /* ── text ─────────────────────────────────────────────────────
+     Off-white, never #fff. -dim carries body copy at AA, -mute is for
+     captions and never carries anything a reader must not miss. */
+  --color-text: #e8edf1;
+  --color-text-dim: #a7b4bf;
+  --color-text-mute: #7f8d99;
+
+  /* ── brand ────────────────────────────────────────────────────
+     --color-brand and --color-warm are the mark's own two colours,
+     untouched. --color-accent is the on-dark reading of the ring. */
+  --color-brand: #1b7ea6;
+  --color-accent: #3fa8d1;
+  --color-accent-strong: #63bcdd;
+  --color-accent-deep: #12586f;
+  --color-accent-tint: rgba(63, 168, 209, 0.13);
+  --color-accent-tint-2: rgba(63, 168, 209, 0.22);
+  --color-warm: #e8952b;
+  --color-warm-strong: #f2ab52;
+  --color-warm-tint: rgba(232, 149, 43, 0.14);
+
+  /* ── price semantics ──────────────────────────────────────────
+     The names follow the API's PriceQuantile (Green/Yellow/Red) and are
+     kept so the chart mapping stays readable, but the values are the
+     brand's temperature pair: cool means cheap, warm means expensive.
+     Blue against orange is also the safest pair for colour blindness,
+     which a red/green traffic light is not. */
+  --color-q-green: #35a8c9;
+  --color-q-yellow: #8d9aa6;
+  --color-q-red: #e8952b;
+
+  /* ── radius scale ─────────────────────────────────────────────
+     Four steps and a pill. Nothing on the site may invent a fifth. */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+
+  /* ── elevation scale ──────────────────────────────────────────
+     Tinted to the ground, never pure black, and only three steps. */
+  --e-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --e-2: 0 8px 24px -6px rgba(0, 0, 0, 0.55);
+  --e-3: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
+
+  /* The nav is fixed and full-bleed, so it takes no space in the flow. Every page
+     reserves this much at the top; the hero cancels it so the photograph starts at
+     y=0 with the nav floating over it. */
+  --nav-h: 60px;
+
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Legacy aliases. The old palette had a 6-stop accent ramp and two
+     neutral stops that the sub-page stylesheets still reference by
+     name; they resolve into the new system so nothing is left pointing
+     at a colour that no longer exists. */
+  --color-accent-100: var(--color-accent-tint);
+  --color-accent-200: var(--color-accent-tint-2);
+  --color-accent-300: var(--color-accent-strong);
+  --color-accent-700: var(--color-accent-strong);
+  /* The old ramp's -800 was only ever used as a text colour on a light tint. On the
+     dark ground that has to read up, not down, so it resolves to the lifted tint. */
+  --color-accent-800: var(--color-accent-strong);
+  --color-accent-900: var(--color-bg-deep);
+  --color-neutral-400: #4a5862;
+  --color-neutral-600: var(--color-text-mute);
+  --color-neutral-700: var(--color-text-dim);
+  --color-pop: var(--color-warm);
+  --color-pop-100: var(--color-warm-tint);
+  --color-pop-700: var(--color-warm-strong);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Smooth-slide to sections when clicking the nav anchors. */
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  /* Three sections break the shell with `width: 100vw` (hero, price map, savings
+     teaser). On a platform with classic scrollbars 100vw is wider than the viewport,
+     which would hand the page a horizontal scrollbar. `clip` removes it without
+     creating a scroll container, so the sticky nav keeps working; `hidden` would not. */
+  overflow-x: clip;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prices, hours and offsets are numbers people compare down a column, so they
+   get tabular figures wherever they appear. */
+.sb-stat-big,
+.sb-indiv-time,
+.sb-indiv-saving,
+.sb-calc-result-euros,
+.sb-calc-result-pct,
+.sb-teaser-num {
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+  /* Space Grotesk carries wide sidebearings; display sizes need more negative
+     tracking than the old stack did, body-scale headings need less. */
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+h3,
+h4 {
+  letter-spacing: -0.015em;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+input {
+  font-family: inherit;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+/* Scroll reveal. The class is applied by useScrollReveal, never in markup, so content is visible
+   whenever the effect has not run. Opacity and transform only — both compositor-cheap. */
+.sb-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.sb-reveal.is-in {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+a:hover {
+  color: var(--color-accent-strong);
+}
+
+/* Stagger inside a revealed section. Sequence carries meaning in both places this
+   applies: the steps rail is a narrative order, and the devices bento leads with the
+   integration we want read first. Pure CSS cascade, no animation dependency. */
+@media (prefers-reduced-motion: no-preference) {
+  .sb-reveal .sb-steps > *,
+  .sb-reveal .sb-int-grid > *,
+  .sb-reveal .sb-claims > *,
+  .sb-reveal .sb-teaser-apps > * {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  .sb-reveal.is-in .sb-steps > *,
+  .sb-reveal.is-in .sb-int-grid > *,
+  .sb-reveal.is-in .sb-claims > *,
+  .sb-reveal.is-in .sb-teaser-apps > * {
+    animation: sb-hero-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .sb-reveal.is-in :is(.sb-steps, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(2) {
+    animation-delay: 80ms;
+  }
+
+  .sb-reveal.is-in :is(.sb-steps, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(3) {
+    animation-delay: 160ms;
+  }
+
+  .sb-reveal.is-in :is(.sb-steps, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(4) {
+    animation-delay: 240ms;
+  }
+
+  .sb-reveal.is-in :is(.sb-teaser-apps) > *:nth-child(5) {
+    animation-delay: 320ms;
+  }
+
+  .sb-reveal.is-in :is(.sb-teaser-apps) > *:nth-child(6) {
+    animation-delay: 400ms;
+  }
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 24%, transparent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-400);
+  border-radius: var(--r-sm);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-deep);
+}
+
+/* One visible focus treatment for the whole site, in the brand accent, so
+   keyboard users get the same affordance on every route. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+/* ── shared primitives ─────────────────────────────────────────── */
+.sb-shell {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--nav-h) clamp(16px, 4vw, 40px) 0;
+  position: relative;
+}
+
+.sb-link {
+  cursor: pointer;
+  color: var(--color-text);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.sb-link:hover {
+  color: var(--color-accent);
+}
+
+/* Used on both <button> and <a> (the CTAs are anchors into #prices), hence the
+   explicit display / text-decoration that a <button> would get for free. */
+.sb-btn {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--r-pill);
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  transition:
+    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.18s,
+    box-shadow 0.18s;
+}
+
+.sb-btn:active {
+  transform: scale(0.98);
+}
+
+/* The primary button is the mark's amber against the dark ground. It is the one
+   warm thing on the page, which is what makes it the thing you click. Dark text
+   on amber clears AA comfortably; white on amber would not. */
+.sb-btn {
+  padding: 13px 26px;
+  font-size: 15px;
+}
+
+.sb-primary {
+  background: var(--color-warm);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-2);
+}
+
+.sb-primary:hover {
+  background: var(--color-warm-strong);
+  color: var(--color-bg-deep); /* beats the global a:hover colour when .sb-primary is an anchor */
+  box-shadow: var(--e-3);
+}
+
+.sb-card {
+  background: var(--color-surface);
+  border-radius: var(--r-md);
+  border: 1px solid var(--color-divider);
+}
+
+/* ── nav ───────────────────────────────────────────────────────── */
+/* No wrap at any width: the links collapse to a scrollable row on small screens
+   rather than pushing the bar onto a second line. Height stays 64-68px. */
+.sb-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  /* Light enough to see the photograph through, dark enough to keep the links at
+     AA over it. The blur does most of the work. */
+  background: color-mix(in srgb, var(--color-bg) 52%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+/* The bar spans the viewport; its contents stay on the same 1160px grid as the
+   rest of the page. */
+.sb-nav-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  min-height: var(--nav-h);
+  padding: 0 clamp(16px, 4vw, 40px);
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 26px);
+  flex-wrap: nowrap;
+}
+
+.sb-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-heading);
+  font-size: 21px;
+  letter-spacing: -0.035em;
+  margin-right: auto;
+  flex: 0 0 auto;
+  /* It is an <a> back to the landing page; keep the wordmark's own colours. */
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.sb-brand:hover {
+  color: var(--color-text);
+}
+
+/* The lockup is rebuilt in HTML rather than dropped in as spotsteer-logo.svg so the
+   wordmark renders in the real webfont. Weights match the logo file exactly:
+   Spot at 700, Steer at 400. */
+.sb-brand-word-a {
+  font-weight: 700;
+}
+
+.sb-brand-word-b {
+  font-weight: 400;
+}
+
+.sb-brand-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.sb-nav-links {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 30px);
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sb-nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+.sb-nav-links .sb-link {
+  white-space: nowrap;
+  color: var(--color-text-dim);
+}
+
+.sb-nav-links .sb-link:hover {
+  color: var(--color-text);
+}
+
+/* The links are the only navigation in the bar, so they stay at every width. Below
+   700px they tighten up and the row scrolls sideways if four labels do not fit;
+   .sb-nav-links is already an overflow-x container with its scrollbar hidden. */
+@media (max-width: 700px) {
+  .sb-nav-inner {
+    gap: 14px;
+  }
+
+  .sb-nav-links {
+    gap: 16px;
+    font-size: 13.5px;
+    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+  }
+
+  .sb-nav-links .sb-link {
+    font-size: inherit;
+  }
+}
+
+/* ── hero ──────────────────────────────────────────────────────── */
+/* Full-bleed out of the 1160px shell. The photograph is a real <img> rather than a
+   CSS background so it can carry fetchpriority and explicit dimensions: it is the
+   LCP element and it must not shift the page when it lands. */
+.sb-hero {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-top: calc(-1 * var(--nav-h));
+  margin-bottom: clamp(28px, 4vw, 56px);
+  /* Height tracks the photograph's own 2.5:1 rather than the viewport, so cover
+     crops a sliver instead of zooming a 640px-wide original into a tall box. */
+  height: clamp(530px, 38vw, 620px);
+  display: flex;
+  align-items: flex-end;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.sb-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.sb-hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Pushed right and slightly down: the driveway and the charging car carry the
+     right half, the dark house and hedge give the headline something quiet to sit
+     on at the left. */
+  object-position: 62% 44%;
+  filter: saturate(1.08) contrast(1.04) brightness(1.06);
+}
+
+/* Two scrims, one job each. The horizontal one buys contrast for the headline; the
+   vertical one dissolves the photograph into the page ground so the hero does not
+   end on a hard edge, it just becomes the site. */
+.sb-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--color-bg) 96%, transparent) 0%,
+      color-mix(in srgb, var(--color-bg) 80%, transparent) 26%,
+      color-mix(in srgb, var(--color-bg) 24%, transparent) 56%,
+      transparent 76%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-bg-deep) 38%, transparent) 0%,
+      transparent 16%,
+      transparent 62%,
+      color-mix(in srgb, var(--color-bg) 78%, transparent) 88%,
+      var(--color-bg) 100%
+    );
+}
+
+.sb-hero-inner {
+  position: relative;
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: calc(var(--nav-h) + clamp(24px, 5vw, 72px)) clamp(16px, 4vw, 40px)
+    clamp(40px, 6vw, 76px);
+}
+
+.sb-hero-copy {
+  max-width: 780px;
+}
+
+/* Nine words. Planned against the image rather than set at poster scale: a headline
+   this long at text-7xl is a font-size error, not a copy-length one. */
+.sb-hero h1 {
+  font-size: clamp(34px, 4.1vw, 54px);
+  margin: 0 0 20px;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.sb-hero-sub {
+  font-size: clamp(16px, 1.6vw, 19px);
+  max-width: 44ch;
+  color: var(--color-text-dim);
+  margin-bottom: 0;
+}
+
+/* Hero entry. One move, on the thing the reader looks at first, so it reads as the
+   page arriving rather than as decoration. */
+@media (prefers-reduced-motion: no-preference) {
+  .sb-hero-copy > * {
+    animation: sb-hero-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+}
+
+@keyframes sb-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .sb-hero {
+    height: auto;
+    min-height: clamp(520px, 84vh, 660px);
+  }
+
+  .sb-hero-copy {
+    max-width: none;
+  }
+
+  /* Portrait crops most of the driveway away, so the scrim carries more of the
+     contrast and the image holds the car rather than the house. */
+  .sb-hero-media img {
+    object-position: 72% 50%;
+  }
+
+  .sb-hero-scrim {
+    background:
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-bg-deep) 55%, transparent) 0%,
+        color-mix(in srgb, var(--color-bg) 30%, transparent) 30%,
+        color-mix(in srgb, var(--color-bg) 88%, transparent) 62%,
+        var(--color-bg) 92%
+      );
+  }
+}
+
+/* ── the claim strip, directly under the hero ──────────────────── */
+/* These three used to sit inside the hero. They are trust marks, not the value
+   proposition, so they get their own band and a hairline instead of a card. */
+.sb-claims {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 3vw, 40px);
+  padding: clamp(20px, 3vw, 30px) 0;
+  border-top: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--color-hairline);
+  margin-bottom: clamp(40px, 6vw, 80px);
+}
+
+.sb-stat-num {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(26px, 3vw, 34px);
+  letter-spacing: -0.03em;
+  color: var(--color-accent-strong);
+}
+
+.sb-stat-label {
+  font-size: 13.5px;
+  color: var(--color-text-mute);
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .sb-claims {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .sb-claims > div {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+}
+
+.sb-accent {
+  color: var(--color-accent-strong);
+}
+
+/* ── calculator ────────────────────────────────────────────────── */
+.sb-calc {
+  padding: clamp(22px, 2.5vw, 30px);
+  box-shadow: var(--e-2);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: calc(var(--nav-h) + 24px);
+}
+
+@media (max-width: 900px) {
+  .sb-calc {
+    position: static;
+  }
+}
+
+.sb-calc-title {
+  font-size: clamp(22px, 2.6vw, 28px);
+  margin: 0;
+}
+
+/* Label above the input, always, and at full body contrast: a form on a dark
+   surface loses its labels first if they are dimmed. */
+.sb-field-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 9px;
+}
+
+.sb-stepper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sb-step-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--color-accent-tint);
+  color: var(--color-accent-strong);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+  font-size: 20px;
+}
+
+.sb-step-btn:hover {
+  background: var(--color-accent-tint-2);
+}
+
+.sb-step-val {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 26px;
+  min-width: 1.4ch;
+  text-align: center;
+}
+
+.sb-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 15px;
+  color: var(--color-text);
+  background: var(--color-bg-deep);
+  border: 1.5px solid var(--color-divider);
+  border-radius: var(--r-sm);
+  outline: none;
+}
+
+/* Placeholders have to clear AA against the input's own ground, not the page's. */
+.sb-input::placeholder {
+  color: var(--color-text-mute);
+}
+
+.sb-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-tint);
+}
+
+.sb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sb-chip {
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  padding: 8px 15px;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--color-divider);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: all 0.15s;
+}
+
+.sb-chip[data-on='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg-deep);
+}
+
+.sb-calc-result {
+  background: var(--color-bg-deep);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 26%, transparent);
+  color: var(--color-text);
+  border-radius: var(--r-sm);
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+
+.sb-calc-result-cap {
+  font-size: 12.5px;
+  color: var(--color-text-mute);
+}
+
+.sb-calc-result-split {
+  border-left: 1px solid var(--color-divider);
+  padding-left: 26px;
+}
+
+.sb-calc-result-euros {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(34px, 4vw, 44px);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.sb-calc-result-pct {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 30px;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--color-accent-strong);
+}
+
+.sb-fine {
+  font-size: 12.5px;
+  margin: 0;
+  color: var(--color-text-mute);
+}
+
+/* ── section scaffolding ───────────────────────────────────────── */
+.sb-section {
+  padding: clamp(48px, 8vw, 104px) 0;
+  scroll-margin-top: calc(var(--nav-h) + 20px);
+}
+
+/* Left-aligned, and the body stacks under the headline rather than floating in a
+   right-hand column. */
+.sb-section-head {
+  max-width: 62ch;
+  margin: 0 0 clamp(28px, 4vw, 48px);
+}
+
+.sb-section-head h2 {
+  font-size: clamp(30px, 4.4vw, 48px);
+  letter-spacing: -0.035em;
+}
+
+.sb-section-head p {
+  color: var(--color-text-dim);
+  font-size: clamp(15px, 1.5vw, 17px);
+  margin-top: 16px;
+}
+
+/* ── price section + chart ─────────────────────────────────────── */
+.sb-price-section {
+  position: relative;
+  padding: clamp(28px, 5vw, 60px) 0;
+  scroll-margin-top: calc(var(--nav-h) + 20px);
+  overflow: hidden;
+}
+
+.sb-price-inner {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sb-price-col {
+  width: min(100%, 640px);
+}
+
+.sb-price-head {
+  margin-bottom: 20px;
+}
+
+.sb-price-head h2 {
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+
+.sb-price-head p {
+  margin: 10px 0 0;
+  color: var(--color-text-dim);
+  max-width: 46ch;
+}
+
+.sb-chart-card {
+  padding: clamp(18px, 2.5vw, 28px);
+  box-shadow: var(--e-3);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sb-chart-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.sb-chart-stats-group {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.sb-stat-cap {
+  font-size: 12.5px;
+  color: var(--color-text-mute);
+}
+
+.sb-stat-cap-accent {
+  color: var(--color-accent-strong);
+}
+
+.sb-stat-cap-pop {
+  color: var(--color-warm-strong);
+}
+
+.sb-stat-big {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.sb-stat-unit {
+  font-size: 12.5px;
+  color: var(--color-text-mute);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.sb-day-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--color-bg-deep);
+  border: 1px solid var(--color-divider);
+  padding: 4px;
+  border-radius: var(--r-pill);
+}
+
+.sb-day-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  background: transparent;
+  color: var(--color-text);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sb-day-tab {
+  color: var(--color-text-dim);
+}
+
+.sb-day-tab:hover {
+  color: var(--color-text);
+}
+
+.sb-day-tab[data-active='true'] {
+  background: var(--color-accent);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-1);
+}
+
+.sb-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-mute);
+  margin-top: 4px;
+}
+
+.sb-legend {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  color: var(--color-text-mute);
+  align-items: center;
+}
+
+.sb-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sb-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-pill);
+  display: inline-block;
+}
+
+.sb-chart-tz {
+  font-size: 12px;
+  color: var(--color-text-mute);
+  margin-top: -12px;
+}
+
+.sb-chart-state {
+  min-height: 210px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--color-text-mute);
+  font-size: 14.5px;
+  padding: 20px;
+}
+
+.sb-chart-state code {
+  background: var(--color-bg-deep);
+  color: var(--color-accent-strong);
+  padding: 2px 7px;
+  border-radius: var(--r-xs);
+  font-size: 12.5px;
+}
+
+/* interactive bidding-zone map as a full-bleed background layer */
+.sb-price-section {
+  position: relative;
+  /* full-bleed: break out of the shell so the map can reach the window edge */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  overflow: hidden; /* clips the map at the viewport edge, not the shell edge */
+  min-height: 920px; /* room for the taller map so it isn't cropped top/bottom */
+  display: flex;
+  align-items: center;
+  justify-content: center; /* re-center the shell-width content inside 100vw */
+}
+
+.sb-zonemap-bleed {
+  position: absolute;
+  top: 50%;
+  /* Anchor to the CENTERED content, not the viewport. 50% = content centre; the
+     content's left edge is at (50% - 580px) for the 1160px shell. Starting ~80px
+     further left gives a modest bleed that stays tied to the layout on wide screens. */
+  left: calc(50% - 660px);
+  transform: translateY(-50%);
+  width: min(800px, 58vw);
+  z-index: 0;
+  pointer-events: none; /* ocean/empty passes through; zones re-enable below */
+  /* aggressive fade on the right edge, out to nothing (into the chart / background) */
+  -webkit-mask-image: linear-gradient(to right, #000 68%, transparent 94%);
+  mask-image: linear-gradient(to right, #000 68%, transparent 94%);
+}
+
+.sb-price-inner {
+  position: relative;
+  z-index: 1; /* chart card floats above the map */
+  flex: 1; /* fill the flex section so justify-content:flex-end keeps the card right */
+  width: 100%;
+  max-width: 1160px; /* match the shell so the chart stays where it was */
+  padding: 0 clamp(16px, 4vw, 40px); /* match shell horizontal padding */
+  box-sizing: border-box;
+  pointer-events: none; /* its empty left half must not block map clicks... */
+}
+
+.sb-price-col {
+  max-width: 560px; /* chart card on the right; map stays exposed on the left */
+  pointer-events: auto; /* ...but the card itself stays interactive */
+}
+
+/* The nudge pill and the slide-away handle are mobile-only affordances (see the
+   max-width: 900px block). On desktop the map + chart are always side by side, so
+   neither is needed. */
+.sb-map-nudge,
+.sb-chart-handle {
+  display: none;
+}
+
+.sb-zonemap {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── mobile: two-panel slider (map ⇄ chart) ────────────────────── */
+@media (max-width: 900px) {
+  /* TWO-PANEL SLIDER. The section is a horizontal track holding two full-width stages
+     side by side: the CHART (left) and the MAP (right). Nothing is preselected, so the
+     track starts parked on the MAP and the user is nudged to tap a zone — that slides the
+     track to the CHART (React sets data-panel-open="true"). The handle / a swipe slides it
+     back to re-pick. Each stage is its own full-screen panel, so exactly one is visible at
+     a time — never a split — and the heading is never stranded behind the map. */
+  .sb-price-section {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start; /* CRITICAL: anchor the 200vw track left (desktop rule
+                                    sets center, which would show half of each stage) */
+    padding: 0;
+    position: relative;
+    overflow: hidden; /* the off-screen stage is clipped here */
+    height: min(80vh, 620px);
+    min-height: 460px;
+    touch-action: pan-y; /* let vertical scroll through; we handle horizontal swipes */
+  }
+
+  /* Both stages are exactly one viewport wide and slide together as one track.
+     order: chart (price-inner) left, map (zonemap-bleed) right. */
+  .sb-zonemap-bleed,
+  .sb-price-inner {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    /* Default = parked on the MAP (the right stage), so the track is shifted one viewport
+       left. Opening the chart brings it back to 0. */
+    transform: translateX(var(--sb-slide, -100%));
+    transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .sb-price-inner {
+    order: 0;
+  }
+  .sb-zonemap-bleed {
+    order: 1;
+  }
+  .sb-price-section[data-panel-open='true'] .sb-zonemap-bleed,
+  .sb-price-section[data-panel-open='true'] .sb-price-inner {
+    --sb-slide: 0; /* slide the track right → show the chart (left stage) */
+  }
+
+  /* MAP stage: bright, interactive, ZOOMED to fill its panel; the right edge (Russia/
+     Turkey) fades with the exact same mask as the desktop view. */
+  .sb-zonemap-bleed {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin: 0;
+    opacity: 1;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 99%);
+    mask-image: linear-gradient(to right, #000 85%, transparent 99%);
+  }
+
+  .sb-zonemap {
+    width: min(120%, 720px); /* zoom: bleed past the panel so zones are big & tappable */
+    height: auto;
+    max-width: none;
+    flex: none;
+    /* Shift the map RIGHT so the faded eastern edge (Russia) slides off-screen and more
+       of western/central Europe is centered. Higher = further right / less Russia. */
+    transform: translateX(9%);
+  }
+
+  /* Nudge pill floating over the map stage, inviting the first tap. */
+  .sb-map-nudge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    padding: 9px 15px;
+    border-radius: var(--r-pill);
+    background: var(--color-accent);
+    color: var(--color-bg-deep);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    box-shadow: var(--e-2);
+    pointer-events: none;
+    transition: opacity 0.3s;
+    animation: sb-nudge-bob 1.8s ease-in-out infinite;
+  }
+
+  .sb-map-nudge-tap {
+    width: 9px;
+    height: 9px;
+    border-radius: var(--r-pill);
+    background: var(--color-bg-deep);
+    box-shadow: 0 0 0 0 rgba(15, 20, 24, 0.55);
+    animation: sb-nudge-ping 1.8s ease-out infinite;
+  }
+
+  .sb-price-section[data-panel-open='true'] .sb-map-nudge {
+    opacity: 0;
+  }
+
+  /* CHART stage — a fixed-size box that pins the handle; the column scrolls inside it. */
+  .sb-price-inner {
+    position: relative;
+    z-index: 2;
+    max-width: none;
+    padding: 0;
+    display: block;
+    overflow: hidden;
+    pointer-events: auto;
+    background: var(--color-bg);
+  }
+
+  .sb-price-col {
+    position: static;
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: clamp(18px, 5vw, 26px) clamp(26px, 7vw, 40px) clamp(18px, 5vw, 26px)
+      clamp(16px, 4vw, 22px); /* extra right padding clears the handle tab */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    overflow-y: auto; /* scroll the chart within the stage if it's taller */
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .sb-price-head {
+    display: none; /* on mobile the map already provides the context; save the space */
+  }
+
+  /* Handle on the chart stage's RIGHT edge — the map lives to the right, so a › chevron
+     points back to it. Tap (or swipe left) to slide the track back to the map. */
+  .sb-chart-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 26px;
+    height: 72px;
+    padding: 0;
+    border: none;
+    border-radius: var(--r-md) 0 0 var(--r-md);
+    background: var(--color-accent);
+    color: var(--color-bg-deep);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: var(--e-2);
+  }
+}
+
+@keyframes sb-nudge-bob {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+@keyframes sb-nudge-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 20, 24, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(15, 20, 24, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 20, 24, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-map-nudge,
+  .sb-map-nudge-tap {
+    animation: none;
+  }
+  .sb-zonemap-bleed,
+  .sb-price-inner {
+    transition: none;
+  }
+}
+
+.sb-zone {
+  stroke: var(--color-bg);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+
+/* non-selectable context countries (Balkans, Russia, Turkey, …) — greyed background */
+.sb-zone-context {
+  /* Deliberately dim: these are out of play, and lifting them above the selectable
+     zones would invert the hierarchy of the map. */
+  fill: #3a454e;
+  pointer-events: none;
+}
+
+/* selectable bidding zones */
+/* Clears 3:1 against the page ground so a selectable zone is identifiable as a
+   control, per WCAG 1.4.11, without competing with the amber selection. */
+.sb-zone-pick {
+  fill: #2d7590;
+  cursor: pointer;
+  transition: fill 0.12s ease;
+  outline: none;
+  pointer-events: auto; /* re-enable clicks (parent layer is pointer-events:none) */
+}
+
+.sb-zone-pick:hover,
+.sb-zone-pick:focus-visible {
+  fill: var(--color-accent);
+}
+
+/* The selected zone is the one warm thing on the map, which is the same job the
+   marker dot does in the logo. */
+.sb-zone-pick[data-selected='true'] {
+  fill: var(--color-warm);
+}
+
+/* ── how it works / spot prices ────────────────────────────────── */
+/* A sequence rail, not three cards. The nodes repeat the mark: hollow rings for the
+   two reading steps, one filled amber for the step where something actually happens.
+   Columns are deliberately unequal so it reads as a progression rather than a set. */
+.sb-steps {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1.1fr;
+  gap: clamp(20px, 3vw, 44px);
+  margin-bottom: clamp(48px, 7vw, 88px);
+  position: relative;
+}
+
+.sb-step {
+  position: relative;
+  padding-top: 34px;
+}
+
+/* The rail itself, drawn behind the nodes and stopping at the last one. */
+.sb-step::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 0;
+  right: calc(-1 * clamp(20px, 3vw, 44px));
+  height: 1px;
+  background: var(--color-divider);
+}
+
+.sb-step:last-child::before {
+  right: auto;
+  width: 18px;
+}
+
+.sb-step-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--color-accent);
+  background: var(--color-bg);
+}
+
+.sb-step:last-child .sb-step-node {
+  border-color: var(--color-warm);
+  background: var(--color-warm);
+  box-shadow: 0 0 0 5px var(--color-warm-tint);
+}
+
+.sb-step h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(17px, 1.8vw, 21px);
+  margin-bottom: 10px;
+}
+
+.sb-step p {
+  color: var(--color-text-dim);
+  font-size: 15px;
+  max-width: 34ch;
+}
+
+@media (max-width: 800px) {
+  .sb-steps {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  /* Vertical rail on the left once the row stacks. */
+  .sb-step {
+    padding-top: 0;
+    padding-left: 34px;
+  }
+
+  .sb-step::before {
+    top: 9px;
+    bottom: -28px;
+    left: 8px;
+    right: auto;
+    width: 1px;
+    height: auto;
+  }
+
+  .sb-step:last-child::before {
+    display: none;
+  }
+
+  .sb-step p {
+    max-width: none;
+  }
+}
+
+/* The tariff comparison: two halves of one statement, split by a single rule
+   rather than boxed into two cards. */
+.sb-tariffs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.sb-tariff {
+  padding: clamp(24px, 3vw, 38px);
+}
+
+.sb-tariff h4 {
+  font-size: clamp(18px, 2vw, 22px);
+  margin-bottom: 10px;
+}
+
+.sb-tariff p {
+  font-size: 15px;
+  margin: 0;
+  color: var(--color-text-dim);
+}
+
+.sb-tariff:first-child {
+  border-right: 1px solid var(--color-divider);
+}
+
+.sb-tariff-fixed {
+  background: var(--color-surface);
+}
+
+.sb-tariff-fixed h4 {
+  color: var(--color-text-mute);
+}
+
+/* The dynamic half is the one that pays, so it is the one carrying brand colour. */
+.sb-tariff-dynamic {
+  background: linear-gradient(
+    160deg,
+    var(--color-accent-tint) 0%,
+    color-mix(in srgb, var(--color-surface) 92%, transparent) 100%
+  );
+}
+
+.sb-tariff-dynamic h4 {
+  color: var(--color-accent-strong);
+}
+
+.sb-tariff-dynamic p strong {
+  color: var(--color-text);
+}
+
+@media (max-width: 720px) {
+  .sb-tariffs {
+    grid-template-columns: 1fr;
+  }
+
+  .sb-tariff:first-child {
+    border-right: none;
+    border-bottom: 1px solid var(--color-divider);
+  }
+}
+
+/* ── devices ───────────────────────────────────────────────────── */
+/* Bento, 4 items and exactly 4 cells, deliberately unequal. Home Assistant is the
+   headline integration so it takes two columns; Shelly runs full height beside it;
+   the two planned integrations share the remaining row as small tiles. The old
+   2x2 of identical squares gave the two shipping products the same weight as the
+   two that do not exist yet. */
+.sb-int-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto;
+  gap: 14px;
+}
+
+.sb-int-card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-md);
+  padding: clamp(22px, 2.6vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: var(--e-1);
+}
+
+.sb-int-card[data-key='homeassistant'] {
+  grid-column: 1 / span 2;
+  grid-row: 1;
+}
+
+.sb-int-card[data-key='shelly'] {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+.sb-int-card[data-soon] {
+  grid-row: 2;
+}
+
+/* Home Assistant leads, so it gets the one filled surface on the page: brand teal
+   deepened until white text clears AA on it. */
+.sb-int-card[data-dark] {
+  background:
+    radial-gradient(
+      120% 140% at 12% 0%,
+      color-mix(in srgb, var(--color-brand) 62%, transparent) 0%,
+      transparent 62%
+    ),
+    var(--color-accent-deep);
+  color: var(--color-text);
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  box-shadow: var(--e-2);
+}
+
+.sb-int-card img {
+  width: auto;
+  object-fit: contain;
+}
+
+/* Every partner logo ships dark-on-light. On a dark site they all have to be
+   flattened to the page's off-white or they disappear into the card. */
+.sb-logo-white {
+  filter: brightness(0) invert(1);
+  opacity: 0.94;
+}
+
+.sb-int-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* The dot here is real state, not decoration: it separates what ships today from
+   the two tiles that do not. */
+.sb-int-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: var(--color-accent-tint);
+  color: var(--color-accent-strong);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sb-int-card[data-dark] .sb-int-badge {
+  background: rgba(232, 237, 241, 0.12);
+  color: var(--color-text);
+  border-color: rgba(232, 237, 241, 0.22);
+}
+
+.sb-int-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--color-warm);
+}
+
+.sb-int-rule {
+  height: 1px;
+  background: var(--color-divider);
+}
+
+.sb-int-card[data-dark] .sb-int-rule {
+  background: rgba(232, 237, 241, 0.16);
+}
+
+.sb-int-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.sb-int-bullet {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--color-text-dim);
+}
+
+.sb-int-card[data-dark] .sb-int-bullet {
+  color: rgba(232, 237, 241, 0.88);
+}
+
+.sb-int-check {
+  flex: none;
+  font-size: 18px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.sb-int-cta {
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 12px 22px;
+  font-size: 14.5px;
+  background: var(--color-warm);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-1);
+}
+
+.sb-int-cta:hover {
+  background: var(--color-warm-strong);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-2);
+}
+
+/* Planned integrations: recognisable but plainly inactive. Small tiles, because
+   that is how much of the page they have earned. */
+.sb-int-soon {
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 150px;
+  padding: 28px 20px;
+  overflow: hidden;
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--color-divider);
+  box-shadow: none;
+}
+
+.sb-int-card[data-soon] img {
+  filter: brightness(0) invert(1) blur(1.4px);
+  opacity: 0.32;
+}
+
+.sb-logo-soon {
+  color: var(--color-text-mute);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sb-int-note {
+  font-size: 13.5px;
+  color: var(--color-text-mute);
+  margin-top: 26px;
+}
+
+@media (max-width: 900px) {
+  .sb-int-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sb-int-card[data-key='homeassistant'] {
+    grid-column: 1 / span 2;
+  }
+
+  .sb-int-card[data-key='shelly'] {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+  }
+
+  .sb-int-card[data-soon] {
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 560px) {
+  .sb-int-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sb-int-card[data-key='homeassistant'],
+  .sb-int-card[data-key='shelly'],
+  .sb-int-card[data-soon] {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+/* ── savings teaser (links out to /savings) ────────────────────── */
+/* A full-bleed tinted band. It is the only section on the page that breaks the
+   1160px shell apart from the hero, which is what makes it register as a change of
+   subject rather than another block of the same page. */
+.sb-teaser {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: clamp(48px, 7vw, 88px) clamp(16px, 4vw, 40px);
+  background:
+    radial-gradient(
+      90% 120% at 85% 12%,
+      var(--color-accent-tint) 0%,
+      transparent 64%
+    ),
+    var(--color-bg-deep);
+  border-top: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--color-hairline);
+  overflow: hidden;
+}
+
+.sb-teaser-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+}
+
+.sb-teaser h2 {
+  font-size: clamp(28px, 3.8vw, 42px);
+  letter-spacing: -0.035em;
+  margin-bottom: 16px;
+}
+
+.sb-teaser p {
+  color: var(--color-text-dim);
+  font-size: clamp(15px, 1.5vw, 17px);
+  max-width: 46ch;
+  margin-bottom: 28px;
+}
+
+/* The right column is the appliance set itself, which is the thing being offered.
+   Icons, not a bulleted list of the same six words. */
+.sb-teaser-apps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.sb-teaser-app {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 16px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--color-divider);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  font-size: 13px;
+  color: var(--color-text-dim);
+  line-height: 1.3;
+}
+
+.sb-teaser-app .material-symbols-outlined {
+  font-size: 26px;
+  color: var(--color-accent);
+}
+
+@media (max-width: 860px) {
+  .sb-teaser-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .sb-teaser p {
+    max-width: none;
+  }
+}
+
+@media (max-width: 440px) {
+  .sb-teaser-apps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── /savings page shell ───────────────────────────────────────── */
+.sb-savings-head {
+  padding: clamp(32px, 5vw, 64px) 0 clamp(24px, 3vw, 40px);
+  max-width: 62ch;
+}
+
+.sb-savings-head h1 {
+  font-size: clamp(34px, 5vw, 56px);
+  letter-spacing: -0.04em;
+  margin-bottom: 16px;
+}
+
+.sb-savings-head p {
+  color: var(--color-text-dim);
+  font-size: clamp(15px, 1.5vw, 18px);
+}
+
+.sb-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-dim);
+  margin-top: clamp(28px, 4vw, 44px);
+}
+
+.sb-back:hover {
+  color: var(--color-accent-strong);
+}
+
+.sb-savings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .sb-savings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── faq ───────────────────────────────────────────────────────── */
+/* Heading above, questions under it. Capped at a comfortable measure so a long
+   question does not run the full 1160px. */
+.sb-faq-list {
+  display: flex;
+  flex-direction: column;
+  max-width: 880px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.sb-faq {
+  overflow: hidden;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-divider);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.sb-faq-q {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: clamp(16px, 1.8vw, 19px);
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  transition: color 0.15s;
+}
+
+.sb-faq-q:hover {
+  color: var(--color-accent-strong);
+}
+
+.sb-faq-icon {
+  flex: none;
+  font-family: var(--font-body);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--color-warm);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animated open/close: grid-rows 0fr -> 1fr slides the panel to its natural
+   height without hard-coding it; the inner wrapper clips the overflow. */
+.sb-faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.sb-faq-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.sb-faq-panel > div {
+  overflow: hidden;
+}
+
+.sb-faq-a {
+  margin: 0;
+  padding: 0 4px 24px;
+  max-width: 68ch;
+  color: var(--color-text-dim);
+  font-size: 15.5px;
+  line-height: 1.65;
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+}
+
+.sb-faq-panel[data-open='true'] .sb-faq-a {
+  opacity: 1;
+}
+
+.sb-faq-link {
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--color-accent-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-faq-panel,
+  .sb-faq-a {
+    transition: none;
+  }
+}
+
+/* ── footer ────────────────────────────────────────────────────── */
+.sb-footer {
+  border-top: 1px solid var(--color-divider);
+  padding: clamp(36px, 5vw, 56px) 0 40px;
+  margin-top: clamp(32px, 5vw, 64px);
+}
+
+.sb-footer-top {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 28px;
+}
+
+/* Looks like the neighbouring footer spans, behaves like the button it is. */
+.sb-footer-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sb-footer-link:hover {
+  color: var(--color-accent);
+}
+
+.sb-footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  margin-right: auto;
+}
+
+.sb-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--color-accent-tint);
+}
+
+.sb-contact-email {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+  word-break: break-all;
+}
+
+.sb-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-text-mute);
+}
+
+/* ── individual savings (per-appliance cards) ──────────────────── */
+/* Now a /savings section rather than a landing-page one, so it sits in a single
+   column beside the estimator instead of spanning the page. */
+.sb-indiv {
+  scroll-margin-top: calc(var(--nav-h) + 20px);
+  min-width: 0;
+}
+
+/* Headline with its line of context stacked under it, not floated into the top
+   right corner of the section. */
+.sb-indiv-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.sb-indiv-head h3 {
+  font-size: clamp(22px, 2.6vw, 28px);
+  margin: 0;
+}
+
+.sb-indiv-head span {
+  font-size: 13px;
+  color: var(--color-text-mute);
+  max-width: 40ch;
+}
+
+.sb-indiv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.sb-indiv-card {
+  overflow: hidden;
+  box-shadow: var(--e-1);
+}
+
+.sb-indiv-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.sb-indiv-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-sm);
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+  display: grid;
+  place-items: center;
+}
+
+/* Material Symbols is a ligature font (see the <link> in index.html): the glyph name is the
+   element's text, so it must not wrap, break or get letter-spaced. */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.sb-indiv-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-indiv-name {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.sb-indiv-spec {
+  font-size: 12.5px;
+  color: var(--color-text-mute);
+}
+
+.sb-indiv-when {
+  text-align: right;
+  flex: none;
+}
+
+.sb-indiv-cap {
+  font-size: 12px;
+  color: var(--color-text-mute);
+}
+
+.sb-indiv-time {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+  color: var(--color-accent-strong);
+  line-height: 1.1;
+}
+
+/* The pending line for an appliance the scheduler cannot time yet. */
+.sb-indiv-pending {
+  padding: 12px 18px;
+  border-top: 1px solid var(--color-divider);
+  font-size: 12.5px;
+  color: var(--color-text-mute);
+}
+
+.sb-indiv-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  background: var(--color-accent-tint);
+}
+
+.sb-indiv-detail {
+  font-size: 12.5px;
+  color: var(--color-text-dim);
+}
+
+.sb-indiv-mid {
+  font-size: 12.5px;
+  color: var(--color-text-mute);
+}
+
+.sb-indiv-mid strong {
+  color: var(--color-text);
+}
+
+.sb-indiv-saving-box {
+  text-align: right;
+}
+
+.sb-indiv-saving-box .sb-indiv-cap {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.sb-indiv-saving {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  color: var(--color-accent-strong);
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .sb-indiv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Termly legal documents rendered inside LegalDialog. Their own stylesheet is prefixed
+   with .sb-legal at runtime (see api/legal.ts), so this only sets what Termly doesn't. */
+.sb-legal {
+  overflow-wrap: anywhere;
+}
+
+/* ── legal documents as pages (/privacy, /terms) ── */
+.sb-legal-page {
+  max-width: 860px;
+  margin-inline: auto;
+}
+
+.sb-legal-title {
+  font-size: clamp(28px, 4vw, 42px);
+  margin: 14px 0 24px;
+}
+
+.sb-legal-state {
+  color: var(--color-neutral-700);
+  font-size: 14px;
+}
+
+.sb-legal table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* ── Home Assistant setup guide (/home-assistant) ─────────────────────────────
+   Ported from the Claude Design canvas. Sections stack in one narrow column, so
+   the shared .sb-section padding is trimmed rather than repeated per block. */
+/* A guide reads better at a narrower measure than the 1160px marketing shell. */
+.sb-ha-head,
+.sb-ha-tight {
+  max-width: 1000px;
+  margin-inline: auto;
+}
+
+.sb-ha-tight {
+  padding-top: 0;
+}
+
+.sb-ha-back {
+  font-size: 13px;
+  color: var(--color-neutral-600);
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.sb-ha-title-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+/* Ships dark-on-light like every other partner wordmark. */
+.sb-ha-title-row img {
+  filter: brightness(0) invert(1);
+  opacity: 0.94;
+  width: auto;
+  object-fit: contain;
+}
+
+.sb-ha-pill {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent-800);
+  background: var(--color-accent-100);
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sb-ha-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--color-accent);
+}
+
+.sb-ha-lede {
+  font-size: clamp(16px, 1.7vw, 20px);
+  color: var(--color-neutral-700);
+  max-width: 56ch;
+}
+
+.sb-ha-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 22px;
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+}
+
+.sb-ha-sep {
+  color: var(--color-neutral-400);
+}
+
+.sb-ha-h2 {
+  font-size: clamp(22px, 3.4vw, 34px);
+  margin: 0 0 8px;
+}
+
+.sb-ha-sub {
+  color: var(--color-neutral-700);
+  margin: 0 0 24px;
+  max-width: 58ch;
+}
+
+/* Before you start */
+.sb-ha-prereq {
+  padding: clamp(18px, 2.5vw, 26px);
+}
+
+.sb-ha-prereq h2 {
+  font-size: 19px;
+  margin: 0 0 14px;
+}
+
+.sb-ha-prereq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.sb-ha-prereq-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.sb-ha-prereq-item svg {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  color: var(--color-accent);
+}
+
+.sb-ha-prereq-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.sb-ha-prereq-note {
+  font-size: 13px;
+  color: var(--color-neutral-600);
+}
+
+/* Steps */
+.sb-ha-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: clamp(20px, 3vw, 30px);
+  margin-bottom: 16px;
+}
+
+.sb-ha-step-n {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-sm);
+  background: var(--color-accent);
+  color: var(--color-bg-deep);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.sb-ha-step-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-ha-step-body h3 {
+  font-size: 21px;
+  margin: 0 0 6px;
+}
+
+.sb-ha-step-body > p {
+  font-size: 14.5px;
+  color: var(--color-neutral-700);
+  max-width: 52ch;
+  margin: 0;
+}
+
+.sb-ha-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.sb-ha-cta {
+  padding: 14px 28px;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.sb-ha-textbtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--color-neutral-600);
+  text-decoration: underline;
+  padding: 0;
+}
+
+.sb-ha-manual {
+  margin-top: 16px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-sm);
+  padding: 16px 18px;
+  background: var(--color-pop-100);
+}
+
+.sb-ha-manual-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.sb-ha-manual ol {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb-ha-manual code,
+.sb-ha-copyrow code,
+.sb-ha-ref-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+/* The configure field list. Plain rows on purpose: a screenshot of the real
+   dialog belongs here later, and a hand-drawn mock would only go stale. */
+.sb-ha-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 22px;
+  border-top: 1px solid var(--color-divider);
+  padding-top: 18px;
+}
+
+.sb-ha-field-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sb-ha-field-label {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.sb-ha-optional {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-neutral-600);
+  background: var(--color-pop-100);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+}
+
+.sb-ha-field-note {
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+  margin: 4px 0 0;
+  max-width: 60ch;
+}
+
+/* That's it */
+.sb-ha-done {
+  background: var(--color-accent-900);
+  color: var(--color-text);
+  border-radius: var(--r-md);
+  padding: clamp(24px, 3.5vw, 34px);
+  box-shadow: var(--e-2);
+  position: relative;
+  overflow: hidden;
+}
+
+.sb-ha-done-glow {
+  position: absolute;
+  top: -70px;
+  right: -30px;
+  width: 220px;
+  height: 220px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--color-accent) 42%, transparent);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.sb-ha-done-inner {
+  position: relative;
+}
+
+.sb-ha-done-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sb-ha-done-head h2 {
+  color: var(--color-text);
+  font-size: clamp(22px, 3vw, 30px);
+  margin: 0;
+}
+
+.sb-ha-done-check {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--color-accent-300);
+  color: var(--color-accent-900);
+  display: grid;
+  place-items: center;
+}
+
+.sb-ha-done-check svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sb-ha-done-inner p {
+  color: var(--color-text-dim);
+  max-width: 62ch;
+  margin: 0;
+}
+
+/* Want more control */
+.sb-ha-more {
+  border: 1px dashed var(--color-neutral-400);
+  border-radius: var(--r-md);
+  padding: clamp(18px, 2.5vw, 26px);
+}
+
+.sb-ha-more-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.sb-ha-more-head h2 {
+  font-size: 19px;
+  margin: 0;
+}
+
+.sb-ha-more-head span {
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+
+.sb-ha-more-lede {
+  font-size: 13.5px;
+  color: var(--color-neutral-600);
+  max-width: 60ch;
+  margin: 0 0 16px;
+}
+
+.sb-ha-more-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.sb-ha-more-card {
+  padding: 18px;
+}
+
+.sb-ha-more-card p {
+  font-size: 13px;
+  color: var(--color-neutral-700);
+  margin: 0 0 14px;
+}
+
+.sb-ha-more-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.sb-ha-ghost {
+  padding: 9px 18px;
+  font-size: 13px;
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+  display: inline-block;
+}
+
+.sb-ha-ghost:hover {
+  background: var(--color-accent-200);
+  color: var(--color-accent-800);
+}
+
+.sb-ha-copyrow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--color-pop-100);
+  border-radius: var(--r-sm);
+  padding: 9px 11px;
+}
+
+.sb-ha-copyrow code {
+  color: var(--color-accent-800);
+  overflow: auto;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.sb-ha-copybtn {
+  flex: none;
+  padding: 6px 12px;
+  font-size: 11.5px;
+}
+
+/* Disclosures: entity reference and troubleshooting */
+.sb-ha-disclosure,
+.sb-ha-trouble > button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+.sb-ha-disclosure {
+  padding: 16px 20px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-md);
+  font-size: 15px;
+  color: var(--color-neutral-700);
+}
+
+.sb-ha-plus {
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--color-accent);
+  transition: transform 0.2s;
+}
+
+.sb-ha-plus[data-open='true'] {
+  transform: rotate(45deg);
+}
+
+.sb-ha-ref-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 14px;
+  padding-top: 14px;
+}
+
+.sb-ha-ref {
+  padding: 20px;
+}
+
+.sb-ha-ref-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent-800);
+  background: var(--color-accent-100);
+  padding: 4px 11px;
+  border-radius: var(--r-pill);
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.sb-ha-ref-tag-muted {
+  color: var(--color-neutral-700);
+  background: var(--color-pop-100);
+}
+
+.sb-ha-ref-lede {
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+  margin: 0 0 10px;
+}
+
+.sb-ha-ref-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.sb-ha-ref-row:last-child {
+  border-bottom: none;
+}
+
+.sb-ha-ref-name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.sb-ha-ref-desc {
+  font-size: 12.5px;
+  color: var(--color-neutral-700);
+  margin-top: 3px;
+}
+
+.sb-ha-ref-row code {
+  color: var(--color-neutral-600);
+  word-break: break-all;
+}
+
+.sb-ha-troubles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sb-ha-trouble {
+  overflow: hidden;
+}
+
+.sb-ha-trouble > button {
+  padding: 17px 22px;
+  border: none;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+/* Same open/close animation as the FAQ on the landing page: a 0fr → 1fr grid row
+   so the panel measures its own content, with the text fading in just behind it. */
+.sb-ha-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.sb-ha-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.sb-ha-panel > div {
+  overflow: hidden;
+}
+
+.sb-ha-trouble-a,
+.sb-ha-ref-grid {
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+}
+
+.sb-ha-panel[data-open='true'] .sb-ha-trouble-a,
+.sb-ha-panel[data-open='true'] .sb-ha-ref-grid {
+  opacity: 1;
+}
+
+.sb-ha-trouble-a {
+  margin: 0;
+  padding: 0 22px 20px;
+  color: var(--color-neutral-700);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Close */
+.sb-ha-close {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.sb-ha-close-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-text);
+}
+
+.sb-ha-close-card:hover {
+  color: var(--color-text);
+  border-color: var(--color-accent-200);
+}
+
+.sb-ha-close-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+}
+
+.sb-ha-close-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 19px;
+}
+
+.sb-ha-close-note {
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-ha-panel,
+  .sb-ha-trouble-a,
+  .sb-ha-ref-grid,
+  .sb-ha-plus {
+    transition: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Shelly setup wizard (/shelly) — from the "Shelly.dc.html" Claude
+   Design canvas. Two mono-family additions and one accent-900 panel
+   style are the only things it needs that the rest of the site lacked.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* One column for the whole page. The questions used to sit at 820px inside a 1160px page, which read
+   as two different layouts stacked; 980px is the midpoint and every section now shares it. */
+.sb-sw {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px);
+}
+
+/* ── hero ── */
+.sb-sw-hero {
+  padding: clamp(30px, 4.5vw, 52px) 0 clamp(22px, 3vw, 32px);
+}
+
+/* Same reason as the Home Assistant lockup above. */
+.sb-sw-logo {
+  filter: brightness(0) invert(1);
+  opacity: 0.94;
+  display: block;
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: 16px;
+}
+
+.sb-sw-h1 {
+  font-size: clamp(32px, 5vw, 52px);
+  margin: 0 0 14px;
+}
+
+.sb-sw-lede {
+  font-size: clamp(16px, 1.7vw, 19px);
+  color: var(--color-neutral-700);
+  max-width: 52ch;
+}
+
+.sb-sw-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 22px;
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+}
+
+.sb-sw-meta svg {
+  vertical-align: -2px;
+  margin-right: 5px;
+}
+
+.sb-sw-dot {
+  color: var(--color-neutral-400);
+}
+
+/* Content that swaps when the script choice changes. Each carries key={mode}, so React remounts it and
+   the animation replays; without that the new content simply appears. Enter only — animating the outgoing
+   half needs two copies on screen at once, which is more machinery than this earns. */
+@keyframes sb-sw-swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sb-sw-swap {
+  animation: sb-sw-swap-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-sw-swap {
+    animation: none;
+  }
+}
+
+/* ── the question cards ── */
+.sb-sw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: clamp(28px, 4vw, 44px);
+}
+
+.sb-sw-q {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: clamp(18px, 2.4vw, 26px);
+  box-shadow: var(--e-1);
+}
+
+.sb-sw-n {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--color-accent);
+  color: var(--color-bg-deep);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.sb-sw-qbody {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-sw-qbody h3 {
+  font-size: 19px;
+  margin-bottom: 5px;
+}
+
+.sb-sw-qsub {
+  font-size: 13.5px;
+  color: var(--color-neutral-600);
+  max-width: 46ch;
+}
+
+/* ── option rows: the mode picker and the two checkboxes ── */
+.sb-sw-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.sb-sw-opt {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  padding: 15px 16px;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--color-divider);
+  background: var(--color-surface);
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.sb-sw-opt[data-on='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-100);
+}
+
+.sb-sw-opt-title {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.sb-sw-opt-body {
+  display: block;
+  font-size: 13px;
+  color: var(--color-neutral-600);
+  margin-top: 2px;
+}
+
+/* Radio dot: a thick border collapses the middle to a ring when selected. */
+.sb-sw-radio {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  border-radius: var(--r-pill);
+  margin-top: 3px;
+  background: var(--color-surface-2);
+  border: 1.5px solid var(--color-neutral-400);
+}
+
+.sb-sw-opt[data-on='true'] .sb-sw-radio {
+  border: 5px solid var(--color-accent);
+}
+
+.sb-sw-check {
+  padding: 13px 15px;
+  border-radius: var(--r-sm);
+}
+
+.sb-sw-check[data-on='true'] {
+  border-color: var(--color-accent-200);
+}
+
+.sb-sw-check .sb-sw-opt-title {
+  font-size: 14px;
+}
+
+.sb-sw-check .sb-sw-opt-body {
+  font-size: 12.5px;
+}
+
+.sb-sw-box {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-xs);
+  margin-top: 2px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-surface-2);
+  border: 1.5px solid var(--color-neutral-400);
+  color: transparent;
+}
+
+.sb-sw-check[data-on='true'] .sb-sw-box {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg-deep);
+}
+
+/* ── fields ── */
+.sb-sw-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-neutral-700);
+  margin-bottom: 6px;
+}
+
+.sb-sw-input {
+  width: 100%;
+  border: 1.5px solid var(--color-divider);
+  border-radius: var(--r-sm);
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  outline: none;
+}
+
+.sb-sw-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-100);
+}
+
+.sb-sw-zonefield {
+  margin-top: 16px;
+  max-width: 300px;
+}
+
+.sb-sw-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.sb-sw-note {
+  font-size: 12px;
+  color: var(--color-neutral-600);
+  margin-top: 8px;
+}
+
+.sb-sw-quiet {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  background: var(--color-pop-100);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+}
+
+.sb-sw-quiet > div {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* The plain-English restatement of the four settings above it. */
+.sb-sw-reads {
+  margin-top: 16px;
+  border-left: 2px solid var(--color-accent-200);
+  padding-left: 14px;
+  font-size: 13px;
+  color: var(--color-neutral-600);
+}
+
+.sb-sw-reads strong {
+  color: var(--color-accent-800);
+}
+
+/* ── colour legend (shown instead of the timing card) ── */
+.sb-sw-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.sb-sw-legend > div {
+  flex: 1;
+  min-width: 110px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-sm);
+  padding: 14px;
+}
+
+.sb-sw-swatch {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-pill);
+}
+
+.sb-sw-legend-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 11px;
+}
+
+.sb-sw-legend-body {
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+}
+
+/* ── the generated script, on a dark slab ── */
+.sb-sw-script {
+  background: var(--color-accent-900);
+  border-radius: var(--r-lg);
+  padding: clamp(18px, 2.6vw, 30px);
+  box-shadow: var(--e-3);
+  margin-bottom: clamp(20px, 3vw, 30px);
+}
+
+.sb-sw-script-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.sb-sw-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-accent-300);
+}
+
+.sb-sw-script-name {
+  color: var(--color-text);
+  font-size: clamp(21px, 2.6vw, 28px);
+  margin-top: 7px;
+}
+
+.sb-sw-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sb-sw-chip {
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+  color: var(--color-accent-300);
+  background: var(--color-accent-tint);
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+}
+
+.sb-sw-copy {
+  padding: 13px 26px;
+  font-size: 14px;
+  background: var(--color-accent-300);
+  color: var(--color-accent-900);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.sb-sw-copy:hover {
+  background: var(--color-surface-2);
+}
+
+/* One line, scrolled sideways. Nobody reads it; a wrapped wall only looks alarming. */
+.sb-sw-code {
+  background: rgba(232, 237, 241, 0.05);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--r-sm);
+  padding: 0 16px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.sb-sw-code code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-accent-strong);
+  white-space: nowrap;
+}
+
+.sb-sw-script-note {
+  font-size: 12px;
+  color: var(--color-text-mute);
+  margin-top: 9px;
+}
+
+.sb-sw-script-hint {
+  font-size: 12.5px;
+  color: var(--color-text-mute);
+  margin-top: 14px;
+  max-width: 70ch;
+}
+
+.sb-sw-script-hint code,
+.sb-sw-shot-cap code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--color-accent-300);
+}
+
+.sb-sw-blocked {
+  color: var(--color-text-dim);
+  font-size: 13.5px;
+}
+
+/* ── install steps + the app screenshot ── */
+.sb-sw-section {
+  padding: 0 0 clamp(30px, 4vw, 46px);
+  scroll-margin-top: 74px;
+}
+
+.sb-sw-h2 {
+  font-size: clamp(22px, 3vw, 30px);
+  margin-bottom: 6px;
+}
+
+.sb-sw-sub {
+  color: var(--color-neutral-700);
+  margin-bottom: 22px;
+  max-width: 56ch;
+}
+
+.sb-sw-install {
+  padding: clamp(18px, 2.6vw, 28px);
+  box-shadow: var(--e-1);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: clamp(20px, 3.4vw, 40px);
+  align-items: center;
+}
+
+.sb-sw-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.sb-sw-step {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+}
+
+.sb-sw-step-n {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.sb-sw-step-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.sb-sw-step-body {
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+  margin-top: 3px;
+}
+
+.sb-sw-shot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Device-ish frame: near-black bezel so a dark app screenshot reads as a screen. */
+.sb-sw-frame {
+  width: 100%;
+  max-width: 230px;
+  border-radius: var(--r-md);
+  padding: 7px;
+  background: var(--color-bg-deep);
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--e-2);
+}
+
+.sb-sw-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--r-sm);
+}
+
+.sb-sw-shot-cap {
+  font-size: 12px;
+  color: var(--color-neutral-600);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-align: center;
+}
+
+/* ── the on-device panel ── */
+.sb-sw-device {
+  background: var(--color-accent-900);
+  color: var(--color-text);
+  border-radius: var(--r-lg);
+  padding: clamp(22px, 3.4vw, 40px);
+  box-shadow: var(--e-3);
+  position: relative;
+  overflow: hidden;
+}
+
+.sb-sw-device-glow {
+  position: absolute;
+  top: -90px;
+  right: -40px;
+  width: 280px;
+  height: 280px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  filter: blur(50px);
+  pointer-events: none;
+}
+
+.sb-sw-device-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: clamp(22px, 3.5vw, 44px);
+  align-items: center;
+}
+
+.sb-sw-device h2 {
+  color: var(--color-text);
+  font-size: clamp(24px, 3.4vw, 36px);
+  margin: 10px 0 14px;
+}
+
+.sb-sw-device-lede {
+  color: var(--color-text-dim);
+  max-width: 50ch;
+  margin-bottom: 20px;
+}
+
+.sb-sw-device-lede strong {
+  color: var(--color-text);
+}
+
+.sb-sw-vc {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.sb-sw-vc code {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-accent-300);
+  background: var(--color-accent-tint);
+  padding: 4px 9px;
+  border-radius: var(--r-xs);
+  margin-top: 2px;
+}
+
+.sb-sw-vc-name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.sb-sw-vc-desc {
+  font-size: 13px;
+  color: var(--color-text-dim);
+}
+
+.sb-sw-phone {
+  width: 100%;
+  max-width: 290px;
+  border-radius: var(--r-lg);
+  padding: 9px;
+  background: var(--color-bg-deep);
+  border: 1px solid var(--color-hairline);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.45);
+}
+
+.sb-sw-phone img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--r-md);
+}
+
+/* ── day flow + troubleshooting ── */
+.sb-sw-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.sb-sw-flow-card {
+  padding: 22px;
+  box-shadow: var(--e-1);
+}
+
+.sb-sw-flow-n {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-sm);
+  background: var(--color-accent-100);
+  color: var(--color-accent);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 17px;
+  margin-bottom: 12px;
+}
+
+.sb-sw-flow-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.sb-sw-flow-body {
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+}
+
+.sb-sw-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sb-sw-faq-item {
+  overflow: hidden;
+  box-shadow: var(--e-1);
+}
+
+.sb-sw-faq-q {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 17px 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.sb-sw-faq-icon {
+  font-family: var(--font-body);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--color-accent);
+  transition: transform 0.2s;
+}
+
+.sb-sw-faq-icon[data-open='true'] {
+  transform: rotate(45deg);
+}
+
+/* Wrapped in .sb-faq-panel, so the slide comes from there; this only fades the text in behind it. */
+.sb-sw-faq-a {
+  margin: 0;
+  padding: 0 22px 20px;
+  color: var(--color-neutral-700);
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+}
+
+.sb-faq-panel[data-open='true'] .sb-sw-faq-a {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-sw-faq-a {
+    transition: none;
+  }
+}
+
+/* ── closing links ── */
+.sb-sw-close {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.sb-sw-close a {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-text);
+  box-shadow: var(--e-1);
+}
+
+.sb-sw-close-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+}
+
+.sb-sw-close-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 19px;
+}
+
+.sb-sw-close-body {
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+}
