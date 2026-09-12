@@ -48,6 +48,14 @@ resource "azurerm_log_analytics_workspace" "main" {
   retention_in_days   = 30
 }
 
+resource "azurerm_application_insights" "main" {
+  name                = "${var.prefix}-appi"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  workspace_id        = azurerm_log_analytics_workspace.main.id
+  application_type    = "web"
+}
+
 resource "azurerm_container_app_environment" "main" {
   name                       = "${var.prefix}-env"
   resource_group_name        = azurerm_resource_group.main.name
@@ -128,14 +136,14 @@ resource "azurerm_container_app" "calc" {
   }
 
   template {
-    min_replicas = 1
+    min_replicas = 0
     max_replicas = 2
 
     container {
       name   = "calc"
       image  = local.images.calc
-      cpu    = 0.5
-      memory = "1Gi"
+      cpu    = 0.25
+      memory = "0.5Gi"
     }
   }
 
@@ -211,6 +219,11 @@ resource "azurerm_container_app" "backend" {
     value = var.entsoe_token
   }
 
+  secret {
+    name  = "appi-conn"
+    value = azurerm_application_insights.main.connection_string
+  }
+
   ingress {
     external_enabled = true
     target_port      = 8080
@@ -245,6 +258,11 @@ resource "azurerm_container_app" "backend" {
       env {
         name        = "Entsoe__SecurityToken"
         secret_name = "entsoe-token"
+      }
+
+      env {
+        name        = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        secret_name = "appi-conn"
       }
 
       env {

@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -71,14 +72,21 @@ builder.Services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherClient>(c =>
     .AddStandardResilienceHandler(Resilience);
 
 // Trailing slash on the base URL matters, without it "price-zones" replaces the last path segment.
+// It scales to zero, so the first call after an idle period pays a cold start; that's what the retry is for.
 builder.Services.AddHttpClient<IPriceZoneProvider, CalcServicePriceZoneClient>(c =>
-{
-    c.BaseAddress = new Uri(builder.Configuration["CalcService:BaseUrl"]
-                            ?? throw new InvalidOperationException("CalcService:BaseUrl is not configured."));
-    c.Timeout = TimeSpan.FromSeconds(20);
-});
+        c.BaseAddress = new Uri(builder.Configuration["CalcService:BaseUrl"]
+                                ?? throw new InvalidOperationException("CalcService:BaseUrl is not configured.")))
+    .AddStandardResilienceHandler(Resilience);
 
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("postgres");
+
+// Traces, metrics and logs to Application Insights, keyed off APPLICATIONINSIGHTS_CONNECTION_STRING.
+// Auto-instruments ASP.NET Core, HttpClient and EF Core, so one trace id spans a request and the calls
+// it makes. Off when the string is absent, which is how local runs stay quiet.
+if (!string.IsNullOrWhiteSpace(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+{
+    builder.Services.AddOpenTelemetry().UseAzureMonitor();
+}
 
 builder.Services.AddSingleton<IBiddingZoneCatalog, BiddingZoneCatalog>();
 
@@ -99,10 +107,9 @@ var app = builder.Build();
 
 await DbInitializer.InitializeAsync(app.Services);
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+// Served everywhere: this API is the integration surface, and the HACS integration is built against
+// the document. Nothing here is secret — every endpoint is public already.
+app.MapOpenApi();
 
 app.UseForwardedHeaders();
 
