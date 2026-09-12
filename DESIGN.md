@@ -30,7 +30,7 @@ Clean-ish layered architecture. Folder = layer, dependencies point inward toward
 spotPriceCalc/
 ├─ Controllers/
 │   ├─ SpotPricesController.cs           read (populate is the scheduler's job, no write endpoint)
-│   ├─ SmartHomeIntegrationController.cs abstract adapter shared by integrations
+│   ├─ SmartHomeController.cs abstract adapter shared by integrations
 │   ├─ BiddingZonesController.cs         GET /api/zones, /api/zones/resolve
 │   ├─ SmartHomeShellyController.cs      POST /api/shelly/schedule, GET /api/shelly/schedule/status
 │   └─ ShellyLocalTime.cs                wall clock -> instant, Shelly only (see smartHomeIntegration.md)

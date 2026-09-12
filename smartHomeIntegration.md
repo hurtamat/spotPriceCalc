@@ -175,7 +175,7 @@ controller layer is for.
 
 ```
 Controllers/
-├─ SmartHomeIntegrationController.cs   abstract base: the shared HTTP adapter.
+├─ SmartHomeController.cs   abstract base: the shared HTTP adapter.
 │                                       Holds the scheduler, exposes one virtual step (BuildScheduleAsync).
 ├─ SmartHomeShellyController.cs        concrete: POST /api/shelly/schedule + GET /api/shelly/schedule/status. Inherits
 │                                       the base; a vendor controller overrides only the mapping.

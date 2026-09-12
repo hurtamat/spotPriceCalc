@@ -7,13 +7,13 @@ using spotPriceCalc.Services.SmartHome;
 namespace spotPriceCalc.Controllers;
 
 /// <summary>Shared base for every smart-home integration (Shelly, Home Assistant, …).</summary>
-public abstract class SmartHomeIntegrationController : ControllerBase
+public abstract class SmartHomeController : ControllerBase
 {
     protected readonly IScheduleService _schedule;
     protected readonly IBiddingZoneCatalog _zones;
     private readonly TimeProvider _clock;
 
-    protected SmartHomeIntegrationController(
+    protected SmartHomeController(
         IScheduleService schedule, IBiddingZoneCatalog zones, TimeProvider clock)
     {
         _schedule = schedule;
@@ -22,6 +22,18 @@ public abstract class SmartHomeIntegrationController : ControllerBase
     }
 
     protected DateTime UtcNow => _clock.GetUtcNow().UtcDateTime;
+    
+    protected IActionResult? Validate(string zoneCode, double? durationHours, out BiddingZone zone)
+    {
+        zone = null!;
+
+        if (durationHours is <= 0)
+            return BadRequest("duration_hours must be greater than zero.");
+
+        return _zones.TryByCode(zoneCode, out zone)
+            ? null
+            : BadRequest($"Unknown bidding zone code {zoneCode}.");
+    }
 
     /// <summary>Run the device-agnostic scheduler for this request. Override to customise the mapping.</summary>
     protected virtual Task<ScheduleResponse> BuildScheduleAsync(

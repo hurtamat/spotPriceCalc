@@ -8,7 +8,7 @@ namespace spotPriceCalc.Controllers;
 /// <summary>Shelly integration endpoints: POST /api/shelly/schedule and GET /api/shelly/schedule/status.</summary>
 [ApiController]
 [Route("api/shelly")]
-public class SmartHomeShellyController : SmartHomeIntegrationController
+public class SmartHomeShellyController : SmartHomeController
 {
     public SmartHomeShellyController(
         IScheduleService schedule, IBiddingZoneCatalog zones, TimeProvider clock)
@@ -19,10 +19,8 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
     [HttpPost("schedule")]
     public async Task<IActionResult> Post([FromBody] ShellyScheduleRequest request, CancellationToken ct)
     {
-        if (request.DurationHours <= 0)
-            return BadRequest("duration_hours must be greater than zero.");
-        if (!_zones.TryByCode(request.ZoneCode, out var zone))
-            return BadRequest($"Unknown bidding zone code {request.ZoneCode}.");
+        if (Validate(request.ZoneCode, request.DurationHours, out var zone) is { } error)
+            return error;
 
         // The device sends a wall clock in its zone's local time; the scheduler only sees instants.
         // Read once, so the deadline and the two labels agree.
@@ -45,8 +43,8 @@ public class SmartHomeShellyController : SmartHomeIntegrationController
     [HttpGet("schedule/status")]
     public async Task<IActionResult> Status([FromQuery] string zoneCode, DateTime time, CancellationToken ct)
     {
-        if (!_zones.TryByCode(zoneCode, out var zone))
-            return BadRequest($"Unknown bidding zone code {zoneCode}.");
+        if (Validate(zoneCode, durationHours: null, out var zone) is { } error)
+            return error;
 
         var response = await _schedule.ResolveStatus(zone, time, ct);
 

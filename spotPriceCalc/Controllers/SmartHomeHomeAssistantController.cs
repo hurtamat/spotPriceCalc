@@ -9,7 +9,7 @@ namespace spotPriceCalc.Controllers;
 /// <remarks>Same request and scheduler as Shelly; returns the plan and the price curve together.</remarks>
 [ApiController]
 [Route("api/homeassistant")]
-public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
+public class SmartHomeHomeAssistantController : SmartHomeController
 {
     public SmartHomeHomeAssistantController(
         IScheduleService schedule, IBiddingZoneCatalog zones, TimeProvider clock)
@@ -22,10 +22,8 @@ public class SmartHomeHomeAssistantController : SmartHomeIntegrationController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Post([FromBody] ScheduleRequest request, CancellationToken ct)
     {
-        if (request.DurationHours <= 0)
-            return BadRequest("duration_hours must be greater than zero.");
-        if (!_zones.TryByCode(request.ZoneCode, out var zone))
-            return BadRequest($"Unknown bidding zone code {request.ZoneCode}.");
+        if (Validate(request.ZoneCode, request.DurationHours, out var zone) is { } error)
+            return error;
 
         var schedule = await BuildScheduleAsync(zone, request, ct);
 

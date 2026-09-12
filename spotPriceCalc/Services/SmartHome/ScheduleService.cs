@@ -188,7 +188,7 @@ public class ScheduleService : IScheduleService
     {
         var biddingZoneId = zone.Id;
 
-        // Client timestamps are UTC by contract (see SmartHomeIntegrationController).
+        // Client timestamps are UTC by contract (see SmartHomeController).
         var at = DateTime.SpecifyKind(atUtc, DateTimeKind.Utc);
         var prices = await _prices.GetPricesAsync(biddingZoneId, at, ct);
 
