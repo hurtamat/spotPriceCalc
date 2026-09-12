@@ -28,14 +28,6 @@ export function Hero() {
             Electricity prices change every hour. SpotSteer watches the spot market and runs your
             devices when power is cheapest.
           </p>
-          <div className="sb-hero-actions" style={{ '--i': 2 } as React.CSSProperties}>
-            <a className="sb-btn sb-primary" href="#prices">
-              See live prices
-            </a>
-            <a className="sb-btn sb-ghost" href="#how">
-              How it works
-            </a>
-          </div>
         </div>
       </div>
     </section>

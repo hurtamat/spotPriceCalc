@@ -32,10 +32,6 @@ export function LegalPage({ kind }: { kind: LegalKind }) {
     };
   }, [kind]);
 
-  useEffect(() => {
-    document.title = `${TITLES[kind]} · SpotSteer`;
-  }, [kind]);
-
   return (
     <div className="sb-shell">
       <Nav />

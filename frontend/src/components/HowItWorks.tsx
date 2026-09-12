@@ -22,9 +22,8 @@ export function HowItWorks() {
         <h2>What are spot prices</h2>
         <p>
           On the wholesale market, electricity is priced <strong>every single hour</strong>. That
-          hourly wholesale price is the <em>spot price</em>. Pricing like this used to be reserved
-          for large companies and factories, but today an ordinary household can get in on it too,
-          and put money back in its own pocket every month.
+          hourly wholesale price is the <em>spot price</em>. Households can benefit from these,
+          and put money back in their own pocket every month.
         </p>
       </div>
 
@@ -39,19 +38,19 @@ export function HowItWorks() {
       </div>
 
       <div className="sb-tariffs">
-        <div className="sb-tariff sb-tariff-fixed">
-          <h4>Fixed tariff</h4>
-          <p>
-            You pay the same rate at 3am and 6pm. Shifting your boiler or EV charging to cheap hours
-            saves you <strong>nothing</strong>, because the meter can&apos;t tell the difference.
-          </p>
-        </div>
         <div className="sb-tariff sb-tariff-dynamic">
           <h4>Dynamic / spot tariff</h4>
           <p>
             You pay the real hourly price. Now moving flexible loads into the cheap hours{' '}
             <strong>directly cuts your bill</strong>, and that&apos;s exactly what SpotSteer
             automates.
+          </p>
+        </div>
+        <div className="sb-tariff sb-tariff-fixed">
+          <h4>Fixed tariff</h4>
+          <p>
+            You pay the same rate at any hour. Shifting your boiler or EV charging to cheap hours
+            saves you <strong>nothing</strong>, because the meter can&apos;t tell the difference.
           </p>
         </div>
       </div>

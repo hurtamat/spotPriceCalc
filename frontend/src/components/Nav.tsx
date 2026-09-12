@@ -12,25 +12,24 @@ const LINKS = [
 export function Nav() {
   return (
     <nav className="sb-nav">
-      <a className="sb-brand" href="/">
-        <BrandMark size={34} />
-        <span>
-          <span className="sb-brand-word-a">Spot</span>
-          <span className="sb-brand-word-b">Steer</span>
-        </span>
-      </a>
-      <div className="sb-nav-links">
-        {LINKS.map((l) => (
-          <a key={l.href} className="sb-link" href={l.href}>
-            {l.label}
-          </a>
-        ))}
+      {/* The bar is fixed and spans the viewport; this wrapper keeps its contents on
+          the same 1160px grid as the rest of the page. */}
+      <div className="sb-nav-inner">
+        <a className="sb-brand" href="/">
+          <BrandMark size={34} />
+          <span>
+            <span className="sb-brand-word-a">Spot</span>
+            <span className="sb-brand-word-b">Steer</span>
+          </span>
+        </a>
+        <div className="sb-nav-links">
+          {LINKS.map((l) => (
+            <a key={l.href} className="sb-link" href={l.href}>
+              {l.label}
+            </a>
+          ))}
+        </div>
       </div>
-      {/* Same label as the hero's primary button on purpose: one label per intent,
-          everywhere on the site. */}
-      <a className="sb-btn sb-primary sb-nav-cta" href="/#prices">
-        See live prices
-      </a>
     </nav>
   );
 }

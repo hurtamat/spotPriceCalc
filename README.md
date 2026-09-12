@@ -1,4 +1,4 @@
-# SpotBuddy
+# SpotSteer
 
 Automates household energy consumption around day-ahead electricity spot prices. Keep your supplier,
 keep your devices; this is the brain that decides when things switch on.

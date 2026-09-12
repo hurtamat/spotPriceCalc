@@ -17,10 +17,6 @@ const DEFAULT_ZONE_ID = 7;
  *  this page seeds the store itself with the default zone's curve. */
 export function SavingsPage() {
   useEffect(() => {
-    document.title = 'What could you save? · SpotSteer';
-  }, []);
-
-  useEffect(() => {
     const controller = new AbortController();
     fetchSpotPrices(DEFAULT_ZONE_ID, dateForDay('today'), controller.signal)
       .then((data) => publishSelection({ zoneId: DEFAULT_ZONE_ID, day: 'today', data }))

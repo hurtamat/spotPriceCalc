@@ -29,11 +29,11 @@ export function Faq() {
 
   return (
     <section id="faq" className="sb-section">
-      <div className="sb-faq-layout">
-        <div className="sb-section-head">
-          <h2>Frequently asked</h2>
-        </div>
-        <div className="sb-faq-list">
+      <div className="sb-section-head">
+        <h2>Frequently asked</h2>
+      </div>
+
+      <div className="sb-faq-list">
         {FAQ.map((f, i) => {
           const isOpen = open === i;
           return (
@@ -67,9 +67,8 @@ export function Faq() {
                 </div>
               </div>
             </div>
-            );
-          })}
-        </div>
+          );
+        })}
       </div>
     </section>
   );

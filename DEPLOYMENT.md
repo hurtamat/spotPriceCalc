@@ -1,6 +1,8 @@
 # Deployment
 
-SpotBuddy runs on Azure Container Apps, provisioned with Terraform and deployed by GitHub Actions.
+SpotSteer runs on Azure Container Apps, provisioned with Terraform and deployed by GitHub Actions.
+The Azure resource names below still carry the old `spotbuddy-` prefix: they are live resource
+identifiers, and the Terraform state lives in one of them, so they were deliberately not renamed.
 Docker Compose is used for local development.
 
 ## Contents
