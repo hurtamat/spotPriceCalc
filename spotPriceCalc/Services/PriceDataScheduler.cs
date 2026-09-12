@@ -99,7 +99,7 @@ public class PriceDataScheduler : BackgroundService
             _logger.LogInformation("Populate triggered ({Reason}) for {Date}", reason, date);
             await using var scope = _scopeFactory.CreateAsyncScope();
             var service = scope.ServiceProvider.GetRequiredService<ISpotPriceService>();
-            await service.PopulateUntilCompleteAsync(date, ct);
+            await service.PopulateAsync(date, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

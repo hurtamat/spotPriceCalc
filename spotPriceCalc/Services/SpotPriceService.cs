@@ -19,8 +19,6 @@ public class SpotPriceService : ISpotPriceService
     // Throttle the sequential ENTSO-E calls so we don't trip their rate limits / gateway timeouts.
     private static readonly TimeSpan RequestDelay = TimeSpan.FromMilliseconds(100);
 
-    private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
-    private const int MaxAttempts = 5;
     private const int QuantileWindowDays = 7;
     private const int MinQuantileSamples = 12;
 
@@ -59,29 +57,8 @@ public class SpotPriceService : ISpotPriceService
 
     #region Populate: fetch, store, classify
 
-    // Re-runs the pass until every zone lands, then stops.
-    public async Task<PopulateResult> PopulateUntilCompleteAsync(DateOnly date, CancellationToken ct)
-    {
-        for (var attempt = 1; ; attempt++)
-        {
-            var result = await PopulateOnceAsync(date, ct);
-
-            if (result.Failed == 0 || attempt == MaxAttempts)
-            {
-                _logger.Log(result.Failed == 0 ? LogLevel.Information : LogLevel.Error,
-                    "Populate {Date} done after {Attempt} attempt(s): {Failed} of {Total} zone(s) missing",
-                    date, attempt, result.Failed, result.ZonesTotal);
-                return result;
-            }
-
-            _logger.LogWarning("Populate {Date} attempt {Attempt}/{Max}: {Failed} failed — retry in {Delay}s",
-                date, attempt, MaxAttempts, result.Failed, RetryDelay.TotalSeconds);
-            await Task.Delay(RetryDelay, ct);
-        }
-    }
-
-    // One pass over every zone. The only place that hits ENTSO-E; the retry wrapper above calls it repeatedly.
-    private async Task<PopulateResult> PopulateOnceAsync(DateOnly date, CancellationToken ct)
+    // One pass over every zone; the only place that hits ENTSO-E
+    public async Task<PopulateResult> PopulateAsync(DateOnly date, CancellationToken ct)
     {
         var zones = _zones.All;
         int succeeded = 0, skipped = 0, declined = 0, pointsSaved = 0;
@@ -97,14 +74,12 @@ public class SpotPriceService : ISpotPriceService
             }
             catch (EntsoeAcknowledgementException ex)
             {
-                // ENTSO-E has nothing for this zone/day. Not a failure to retry.
                 declined++;
                 _logger.LogInformation("No data at ENTSO-E for {Zone} on {Date}: {Reason}",
                     zone.Name, date, ex.Message);
             }
             catch (Exception ex)
             {
-                // One zone timing out shouldn't sink the run; this one IS worth another attempt.
                 _logger.LogWarning(ex, "Populate failed for {Zone} ({Code}) on {Date}", zone.Name, zone.Code, date);
                 failures.Add($"{zone.Name} ({zone.Code}): {ex.Message}");
             }
@@ -112,7 +87,7 @@ public class SpotPriceService : ISpotPriceService
             await Task.Delay(RequestDelay, ct);
         }
 
-        _logger.LogInformation(
+        _logger.Log(failures.Count == 0 ? LogLevel.Information : LogLevel.Error,
             "Populate {Date}: {Succeeded} fetched, {Skipped} skipped, {Declined} no-data, {Failed} failed, {Points} points",
             date, succeeded, skipped, declined, failures.Count, pointsSaved);
 
@@ -122,7 +97,6 @@ public class SpotPriceService : ISpotPriceService
     // Fetches, stores and classifies one zone's market day. Returns points saved, or null if already present.
     private async Task<int?> PopulateZoneAsync(BiddingZone zone, DateOnly date, CancellationToken ct)
     {
-        // A partial day (< MinSlotsForDay) is re-fetched, so a half-finished run self-heals.
         var (fromUtc, toUtc) = MarketDay.WindowUtc(date);
         if (await _repository.HasDayAsync(zone.Id, fromUtc, toUtc, ct))
         {
@@ -144,7 +118,6 @@ public class SpotPriceService : ISpotPriceService
         var (dayFromUtc, dayToUtc) = MarketDay.WindowUtc(date);
         var windowFromUtc = MarketDay.WindowUtc(date.AddDays(-(QuantileWindowDays - 1))).FromUtc;
 
-        // The whole window, ordered by From: the calc-service needs each slot's span, not just its price.
         var window = await _repository.GetAsync(zone.Id, windowFromUtc, dayToUtc, ct);
         if (window.Points.Count < MinQuantileSamples)
         {

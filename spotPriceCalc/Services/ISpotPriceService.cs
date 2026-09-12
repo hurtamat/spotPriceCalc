@@ -13,6 +13,6 @@ public interface ISpotPriceService
     // Stores a date range, one request per zone, without classifying it. Best-effort: never throws.
     Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct);
 
-    // Retries idempotently until every zone lands, stamping each slot's quantile as it goes.
-    Task<PopulateResult> PopulateUntilCompleteAsync(DateOnly date, CancellationToken ct);
+    // Zone fetching and stamping each slot's quantile as it goes.
+    Task<PopulateResult> PopulateAsync(DateOnly date, CancellationToken ct);
 }

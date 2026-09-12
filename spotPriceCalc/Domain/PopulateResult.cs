@@ -1,6 +1,6 @@
 namespace spotPriceCalc.Services;
 
-// Failed counts only retryable problems and drives the retry loop; Declined never retries.
+
 public record PopulateResult(
     DateOnly Date,
     int ZonesTotal,

@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http.Resilience;
 using spotPriceCalc.Infrastructure.ExternalClients;
 using spotPriceCalc.Infrastructure.ExternalClients.OpenMeteo;
 using spotPriceCalc.Infrastructure.Persistence;
@@ -51,16 +52,30 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
+// Retry, breaker and timeouts for the two third-party APIs
+static void Resilience(HttpStandardResilienceOptions o)
+{
+    o.AttemptTimeout.Timeout = TimeSpan.FromSeconds(20);
+    o.Retry.MaxRetryAttempts = 3;
+    o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(70);
+    o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
+}
+
 builder.Services.AddHttpClient<ISpotPriceProvider, EntsoeSpotPriceClient>(c =>
-    c.BaseAddress = new Uri(builder.Configuration["Entsoe:BaseUrl"]));
+        c.BaseAddress = new Uri(builder.Configuration["Entsoe:BaseUrl"]))
+    .AddStandardResilienceHandler(Resilience);
 
 builder.Services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherClient>(c =>
-    c.BaseAddress = new Uri(builder.Configuration["OpenMeteo:BaseUrl"]));
+        c.BaseAddress = new Uri(builder.Configuration["OpenMeteo:BaseUrl"]))
+    .AddStandardResilienceHandler(Resilience);
 
 // Trailing slash on the base URL matters, without it "price-zones" replaces the last path segment.
 builder.Services.AddHttpClient<IPriceZoneProvider, CalcServicePriceZoneClient>(c =>
+{
     c.BaseAddress = new Uri(builder.Configuration["CalcService:BaseUrl"]
-                            ?? throw new InvalidOperationException("CalcService:BaseUrl is not configured.")));
+                            ?? throw new InvalidOperationException("CalcService:BaseUrl is not configured."));
+    c.Timeout = TimeSpan.FromSeconds(20);
+});
 
 builder.Services.AddSingleton<IBiddingZoneCatalog, BiddingZoneCatalog>();
 
