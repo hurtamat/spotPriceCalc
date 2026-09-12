@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using spotPriceCalc.Services.Zones;
 using spotPriceCalc.Domain;
-using spotPriceCalc.Dtos.Schedule;
 using spotPriceCalc.Services.SmartHome;
 
 namespace spotPriceCalc.Controllers;
@@ -34,9 +33,4 @@ public abstract class SmartHomeController : ControllerBase
             ? null
             : BadRequest($"Unknown bidding zone code {zoneCode}.");
     }
-
-    /// <summary>Run the device-agnostic scheduler for this request. Override to customise the mapping.</summary>
-    protected virtual Task<ScheduleResponse> BuildScheduleAsync(
-        BiddingZone zone, ScheduleRequest request, CancellationToken ct) =>
-        _schedule.BuildAsync(zone, request, ct);
 }

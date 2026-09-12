@@ -27,7 +27,7 @@ public class SmartHomeShellyController : SmartHomeController
         var now = UtcNow;
         var resolved = ShellyLocalTime.Resolve(request, zone.TimeZoneId, now);
 
-        var schedule = await BuildScheduleAsync(zone, resolved, ct);
+        var schedule = await _schedule.BuildAsync(zone, resolved, ct);
 
         return Ok(new ShellyScheduleResponse
         {

@@ -25,7 +25,7 @@ public class SmartHomeHomeAssistantController : SmartHomeController
         if (Validate(request.ZoneCode, request.DurationHours, out var zone) is { } error)
             return error;
 
-        var schedule = await BuildScheduleAsync(zone, request, ct);
+        var schedule = await _schedule.BuildAsync(zone, request, ct);
 
         // Anchored on now, not the deadline: the curve is for display, and the plan is asked for early.
         var now = UtcNow;
