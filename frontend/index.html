@@ -40,14 +40,15 @@
     />
     <link rel="preload" as="image" href="/assets/backdrop.png" fetchpriority="high" />
 
-    <!-- Appliance glyphs for the /savings appliance cards and the teaser that links to them.
-         icon_names= trims the download to just these eight, and Google REQUIRES that list to be
-         sorted alphabetically, otherwise the whole request 400s and no icons render. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Appliance glyphs for /savings. Self-hosted like the text faces: the eight-icon subset,
+         downloaded once into /fonts. Hotlinking fonts.googleapis.com would hand every visitor's
+         IP to Google, and was the only reason this site would need a consent banner. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=check,content_copy,cool_to_dry,dishwasher,electric_car,heat_pump,local_laundry_service,water_heater&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/material-symbols-subset.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
   </head>
   <body>

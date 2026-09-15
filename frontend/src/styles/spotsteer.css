@@ -38,6 +38,16 @@
     U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* Material Symbols, subsetted to our eight glyphs (2.7KB), self-hosted.
+   Apache-2.0; see fonts/LICENSE-APACHE.txt. */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/material-symbols-subset.woff2') format('woff2');
+}
+
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
@@ -2045,8 +2055,9 @@ a:hover {
   place-items: center;
 }
 
-/* Material Symbols is a ligature font (see the <link> in index.html): the glyph name is the
-   element's text, so it must not wrap, break or get letter-spaced. */
+/* A ligature font: the glyph name is the element's text, so it must not wrap, break or get
+   letter-spaced. Our subset is static at wght 400, so font-variation-settings is inert; it
+   stays in case the variable face comes back. */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
@@ -2059,6 +2070,8 @@ a:hover {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
@@ -2156,6 +2169,65 @@ a:hover {
    with .sb-legal at runtime (see api/legal.ts), so this only sets what Termly doesn't. */
 .sb-legal {
   overflow-wrap: anywhere;
+}
+
+/* Termly's own stylesheet paints for a white page (black headings, #595959 body, Arial) and
+   does it with !important, so inline styles never get a look in. It is also injected after our
+   sheet, so a tie on specificity goes to them: the doubled .sb-legal is what wins these back. */
+.sb-legal.sb-legal [data-custom-class='title'],
+.sb-legal.sb-legal [data-custom-class='title'] *,
+.sb-legal.sb-legal [data-custom-class='heading_1'],
+.sb-legal.sb-legal [data-custom-class='heading_1'] *,
+.sb-legal.sb-legal [data-custom-class='heading_2'],
+.sb-legal.sb-legal [data-custom-class='heading_2'] * {
+  color: var(--color-text) !important;
+  font-family: var(--font-heading) !important;
+  letter-spacing: -0.02em;
+}
+
+.sb-legal.sb-legal [data-custom-class='heading_1'],
+.sb-legal.sb-legal [data-custom-class='heading_1'] * {
+  font-size: 21px !important;
+}
+
+.sb-legal.sb-legal [data-custom-class='heading_2'],
+.sb-legal.sb-legal [data-custom-class='heading_2'] * {
+  font-size: 17px !important;
+}
+
+.sb-legal.sb-legal [data-custom-class='body_text'],
+.sb-legal.sb-legal [data-custom-class='body_text'] *,
+.sb-legal.sb-legal [data-custom-class='subtitle'],
+.sb-legal.sb-legal [data-custom-class='subtitle'] * {
+  color: var(--color-text-dim) !important;
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+}
+
+.sb-legal.sb-legal [data-custom-class='link'],
+.sb-legal.sb-legal [data-custom-class='link'] * {
+  color: var(--color-accent) !important;
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+}
+
+/* Anything Termly left carrying only an inline colour, the stray rgb(0,0,0) and rgb(127,127,127)
+   wrappers between sections, has no !important behind it, so one rule catches the lot. */
+.sb-legal [style*='rgb(0, 0, 0)'],
+.sb-legal [style*='rgb(127, 127, 127)'] {
+  color: var(--color-text) !important;
+}
+
+.sb-legal h1,
+.sb-legal h2,
+.sb-legal h3,
+.sb-legal h4 {
+  color: var(--color-text);
+  font-family: var(--font-heading);
+}
+
+.sb-legal li {
+  color: var(--color-text-dim);
 }
 
 /* ── legal documents as pages (/privacy, /terms) ── */
@@ -3566,4 +3638,80 @@ a:hover {
 .sb-sw-close-body {
   font-size: 13.5px;
   color: var(--color-neutral-700);
+}
+
+/* ── dynamic-tariff risk note (/savings estimator) ──────────────────────────
+   Not a dismissible banner or a red alert: it is part of the answer, so it reads
+   as the card's last paragraph rather than something learned to scroll past. */
+.sb-risk {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2, var(--color-accent-tint));
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-text-mute);
+}
+
+.sb-risk strong {
+  color: var(--color-text);
+}
+
+/* ── /contact ───────────────────────────────────────────────────────────────
+   Same narrow measure as the legal pages it carries the identity for. */
+.sb-contact-page {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.sb-contact-lead {
+  font-size: 15px;
+  color: var(--color-text-mute);
+  max-width: 52ch;
+  margin: 0 0 18px;
+}
+
+.sb-contact-page .sb-contact-row {
+  max-width: 420px;
+  justify-content: space-between;
+}
+
+.sb-contact-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.sb-contact-copy .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.sb-contact-note {
+  max-width: 58ch;
+  margin-top: 10px;
+}
+
+.sb-contact-h2 {
+  font-size: 20px;
+  margin: 34px 0 12px;
+}
+
+/* <address> is machine-readable; browsers italicise it, which a postal address isn't. */
+.sb-impressum {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-style: normal;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-mute);
+}
+
+.sb-impressum-name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-text);
 }

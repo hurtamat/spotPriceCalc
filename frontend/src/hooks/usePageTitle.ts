@@ -15,6 +15,7 @@ const TITLES: Record<string, string> = {
   '/home-assistant': 'SpotSteer · Home Assistant',
   '/privacy': 'SpotSteer · Privacy',
   '/terms': 'SpotSteer · Terms',
+  '/contact': 'SpotSteer · Contact',
 };
 
 export function usePageTitle(path: string) {

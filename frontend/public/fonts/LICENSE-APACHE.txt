@@ -1,0 +1,14 @@
+Material Symbols Outlined
+Copyright Google LLC
+
+The file material-symbols-subset.woff2 in this directory is a subset of the
+Material Symbols Outlined icon font, containing only the eight glyphs this site
+uses (check, content_copy, cool_to_dry, dishwasher, electric_car, heat_pump,
+local_laundry_service, water_heater). It is served from this origin rather than
+from fonts.gstatic.com so that no visitor's IP address is disclosed to a third
+party in order to render the page.
+
+Licensed under the Apache License, Version 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+
+Source: https://github.com/google/material-design-icons

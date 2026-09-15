@@ -1,23 +1,20 @@
 // Fills the wizard's answers into the minified Shelly scripts.
 //
-// The templates are the committed output of scripts/shelly/minify.sh, imported as raw text. They must be
-// the minified ones: an mJS script lives in about 8 KB of per-script heap and the readable sources do not
-// fit. Minification mangles identifiers, so the placeholders are string literals — the only thing a
-// minifier leaves alone. minify.sh fails the build if any of them stops surviving.
+// Templates are minify.sh's committed output: an mJS script gets ~8 KB of heap, and the readable
+// sources do not fit. Placeholders are string literals because a minifier leaves those alone.
 
 import scheduleTemplate from '../../../scripts/shelly/dist/schedule.js?raw';
 import priceColorTemplate from '../../../scripts/shelly/dist/priceColor.js?raw';
 
-// Read by the device, not the browser: during local testing this is the machine's LAN address, because
-// a Shelly's "localhost" is itself. Falls back to the browser's base URL, which is right once deployed.
+// Read by the device, not the browser, so local testing needs this machine's LAN address:
+// a Shelly's "localhost" is itself.
 const DEVICE_API_BASE =
   import.meta.env.VITE_DEVICE_API_BASE_URL ??
   import.meta.env.VITE_API_BASE_URL ??
   'http://localhost:5262';
 
 export interface WizardAnswers {
-  /** ENTSO-E area code. It also tells the backend which timezone the hours are in — the zone catalog
-   *  carries that, so no timezone is baked into the script or sent on the wire. */
+  /** ENTSO-E area code. Also picks the timezone, via the backend's zone catalog. */
   zoneCode: string;
   hours: number;
   /** Hour the job must finish by, in the zone's local time. */
@@ -28,15 +25,31 @@ export interface WizardAnswers {
   unavailTo: number;
 }
 
-// A loopback address means the device would call itself, and the script fails with nothing to explain
-// why. It is what the fallback above produces when VITE_DEVICE_API_BASE_URL is unset during local
-// development, so refuse it here rather than let a dead script reach someone's plug.
+// RFC 1918, link-local and CGNAT. Fine in dev, never in a production build.
+const PRIVATE_HOST =
+  /^https?:\/\/(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/i;
+
+// The device trusts whatever host this names: it can rewrite the schedule switching their load.
+// Loopback points the Shelly at itself; a LAN or plaintext URL in a public build points every
+// user's hardware at whoever answers.
 function deviceBaseUrl(): string {
   const url = DEVICE_API_BASE.replace(/\/+$/, '');
   if (/^https?:\/\/(localhost|127\.\d+\.\d+\.\d+|\[::1\])(:|\/|$)/i.test(url)) {
     throw new Error(
       `The device address is ${url}, which points a Shelly at itself. Set VITE_DEVICE_API_BASE_URL ` +
         `to this machine's address on the network (see frontend/.env.example) and reload.`,
+    );
+  }
+  if (import.meta.env.PROD && PRIVATE_HOST.test(url)) {
+    throw new Error(
+      `The device address is ${url}, a private network address, in a production build. ` +
+        `VITE_DEVICE_API_BASE_URL was left at its development value; it must be the public API URL.`,
+    );
+  }
+  if (import.meta.env.PROD && !url.startsWith('https://')) {
+    throw new Error(
+      `The device address is ${url}. A production build must hand devices an https:// URL, or ` +
+        `anyone on the network path can rewrite the schedule that runs someone's appliance.`,
     );
   }
   return url;
