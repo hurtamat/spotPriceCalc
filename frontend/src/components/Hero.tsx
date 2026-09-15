@@ -1,7 +1,7 @@
 // The photograph is the hero. It is a real <img> rather than a CSS background so it
 // can carry fetchpriority and explicit intrinsic dimensions: it is the LCP element,
 // and a background-image can do neither.
-const BACKDROP = '/assets/backdrop.png';
+const BACKDROP = '/assets/backdrop.jpeg';
 
 export function Hero() {
   return (
