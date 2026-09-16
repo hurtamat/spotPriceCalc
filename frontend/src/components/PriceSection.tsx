@@ -208,18 +208,21 @@ function Chart({
             capClass="sb-stat-cap sb-stat-cap-accent"
             cap="Cheapest"
             value={derived ? fmt(derived.min) : '—'}
+            unit={derived ? 'c/kWh' : ''}
             valueColor={derived ? 'var(--color-q-green-text)' : undefined}
           />
           <Stat
             capClass="sb-stat-cap sb-stat-cap-avg"
             cap="Avg"
             value={derived ? fmt(derived.avg) : '—'}
+            unit={derived ? 'c/kWh' : ''}
             valueColor={derived ? 'var(--color-q-yellow-text)' : undefined}
           />
           <Stat
             capClass="sb-stat-cap sb-stat-cap-pop"
             cap="Peak"
             value={derived ? fmt(derived.max) : '—'}
+            unit={derived ? 'c/kWh' : ''}
             valueColor={derived ? 'var(--color-q-red-text)' : undefined}
           />
         </div>
@@ -265,9 +268,7 @@ function Chart({
         <span className="sb-legend-item">
           <i className="sb-dot" style={{ background: 'var(--color-q-red)' }} /> Expensive
         </span>
-        <span>
-          {zoneName}, {formatDayDate(day)}, in c/kWh
-        </span>
+        <span>{formatDayDate(day)}</span>
       </div>
 
       {/* The x axis is the zone's own wall clock, not the viewer's and not UTC. */}
@@ -283,18 +284,20 @@ function Stat({
   capClass,
   cap,
   value,
+  unit,
   valueColor,
 }: {
   capClass: string;
   cap: string;
   value: string;
+  unit: string;
   valueColor?: string;
 }) {
   return (
     <div>
       <div className={capClass}>{cap}</div>
       <div className="sb-stat-big" style={valueColor ? { color: valueColor } : undefined}>
-        {value}
+        {value} <span className="sb-stat-unit">{unit}</span>
       </div>
     </div>
   );
@@ -306,8 +309,8 @@ function formatDayDate(day: DayKey): string {
   const [y, m, d] = dateForDay(day).split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', {
     timeZone: 'UTC',
-    weekday: 'short',
     day: 'numeric',
     month: 'short',
+    year: 'numeric',
   });
 }

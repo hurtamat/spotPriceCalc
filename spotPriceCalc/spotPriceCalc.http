@@ -36,3 +36,7 @@ GET {{spotPriceCalc_HostAddress}}/api/spotprices/zones?biddingZoneId={{biddingZo
 Accept: application/json
 
 ###
+
+### Per-appliance savings for /savings — one cycle each against today's cheapest window
+GET {{spotPriceCalc_HostAddress}}/api/savings/appliances?zoneCode=10YSK-SEPS-----K
+Accept: application/json

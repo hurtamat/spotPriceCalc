@@ -29,12 +29,13 @@ public class ScheduleService : IScheduleService
 
     #region Schedule building
 
-    public async Task<ScheduleResponse> BuildAsync(BiddingZone zone, ScheduleRequest request, CancellationToken ct)
+    public async Task<ScheduleResponse> BuildAsync(
+        BiddingZone zone, ScheduleRequest request, CancellationToken ct, DateTime? nowUtc = null)
     {
-        var nowUtc = _clock.GetUtcNow().UtcDateTime;
-        var deadline = request.ResolveDeadlineUtc(nowUtc);
+        var now = nowUtc ?? _clock.GetUtcNow().UtcDateTime;
+        var deadline = request.ResolveDeadlineUtc(now);
         var slots = await LoadSlotsAsync(zone.Id, deadline, ct);
-        var chosen = Evaluate(request, slots, deadline, nowUtc);
+        var chosen = Evaluate(request, slots, deadline, now);
 
         return new ScheduleResponse
         {

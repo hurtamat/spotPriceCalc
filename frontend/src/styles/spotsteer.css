@@ -709,34 +709,6 @@ a:hover {
   margin-bottom: 9px;
 }
 
-.sb-stepper {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.sb-step-btn {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  background: var(--color-accent-tint);
-  color: var(--color-accent-strong);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
-  font-size: 20px;
-}
-
-.sb-step-btn:hover {
-  background: var(--color-accent-tint-2);
-}
-
-.sb-step-val {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 26px;
-  min-width: 1.4ch;
-  text-align: center;
-}
-
 .sb-input {
   width: 100%;
   min-height: 44px;
@@ -917,8 +889,11 @@ a:hover {
   gap: 18px;
 }
 
+/* Full width so the day tabs always wrap to their own row. Without it the tabs ride up
+   beside the stats whenever those are narrow, and the card relayouts as data arrives. */
 .sb-chart-stats-group {
   display: flex;
+  flex: 1 1 100%;
   gap: 30px;
   flex-wrap: wrap;
 }
@@ -940,6 +915,13 @@ a:hover {
   color: var(--color-q-red-text);
 }
 
+.sb-stat-unit {
+  font-size: 12.5px;
+  color: var(--color-text-mute);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
 .sb-stat-big {
   font-family: var(--font-heading);
   font-weight: 700;
@@ -953,13 +935,12 @@ a:hover {
   color: var(--color-text-mute);
 }
 
-/* Narrow screens: three bare figures, kept on one row. */
+/* Narrow screens: three bare figures, kept on one row and packed left like the desktop
+   layout rather than spread edge to edge. */
 @media (max-width: 560px) {
   .sb-chart-stats-group {
-    flex: 1 1 100%;
     flex-wrap: nowrap;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 26px;
   }
 
   .sb-stat-big {
@@ -1867,6 +1848,12 @@ a:hover {
   color: var(--color-accent-strong);
 }
 
+/* Capped so the select does not stretch the full page width. */
+.sb-savings-zone {
+  max-width: 340px;
+  margin-bottom: clamp(24px, 3vw, 40px);
+}
+
 .sb-savings-grid {
   display: grid;
   grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
@@ -2169,10 +2156,6 @@ a:hover {
   background: var(--color-accent-tint);
 }
 
-.sb-indiv-detail {
-  font-size: 12.5px;
-  color: var(--color-text-dim);
-}
 
 .sb-indiv-mid {
   font-size: 12.5px;

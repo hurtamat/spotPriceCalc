@@ -34,12 +34,14 @@ spotPriceCalc/
 │   ├─ BiddingZonesController.cs         GET /api/zones, /api/zones/resolve
 │   ├─ SmartHomeShellyController.cs      POST /api/shelly/schedule, GET /api/shelly/schedule/status
 │   ├─ SmartHomeHomeAssistantController.cs  POST /api/homeassistant/schedule
+│   ├─ SavingsController.cs              GET /api/savings/appliances, zone lookup only
 │   └─ ShellyLocalTime.cs                wall clock -> instant, Shelly only (see smartHomeIntegration.md)
 ├─ Services/
 │   ├─ SpotPriceService.cs               fetch → store → classify; regions: Reads / Populate / History backfill
 │   ├─ PopulateResult.cs                 populate-run summary
 │   ├─ PriceDataScheduler.cs             BackgroundService: startup catch-up + daily run
-│   └─ SmartHome/                        ScheduleService (device planning), ZoneLocatorService (coords → zone)
+│   ├─ SmartHome/                        ScheduleService (device planning), ZoneLocatorService (coords → zone)
+│   └─ Savings/                          SavingsService: one cycle per appliance priced off today's curve
 ├─ Dtos/                                 wire shapes (adds computed fields); Schedule/ and PriceZones/
 ├─ Domain/                              persistence-ignorant core
 │   ├─ BiddingZone.cs         the one core entity (also EF-persisted + seeded)
@@ -221,6 +223,40 @@ Other things the live responses confirm, worth knowing before touching this code
 The 204 is deliberate: the Shelly script clears its LEDs on anything that isn't a 200, so an unclassified slot
 shows nothing rather than a guessed colour. `ResolveStatus` returns `PriceColor?` and the controller maps null
 to 204.
+
+### Savings (`SavingsController`, route `api/savings`)
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/savings/appliances?zoneCode=10YCZ-CEPS-----N` | What each of six appliances saves by running one cycle in today's cheapest window instead of paying a fixed tariff. Returns `ApplianceSavingsDto`. Unknown code ⇒ 400. |
+
+**One request, six scheduler runs.** `SavingsService` holds the appliance table and calls
+`IScheduleService.BuildAsync` once per appliance, rather than making the page fire six requests. Each
+job is that appliance's cycle (`duration_hours` = cycle length) over **the whole of today's CET market
+day**, hours already past included — the page answers "when was today cheapest", not "when can this
+still run", so at 21:25 it still names 03:00. The EV is the only `continuous_block = false` one — every
+other cycle has to run unbroken.
+
+Logic in the service, glue in the controller, as elsewhere: the controller resolves the zone code and
+returns the 400, and `ISavingsService.GetApplianceSavingsAsync` takes the resolved `BiddingZone` — the
+same split `IScheduleService` uses, so an unknown zone is rejected once at the edge. The controller is
+**not** a `SmartHomeController` subclass: that base is the adapter for integrations that receive a job,
+and this one invents its own.
+
+- **Units are kWh and c/kWh.** Each block already carries a duration-weighted `eur_per_mwh`; those are
+  weighted against each other by block length and divided by 10, so a split plan is priced by how long
+  it runs in each block rather than by block count.
+- **Today only** — one cycle's saving, no annual figure. The question the section answers is "what
+  could today have saved me", and a year of it belongs to the estimator beside it.
+- **`scheduled = false` propagates as nulls**, not a zero — the zone has no stored day, or the cycle
+  does not fit one. The card says so instead of claiming a saving.
+- **`startLocal` is the first block's start in the zone's own IANA timezone**, the one place this
+  endpoint leaves UTC.
+- **The estimator on the same page is not served from here.** It is a year-long ballpark at typical EU
+  figures and reads no curve, so its numbers live in `SavingsCalculator.tsx` and never cross the wire.
+
+**Still hard-coded** (the endpoint's one `TODO`): the cycle table, and the fixed tariff — one number
+for all 45 zones, since there is no per-zone retail-price source.
 
 ### Bidding zones (`BiddingZonesController`, route `api/zones`)
 

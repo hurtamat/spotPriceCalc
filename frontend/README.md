@@ -59,8 +59,9 @@ production too.
   slide to the graph, use the handle or swipe to slide back.
 - **Savings teaser to `/savings`.** The estimator and the appliance cards used to sit on the landing
   page. They answer "what is this worth to me", which is not the first question, so they moved behind
-  a teaser. `SavingsPage` seeds the selection store itself, since there is no map on that page to
-  feed it.
+  a teaser. The page has its own zone picker — `useDetectedZone` preselects it from the browser's
+  location exactly as the Shelly wizard does — and feeds the appliance cards from
+  `GET /api/savings/appliances`.
 - **Shelly setup wizard** (`/shelly`). Asks the browser for coordinates, resolves the zone with
   `GET /api/zones/resolve`, and fills the answers into the minified device scripts from
   `../scripts/shelly/dist/*.js` (imported `?raw`). See `src/shelly/generate.ts` and
@@ -75,8 +76,12 @@ production too.
 
 ## Known gaps
 
-- `planAppliance` in `IndividualSavings.tsx` is a `TODO(math)` stub, so every appliance card on
-  `/savings` shows a pending line instead of a start time and a saving.
+- The estimator on `/savings` reads no curve — it is a fixed year-long ballpark in
+  `SavingsCalculator.tsx`. The appliance cards beside it do use the zone's real prices.
+- The fixed tariff the appliance cards compare against is one hard-coded number for all 45 zones.
+- The Material Symbols subset is eight glyphs and has no air-conditioning icon, so that card borrows
+  `cool_to_dry`. A proper one (`mode_fan`, `ac_unit`) needs `public/fonts/material-symbols-subset.woff2`
+  regenerated.
 - `public/assets/backdrop.png` is 640x256 and upscales about 2.25x in the hero. A wider re-export as
   WebP or AVIF would sharpen it and cut the 327KB.
 - The legal documents in `public/legal/` still carry the pre-rebrand `SpotPriceBuddy` name. They are
@@ -124,6 +129,8 @@ src/
 ├─ api/spotPrices.ts        price API client + date helpers
 ├─ api/zones.ts             GeoJSON zone name to bidding-zone id, plus the /api/zones fetchers
 ├─ api/legal.ts             loads and sanitises the Termly legal documents
+├─ api/savings.ts           per-appliance savings for a zone, from today's prices
+├─ hooks/useDetectedZone.ts browser location to a bidding zone; shared by /shelly and /savings
 ├─ shelly/generate.ts       fills the wizard's answers into the minified device scripts
 ├─ state/selectionStore.ts  one-way broadcast of the picked zone and day
 ├─ hooks/useScrollReveal.ts scroll-in effect, mounted once in App

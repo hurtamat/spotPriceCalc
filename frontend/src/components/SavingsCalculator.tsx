@@ -1,76 +1,44 @@
 import { useState } from 'react';
 import { ROUTES } from '../config/site';
 
-// Rough local estimator, mirrors the design's numbers. Not wired to the API.
-interface AppMeta {
-  key: string;
-  label: string;
-  kwh: number; // rough yearly consumption contribution
-  w: number; // rough savings-% weight
-}
+// Deliberately local: a year-long ballpark at typical EU figures, not a reading of any zone's curve.
+const BASE_ANNUAL_KWH = 2500;
+const FIXED_CT_PER_KWH = 20.529;
+const GREEN_CT_PER_KWH = 4.419;
+// Assumes every kWh moves into a green hour, so the whole gap is the saving.
+const RATE_CT_PER_KWH = FIXED_CT_PER_KWH - GREEN_CT_PER_KWH;
 
-const APP_META: AppMeta[] = [
-  { key: 'ev', label: 'Electric car', kwh: 2600, w: 9 },
-  { key: 'heatpump', label: 'Heat pump', kwh: 4200, w: 8 },
-  { key: 'pool', label: 'Pool heating', kwh: 3200, w: 6 },
-  { key: 'boiler', label: 'Electric boiler', kwh: 1600, w: 4 },
-  { key: 'ac', label: 'Air-con', kwh: 700, w: 3 },
-  { key: 'solar', label: 'Solar panels', kwh: 0, w: 4 },
+const CATEGORIES = [
+  { key: 'water_heating', label: 'Water heating', annualKwh: 2750 }, // electric, whole home, 2-4 people
+  { key: 'ev', label: 'Electric car', annualKwh: 2250 }, // 12 000 km x ~0.19 kWh/km
+  { key: 'pool', label: 'Pool heating', annualKwh: 2250 }, // heat pump, average outdoor pool
+  { key: 'ac', label: 'Air conditioning', annualKwh: 720 },
 ];
 
-const PRICE_PER_KWH = 0.245; // assumed all-in €/kWh
-
 export function SavingsCalculator() {
-  const [people, setPeople] = useState(3);
   const [kwh, setKwh] = useState('');
-  const [apps, setApps] = useState<Record<string, boolean>>({});
+  const [on, setOn] = useState<Record<string, boolean>>({});
 
-  const toggleApp = (key: string) => setApps((s) => ({ ...s, [key]: !s[key] }));
+  const toggle = (key: string) => setOn((s) => ({ ...s, [key]: !s[key] }));
 
-  const kwhIn = parseFloat(kwh) || 0;
-  let appKwh = 0;
-  let pct = 9;
-  for (const a of APP_META) {
-    if (apps[a.key]) {
-      appKwh += a.kwh;
-      pct += a.w;
-    }
-  }
-  pct = Math.min(35, pct);
-  const totalKwh = kwhIn > 0 ? kwhIn : Math.round(1600 + 1050 * people + appKwh);
-  const savedEur = Math.round((totalKwh * PRICE_PER_KWH * pct) / 100);
+  const baseKwh = parseFloat(kwh) || BASE_ANNUAL_KWH;
+  const extraKwh = CATEGORIES.reduce((sum, c) => (on[c.key] ? sum + c.annualKwh : sum), 0);
+  const totalKwh = Math.round(baseKwh + extraKwh);
+  const savedEur = Math.round((totalKwh * RATE_CT_PER_KWH) / 100);
 
   return (
     <div className="sb-card sb-calc">
       <h3 className="sb-calc-title">Estimate it</h3>
 
       <div>
-        <label className="sb-field-label">People in the household</label>
-        <div className="sb-stepper">
-          <button
-            className="sb-btn sb-step-btn"
-            onClick={() => setPeople((p) => Math.max(1, p - 1))}
-            aria-label="fewer people"
-          >
-            −
-          </button>
-          <span className="sb-step-val">{people}</span>
-          <button
-            className="sb-btn sb-step-btn"
-            onClick={() => setPeople((p) => Math.min(9, p + 1))}
-            aria-label="more people"
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <label className="sb-field-label">Yearly consumption, optional (kWh/year)</label>
+        <label className="sb-field-label" htmlFor="sb-calc-kwh">
+          Yearly consumption, optional (kWh/year)
+        </label>
         <input
+          id="sb-calc-kwh"
           className="sb-input"
           inputMode="numeric"
-          placeholder="e.g. 3500"
+          placeholder={`e.g. ${BASE_ANNUAL_KWH.toLocaleString('en-US')}`}
           value={kwh}
           onChange={(e) => setKwh(e.target.value.replace(/[^0-9]/g, ''))}
         />
@@ -79,14 +47,15 @@ export function SavingsCalculator() {
       <div>
         <label className="sb-field-label">Which of these do you have?</label>
         <div className="sb-chips">
-          {APP_META.map((a) => (
+          {CATEGORIES.map((c) => (
             <button
-              key={a.key}
+              key={c.key}
               className="sb-chip"
-              data-on={!!apps[a.key]}
-              onClick={() => toggleApp(a.key)}
+              data-on={!!on[c.key]}
+              aria-pressed={!!on[c.key]}
+              onClick={() => toggle(c.key)}
             >
-              {a.label}
+              {c.label}
             </button>
           ))}
         </div>
@@ -101,14 +70,13 @@ export function SavingsCalculator() {
           </div>
         </div>
         <div className="sb-calc-result-split">
-          <div className="sb-calc-result-pct">{pct}%</div>
-          <div className="sb-calc-result-cap">off your bill</div>
+          <div className="sb-calc-result-pct">{RATE_CT_PER_KWH.toFixed(1)}</div>
+          <div className="sb-calc-result-cap">cents saved per kWh</div>
         </div>
       </div>
 
       <p className="sb-fine">
-        Rough estimate on ~{totalKwh.toLocaleString('en-US')} kWh/yr at an assumed 24.5 c/kWh all-in
-        price. Learn more in {' '}
+        Rough estimate against a {FIXED_CT_PER_KWH.toFixed(1)} c/kWh fixed tariff. Learn more in{' '}
         <a className="sb-fine-link" href={ROUTES.terms}>
           Risks and assumptions
         </a>

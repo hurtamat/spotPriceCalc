@@ -9,6 +9,7 @@ using spotPriceCalc.Infrastructure.ExternalClients.OpenMeteo;
 using spotPriceCalc.Infrastructure.Persistence;
 using spotPriceCalc.Infrastructure.Persistence.Repositories;
 using spotPriceCalc.Services;
+using spotPriceCalc.Services.Savings;
 using spotPriceCalc.Services.SmartHome;
 using spotPriceCalc.Services.Zones;
 
@@ -100,6 +101,8 @@ builder.Services.AddHostedService<PriceDataScheduler>();
 // Smart-home scheduling: zone resolution + the device-agnostic decision engine.
 builder.Services.AddScoped<IZoneLocatorService, ZoneLocatorService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
+
+builder.Services.AddScoped<ISavingsService, SavingsService>();
 
 builder.Services.AddOpenApi();
 
