@@ -27,11 +27,11 @@ public class SavingsService : ISavingsService
     private static readonly Appliance[] Appliances =
     [
         new("boiler", "Electric boiler", 7.5m, 3m, true),
-        new("ev", "Electric car", 6.2m, 4m, false),
+        new("ev", "Electric car", 8.5m, 4m, false),
         new("pool", "Pool heating", 6.2m, 6m, true),
         new("ac", "Air conditioning", 2.0m, 6m, true),
-        new("dishwasher", "Dishwasher", 1.0m, 2m, true),
-        new("washer", "Washer", 0.8m, 2m, true),
+        new("dishwasher", "Dishwasher", 1.2m, 2m, true),
+        new("dryer", "Dryer", 2.5m, 2m, true),
     ];
 
     public async Task<ApplianceSavingsDto> GetApplianceSavingsAsync(BiddingZone zone, CancellationToken ct)

@@ -11,7 +11,7 @@ const ICONS: Record<string, string> = {
   pool: 'heat_pump',
   ac: 'cool_to_dry',
   dishwasher: 'dishwasher',
-  washer: 'local_laundry_service',
+  dryer: 'local_laundry_service',
 };
 
 const eur = (v: number) => `€${v.toFixed(2)}`;

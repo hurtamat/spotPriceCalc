@@ -2,7 +2,7 @@ const APPS = [
   { icon: 'electric_car', label: 'Electric car' },
   { icon: 'heat_pump', label: 'Pool heating' },
   { icon: 'water_heater', label: 'Boiler' },
-  { icon: 'local_laundry_service', label: 'Washer' },
+  { icon: 'local_laundry_service', label: 'Dryer' },
   { icon: 'dishwasher', label: 'Dishwasher' },
   { icon: 'cool_to_dry', label: 'Air conditioning' },
 ];

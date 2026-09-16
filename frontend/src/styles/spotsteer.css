@@ -2051,12 +2051,18 @@ a:hover {
 
 .sb-indiv-zone {
   flex: none;
-  width: 280px;
+  max-width: 280px;
+}
+
+/* Sized to the country name, so the arrow sits beside it rather than at the end of a wide field. */
+.sb-indiv-zone .sb-sw-input {
+  width: auto;
+  max-width: 100%;
 }
 
 @media (max-width: 560px) {
   .sb-indiv-zone {
-    width: 100%;
+    max-width: none;
   }
 }
 
