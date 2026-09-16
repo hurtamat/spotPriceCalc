@@ -1,8 +1,0 @@
-node_modules/
-dist/
-.vite/
-.env
-.env.*
-.idea/
-*.log
-README.md

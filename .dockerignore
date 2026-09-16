@@ -23,3 +23,8 @@
 **/values.dev.yaml
 LICENSE
 README.md
+
+# Frontend build output and caches. Not a blanket **/dist: scripts/shelly/dist holds the
+# minified device scripts the bundle imports, and they must reach the build context.
+frontend/dist
+frontend/.vite
