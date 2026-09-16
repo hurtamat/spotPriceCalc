@@ -103,16 +103,16 @@
   --color-warm-tint: rgba(232, 149, 43, 0.14);
 
   /* ── price semantics ──────────────────────────────────────────
-     Names follow the API's PriceQuantile. A muted traffic light: the
-     meaning is read before the legend is. */
-  --color-q-green: #5c9a7c;
-  --color-q-yellow: #c9a24e;
-  --color-q-red: #c15c4a;
-  /* Lifted for text. The fills above are tuned as bars; at caption size q-red only
-     reaches 3.97:1 on a card, which is under AA. */
-  --color-q-green-text: #7ab598;
-  --color-q-yellow-text: #dcb968;
-  --color-q-red-text: #d97e6b;
+     Names follow the API's PriceQuantile. The map's own three colours:
+     blue is a live zone, amber is the picked one, grey is out of play.
+     The chart reuses them so the two halves of the page speak once. */
+  --color-q-green: #3fa8d1;
+  --color-q-yellow: #7f8d99;
+  --color-q-red: #e8952b;
+  /* Lifted for text: the fills are tuned as bars. */
+  --color-q-green-text: #63bcdd;
+  --color-q-yellow-text: #a7b4bf;
+  --color-q-red-text: #f2ab52;
 
   /* ── radius scale ─────────────────────────────────────────────
      Four steps and a pill. Nothing on the site may invent a fifth. */
