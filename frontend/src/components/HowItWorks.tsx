@@ -3,7 +3,7 @@
 const STEPS = [
   {
     title: 'We read the market',
-    body: 'Every day we pull the day-ahead spot prices for your bidding zone.',
+    body: 'Every day we pull the day-ahead spot prices for your geographic location.',
   },
   {
     title: 'We find the cheap hours',
@@ -11,7 +11,7 @@ const STEPS = [
   },
   {
     title: 'Your devices act',
-    body: 'SpotSteer integrates with your smart home and switches devices on when it saves the most.',
+    body: 'SpotSteer integrates with your smart home devices and switches on when it saves the most.',
   },
 ];
 

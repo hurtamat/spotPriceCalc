@@ -2,30 +2,30 @@ import { useState } from 'react';
 
 const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = [
   {
-    q: 'How can you provide this service for free?',
-    a: 'We are university graduates and the service runs on our school’s resources, so it costs us nothing to host and nothing for you to use.',
-  },
-  {
     q: 'How do you decide whether a spot price is cheap or expensive?',
-    a: 'Every hour is scored against the historic price of your bidding zone using moving average residuals method.',
-    link: { href: '#how', label: 'More about how it works' },
+    a: 'Every hour is scored against the historic price of that location using the moving average residuals method to account for current trends.',
+    //link: { href: '#how', label: 'More about how it works' },
+  },
+    {
+    q: 'How can you provide this service for free?',
+    a: 'We are university graduates and the service runs on our school’s resources, so it costs us nothing to host and nothing for you to use. There is no catch on the other side either: no ads, no accounts, no cookies, and no personal data to sell.',
   },
   {
-    q: 'I pay a flat price for electricity, what now?',
-    a: 'Every European country has suppliers offering a dynamic (spot) tariff billed at the hourly/15min price. Ask yours for one, and SpotSteer starts paying off.',
+    q: 'I am on a fixed tariff. How do I switch?',
+    a: 'You need a dynamic price contract, settled against the day-ahead market rather than a flat rate. Under Article 11 of the EU Electricity Market Directive, every supplier with more than 200,000 customers must offer one. Ask yours first, then your national price comparison site. SpotSteer only pays off once you are on one.',
   },
   {
     q: 'I don’t have a smart meter, what now?',
-    a: 'You can still use SpotSteer. Read the price curve and set a timer, or just switch things on during the cheap hours yourself. To automate it later, the simplest route is a smart plug with Home Assistant and our add-on.',
+    a: 'A dynamic contract needs one, so in most markets your bill stays flat until the meter is swapped, which your supplier or grid operator arranges. SpotSteer is still useful meanwhile: read the curve and set a timer, or shift the load by hand. Once the meter and the contract are in place, the same habits start showing up on the bill, and a smart plug with Home Assistant and our add-on automates them.',
   },
   {
     q: 'Do my devices or appliances risk any harm?',
-    a: 'No. SpotSteer just switches a plug or relay on and off, exactly like you flipping a switch, and your comfort parameters always apply so your EV is charged when you need it to be.',
+    a: 'SpotSteer only switches a plug or relay, exactly like you flipping a switch, and your comfort parameters always apply so your EV is charged when you need it to be. Leave your appliance’s own thermostats and cut-outs enabled, and keep anything safety-critical off a schedule: heating that stops pipes freezing, medical equipment, livestock.',
   },
 ];
 
 export function Faq() {
-  const [open, setOpen] = useState(0);
+  const [open, setOpen] = useState(-1);
 
   return (
     <section id="faq" className="sb-section">

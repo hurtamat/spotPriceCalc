@@ -103,14 +103,16 @@
   --color-warm-tint: rgba(232, 149, 43, 0.14);
 
   /* ── price semantics ──────────────────────────────────────────
-     The names follow the API's PriceQuantile (Green/Yellow/Red) and are
-     kept so the chart mapping stays readable, but the values are the
-     brand's temperature pair: cool means cheap, warm means expensive.
-     Blue against orange is also the safest pair for colour blindness,
-     which a red/green traffic light is not. */
-  --color-q-green: #35a8c9;
-  --color-q-yellow: #8d9aa6;
-  --color-q-red: #e8952b;
+     Names follow the API's PriceQuantile. A muted traffic light: the
+     meaning is read before the legend is. */
+  --color-q-green: #5c9a7c;
+  --color-q-yellow: #c9a24e;
+  --color-q-red: #c15c4a;
+  /* Lifted for text. The fills above are tuned as bars; at caption size q-red only
+     reaches 3.97:1 on a card, which is under AA. */
+  --color-q-green-text: #7ab598;
+  --color-q-yellow-text: #dcb968;
+  --color-q-red-text: #d97e6b;
 
   /* ── radius scale ─────────────────────────────────────────────
      Four steps and a pill. Nothing on the site may invent a fifth. */
@@ -483,23 +485,13 @@ a:hover {
   color: var(--color-text);
 }
 
-/* The links are the only navigation in the bar, so they stay at every width. Below
-   700px they tighten up and the row scrolls sideways if four labels do not fit;
-   .sb-nav-links is already an overflow-x container with its scrollbar hidden. */
-@media (max-width: 700px) {
-  .sb-nav-inner {
-    gap: 14px;
-  }
-
+/* Below the site's mobile breakpoint the links go entirely. Four section anchors never fit
+   beside the wordmark, and the fix until now was a sideways-scrolling row faded out at its
+   right edge, which is a navigation people have to discover. The bar keeps the wordmark,
+   which is the one thing it has to do: get you back to the landing page. */
+@media (max-width: 900px) {
   .sb-nav-links {
-    gap: 16px;
-    font-size: 13.5px;
-    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent 100%);
-    mask-image: linear-gradient(to right, #000 88%, transparent 100%);
-  }
-
-  .sb-nav-links .sb-link {
-    font-size: inherit;
+    display: none;
   }
 }
 
@@ -837,6 +829,20 @@ a:hover {
   color: var(--color-text-mute);
 }
 
+/* A link inside fine print stays fine print: underlined so it reads as a link, but not the
+   accent blue, which would pull more attention than the caveat deserves. */
+.sb-fine-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--color-divider);
+}
+
+.sb-fine-link:hover {
+  color: var(--color-text-dim);
+  text-decoration-color: currentColor;
+}
+
 /* ── section scaffolding ───────────────────────────────────────── */
 .sb-section {
   padding: clamp(48px, 8vw, 104px) 0;
@@ -922,12 +928,16 @@ a:hover {
   color: var(--color-text-mute);
 }
 
+.sb-stat-cap-avg {
+  color: var(--color-q-yellow-text);
+}
+
 .sb-stat-cap-accent {
-  color: var(--color-accent-strong);
+  color: var(--color-q-green-text);
 }
 
 .sb-stat-cap-pop {
-  color: var(--color-warm-strong);
+  color: var(--color-q-red-text);
 }
 
 .sb-stat-big {
@@ -938,11 +948,23 @@ a:hover {
   white-space: nowrap;
 }
 
-.sb-stat-unit {
-  font-size: 12.5px;
+/* The dash standing in for a missing number. Same box, clearly not a value. */
+.sb-stat-big:not([style]) {
   color: var(--color-text-mute);
-  font-weight: 400;
-  letter-spacing: 0;
+}
+
+/* Narrow screens: three bare figures, kept on one row. */
+@media (max-width: 560px) {
+  .sb-chart-stats-group {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .sb-stat-big {
+    font-size: 20px;
+  }
 }
 
 .sb-day-tabs {
@@ -1019,8 +1041,18 @@ a:hover {
   margin-top: -12px;
 }
 
+/* The chart, the loading line and the "not published yet" line all land here, so the card is
+   the same height whichever one is showing. 230px is PriceBarChart's own height. */
+.sb-chart-plot {
+  width: 100%;
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .sb-chart-state {
-  min-height: 210px;
+  min-height: 230px;
   display: grid;
   place-items: center;
   text-align: center;
@@ -1230,8 +1262,19 @@ a:hover {
     justify-content: center;
     gap: 16px;
     overflow-y: auto; /* scroll the chart within the stage if it's taller */
+    /* Nothing inside may force the column wider than the stage. A flex child defaults to
+       min-width:auto, so one nowrap stat row was enough to push a sideways scrollbar out. */
+    min-width: 0;
+    overflow-x: clip;
+    overscroll-behavior: contain;
     transform: none;
     pointer-events: auto;
+  }
+
+  .sb-chart-card,
+  .sb-chart-plot {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .sb-price-head {
@@ -1787,11 +1830,10 @@ a:hover {
   .sb-teaser p {
     max-width: none;
   }
-}
 
-@media (max-width: 440px) {
+  /* Six appliance tiles under the copy is a screenful of preview before the button. */
   .sb-teaser-apps {
-    grid-template-columns: repeat(2, 1fr);
+    display: none;
   }
 }
 
@@ -3638,24 +3680,6 @@ a:hover {
 .sb-sw-close-body {
   font-size: 13.5px;
   color: var(--color-neutral-700);
-}
-
-/* ── dynamic-tariff risk note (/savings estimator) ──────────────────────────
-   Not a dismissible banner or a red alert: it is part of the answer, so it reads
-   as the card's last paragraph rather than something learned to scroll past. */
-.sb-risk {
-  margin: 10px 0 0;
-  padding: 12px 14px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-2, var(--color-accent-tint));
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--color-text-mute);
-}
-
-.sb-risk strong {
-  color: var(--color-text);
 }
 
 /* ── /contact ───────────────────────────────────────────────────────────────

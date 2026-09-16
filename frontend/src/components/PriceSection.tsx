@@ -190,31 +190,38 @@ function Chart({
 
   const fmt = (v: number) => v.toFixed(1);
 
+  // An empty curve still carries the zone's timezone, so the footer keeps its offset.
+  const timeZone = state?.status === 'ready' ? state.data.timeZoneId : null;
+  const offset = derived?.offset ?? (timeZone ? utcOffsetLabel(new Date(), timeZone) : null);
+
+  const emptyMessage =
+    day === 'tomorrow'
+      ? "Tomorrow's prices aren't published yet. The day-ahead auction usually clears around 13:00 CET."
+      : `No prices stored for ${DAY_LABELS[day].toLowerCase()}.`;
+
   return (
     <>
+      {/* Stats, legend and footer stay mounted with no curve, or the card collapses. */}
       <div className="sb-chart-stats">
-        {/* No curve means no numbers. Three empty value slots would read as a broken
-            widget; the states below already say what is actually going on. */}
         <div className="sb-chart-stats-group">
-          {derived && (
-            <>
-              <Stat capClass="sb-stat-cap" cap="Avg" value={fmt(derived.avg)} unit="c/kWh" />
-              <Stat
-                capClass="sb-stat-cap sb-stat-cap-accent"
-                cap="Cheapest"
-                value={fmt(derived.min)}
-                unit={`c at ${derived.minPt.time}`}
-                valueColor="var(--color-accent-strong)"
-              />
-              <Stat
-                capClass="sb-stat-cap sb-stat-cap-pop"
-                cap="Peak"
-                value={fmt(derived.max)}
-                unit={`c at ${derived.maxPt.time}`}
-                valueColor="var(--color-warm-strong)"
-              />
-            </>
-          )}
+          <Stat
+            capClass="sb-stat-cap sb-stat-cap-accent"
+            cap="Cheapest"
+            value={derived ? fmt(derived.min) : '—'}
+            valueColor={derived ? 'var(--color-q-green-text)' : undefined}
+          />
+          <Stat
+            capClass="sb-stat-cap sb-stat-cap-avg"
+            cap="Avg"
+            value={derived ? fmt(derived.avg) : '—'}
+            valueColor={derived ? 'var(--color-q-yellow-text)' : undefined}
+          />
+          <Stat
+            capClass="sb-stat-cap sb-stat-cap-pop"
+            cap="Peak"
+            value={derived ? fmt(derived.max) : '—'}
+            valueColor={derived ? 'var(--color-q-red-text)' : undefined}
+          />
         </div>
         <div className="sb-day-tabs">
           {DAY_ORDER.map((k) => (
@@ -230,52 +237,44 @@ function Chart({
         </div>
       </div>
 
-      {state?.status === 'loading' && (
-        <div className="sb-chart-state">Loading {DAY_LABELS[day].toLowerCase()}&apos;s prices…</div>
-      )}
-
-      {state?.status === 'error' && (
-        <div className="sb-chart-state">
-          Couldn&apos;t reach the price API.
-          <br />
-          <span style={{ fontSize: 12.5 }}>{state.message}</span>
-        </div>
-      )}
-
-      {state?.status === 'ready' && !derived && (
-        <div className="sb-chart-state">
-          No prices stored for {DAY_LABELS[day].toLowerCase()} yet.
-          <br />
-        </div>
-      )}
-
-      {derived && (
-        <>
-          <div style={{ width: '100%' }}>
-            <PriceBarChart slots={derived.slots} />
+      <div className="sb-chart-plot">
+        {derived ? (
+          <PriceBarChart slots={derived.slots} />
+        ) : state?.status === 'loading' ? (
+          <div className="sb-chart-state">
+            Loading {DAY_LABELS[day].toLowerCase()}&apos;s prices…
           </div>
-
-          <div className="sb-legend">
-            <span className="sb-legend-item">
-              <i className="sb-dot" style={{ background: 'var(--color-q-green)' }} /> Cheap
-            </span>
-            <span className="sb-legend-item">
-              <i className="sb-dot" style={{ background: 'var(--color-q-yellow)' }} /> Average
-            </span>
-            <span className="sb-legend-item">
-              <i className="sb-dot" style={{ background: 'var(--color-q-red)' }} /> Expensive
-            </span>
-            <span>
-              {zoneName}, {DAY_LABELS[day].toLowerCase()}, in c/kWh
-            </span>
+        ) : state?.status === 'error' ? (
+          <div className="sb-chart-state">
+            Couldn&apos;t reach the price API.
+            <br />
+            <span style={{ fontSize: 12.5 }}>{state.message}</span>
           </div>
+        ) : (
+          <div className="sb-chart-state">{emptyMessage}</div>
+        )}
+      </div>
 
-          {/* The x axis is the zone's own wall clock, not the viewer's and not UTC. */}
-          <div className="sb-chart-tz">
-            Local time in {zoneName} ({derived.offset})
-          </div>
-        </>
-      )}
+      <div className="sb-legend">
+        <span className="sb-legend-item">
+          <i className="sb-dot" style={{ background: 'var(--color-q-green)' }} /> Cheap
+        </span>
+        <span className="sb-legend-item">
+          <i className="sb-dot" style={{ background: 'var(--color-q-yellow)' }} /> Average
+        </span>
+        <span className="sb-legend-item">
+          <i className="sb-dot" style={{ background: 'var(--color-q-red)' }} /> Expensive
+        </span>
+        <span>
+          {zoneName}, {formatDayDate(day)}, in c/kWh
+        </span>
+      </div>
+
+      {/* The x axis is the zone's own wall clock, not the viewer's and not UTC. */}
+      <div className="sb-chart-tz">
+        Local time in {zoneName}
+        {offset ? ` (${offset})` : ''}
+      </div>
     </>
   );
 }
@@ -284,21 +283,31 @@ function Stat({
   capClass,
   cap,
   value,
-  unit,
   valueColor,
 }: {
   capClass: string;
   cap: string;
   value: string;
-  unit: string;
   valueColor?: string;
 }) {
   return (
     <div>
       <div className={capClass}>{cap}</div>
       <div className="sb-stat-big" style={valueColor ? { color: valueColor } : undefined}>
-        {value} <span className="sb-stat-unit">{unit}</span>
+        {value}
       </div>
     </div>
   );
+}
+
+// Built from the YYYY-MM-DD parts, not parsed as a Date: a Date would re-read the day in the
+// viewer's timezone and can land on the one before.
+function formatDayDate(day: DayKey): string {
+  const [y, m, d] = dateForDay(day).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', {
+    timeZone: 'UTC',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
 }

@@ -108,19 +108,11 @@ export function SavingsCalculator() {
 
       <p className="sb-fine">
         Rough estimate on ~{totalKwh.toLocaleString('en-US')} kWh/yr at an assumed 24.5 c/kWh all-in
-        price. Real results depend on your tariff and how flexible each load is.
-      </p>
-
-      <p className="sb-risk">
-        <span>
-          <strong>This is an illustration, not a forecast.</strong> On a fixed tariff, shifting load
-          against spot prices saves nothing at all, because your price does not move. On a dynamic tariff it
-          can, but you also carry the downside: an hourly price can go negative and it can spike to
-          many times the daily average, including in an hour a schedule picked. Network fees and taxes
-          sit on top and are often the larger half of the bill. Check your own contract before you act
-          on the figure above, and read the{' '}
-          <a href={ROUTES.terms}>risk section of the terms</a>.
-        </span>
+        price. Learn more in {' '}
+        <a className="sb-fine-link" href={ROUTES.terms}>
+          Risks and assumptions
+        </a>
+        .
       </p>
     </div>
   );
