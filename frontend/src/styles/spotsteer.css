@@ -1819,18 +1819,17 @@ a:hover {
 }
 
 /* ── /savings page shell ───────────────────────────────────────── */
-.sb-savings-head {
-  padding: clamp(32px, 5vw, 64px) 0 clamp(24px, 3vw, 40px);
-  max-width: 62ch;
+.sb-savings-intro {
+  max-width: 46ch;
 }
 
-.sb-savings-head h1 {
+.sb-savings-intro h1 {
   font-size: clamp(34px, 5vw, 56px);
   letter-spacing: -0.04em;
   margin-bottom: 16px;
 }
 
-.sb-savings-head p {
+.sb-savings-intro p {
   color: var(--color-text-dim);
   font-size: clamp(15px, 1.5vw, 18px);
 }
@@ -1848,22 +1847,24 @@ a:hover {
   color: var(--color-accent-strong);
 }
 
-/* Capped so the select does not stretch the full page width. */
-.sb-savings-zone {
-  max-width: 340px;
-  margin-bottom: clamp(24px, 3vw, 40px);
-}
-
-.sb-savings-grid {
+/* Estimator beside the paragraph that frames it; the cards get the full width below. */
+.sb-savings-top {
   display: grid;
   grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
   gap: clamp(24px, 4vw, 56px);
-  align-items: start;
+  align-items: center;
+  padding-top: clamp(32px, 5vw, 64px);
+  margin-bottom: clamp(40px, 6vw, 72px);
 }
 
+/* Stacked, the heading has to come first; on desktop it is the right-hand column. */
 @media (max-width: 900px) {
-  .sb-savings-grid {
+  .sb-savings-top {
     grid-template-columns: 1fr;
+  }
+
+  .sb-savings-intro {
+    order: -1;
   }
 }
 
@@ -2028,20 +2029,35 @@ a:hover {
 }
 
 /* ── individual savings (per-appliance cards) ──────────────────── */
-/* Now a /savings section rather than a landing-page one, so it sits in a single
-   column beside the estimator instead of spanning the page. */
 .sb-indiv {
   scroll-margin-top: calc(var(--nav-h) + 20px);
   min-width: 0;
 }
 
-/* Headline with its line of context stacked under it, not floated into the top
-   right corner of the section. */
 .sb-indiv-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin-bottom: 18px;
+}
+
+.sb-indiv-headings {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 18px;
+}
+
+.sb-indiv-zone {
+  flex: none;
+  width: 280px;
+}
+
+@media (max-width: 560px) {
+  .sb-indiv-zone {
+    width: 100%;
+  }
 }
 
 .sb-indiv-head h3 {

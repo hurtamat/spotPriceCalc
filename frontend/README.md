@@ -59,9 +59,9 @@ production too.
   slide to the graph, use the handle or swipe to slide back.
 - **Savings teaser to `/savings`.** The estimator and the appliance cards used to sit on the landing
   page. They answer "what is this worth to me", which is not the first question, so they moved behind
-  a teaser. The page has its own zone picker — `useDetectedZone` preselects it from the browser's
-  location exactly as the Shelly wizard does — and feeds the appliance cards from
-  `GET /api/savings/appliances`.
+  a teaser. The estimator sits beside the paragraph framing it and reads nothing; the appliance cards
+  take the full width below and own the zone picker, since the zone changes only them.
+  `useDetectedZone` preselects it from the browser's location, as in the Shelly wizard.
 - **Shelly setup wizard** (`/shelly`). Asks the browser for coordinates, resolves the zone with
   `GET /api/zones/resolve`, and fills the answers into the minified device scripts from
   `../scripts/shelly/dist/*.js` (imported `?raw`). See `src/shelly/generate.ts` and

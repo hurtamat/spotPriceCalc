@@ -3,6 +3,7 @@ import { ROUTES } from '../config/site';
 
 // Deliberately local: a year-long ballpark at typical EU figures, not a reading of any zone's curve.
 const BASE_ANNUAL_KWH = 2500;
+const MAX_ANNUAL_KWH = 1_000_000;
 const FIXED_CT_PER_KWH = 20.529;
 const GREEN_CT_PER_KWH = 4.419;
 // Assumes every kWh moves into a green hour, so the whole gap is the saving.
@@ -40,7 +41,10 @@ export function SavingsCalculator() {
           inputMode="numeric"
           placeholder={`e.g. ${BASE_ANNUAL_KWH.toLocaleString('en-US')}`}
           value={kwh}
-          onChange={(e) => setKwh(e.target.value.replace(/[^0-9]/g, ''))}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/[^0-9]/g, '');
+            setKwh(Number(digits) > MAX_ANNUAL_KWH ? String(MAX_ANNUAL_KWH) : digits);
+          }}
         />
       </div>
 
@@ -76,7 +80,7 @@ export function SavingsCalculator() {
       </div>
 
       <p className="sb-fine">
-        Rough estimate against a {FIXED_CT_PER_KWH.toFixed(1)} c/kWh fixed tariff. Learn more in{' '}
+        Rough estimate against an average European fixed tariff. Learn more in{' '}
         <a className="sb-fine-link" href={ROUTES.terms}>
           Risks and assumptions
         </a>
