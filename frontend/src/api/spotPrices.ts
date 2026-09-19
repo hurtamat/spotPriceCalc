@@ -57,8 +57,7 @@ export async function fetchSpotPrices(
 ): Promise<ZoneSpotPrices> {
   const url = `${API_BASE}/api/spotprices?biddingZoneId=${biddingZoneId}&date=${date}`;
 
-  // warm.js started this exact request during HTML parse. Adopted once: a second caller must issue
-  // a real request rather than re-read a response from hours ago.
+  // Adopted once: a second caller must not re-read a response from hours ago.
   const warm = window.__warmPrices;
   if (warm?.url === url) {
     window.__warmPrices = undefined;

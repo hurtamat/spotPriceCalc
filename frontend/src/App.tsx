@@ -12,7 +12,7 @@ import { LegalPage } from './components/LegalPage';
 import { ContactPage } from './components/ContactPage';
 import { ROUTES } from './config/site';
 import { useScrollReveal } from './hooks/useScrollReveal';
-import { usePageTitle } from './hooks/usePageTitle';
+import { usePageMeta } from './hooks/usePageMeta';
 import { HomeAssistantPage } from './components/HomeAssistantPage';
 
 // Path routing without a router dependency, a handful of static pages is not worth react-router.
@@ -26,7 +26,7 @@ export default function App() {
   // Tab titles live here rather than in each page, because this is the only place
   // that knows the route. The landing page is the brand alone; everything else is
   // the brand plus where you are.
-  usePageTitle(path);
+  usePageMeta(path);
   if (path === ROUTES.homeAssistant) return <HomeAssistantPage />;
   if (path === ROUTES.shelly) return <ShellyWizard />;
   if (path === ROUTES.savings) return <SavingsPage />;
