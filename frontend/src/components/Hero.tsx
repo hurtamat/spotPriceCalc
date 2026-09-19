@@ -1,4 +1,4 @@
-const BACKDROP = '/assets/backdrop.jpeg';
+const BACKDROP = '/assets/backdrop.webp';
 
 export function Hero() {
   return (
@@ -6,8 +6,8 @@ export function Hero() {
       <div className="sb-hero-media">
         <img
           src={BACKDROP}
-          width={640}
-          height={256}
+          width={1399}
+          height={672}
           fetchPriority="high"
           decoding="async"
           alt="An electric car charging on the driveway of a family home while a child plays basketball beside it."

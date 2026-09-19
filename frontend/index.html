@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/spotsteer-mark.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#0f1418" />
     <meta name="color-scheme" content="dark" />
 
@@ -15,6 +19,9 @@
       content="See the hourly spot price for your European bidding zone, and let SpotSteer run your EV charger, boiler and heat pump in the cheap hours. Works with Home Assistant and Shelly. No new hardware."
     />
     <link rel="canonical" href="https://spotsteer.eu/" />
+    
+    <link rel="preconnect" href="%VITE_API_BASE_URL%" crossorigin />
+    <script src="/warm.js" data-api="%VITE_API_BASE_URL%"></script>
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SpotSteer" />
@@ -23,10 +30,38 @@
       property="og:description"
       content="See the hourly spot price for your European bidding zone, and let SpotSteer run your devices in the cheap hours."
     />
-    <meta property="og:image" content="https://spotsteer.eu/assets/backdrop.jpeg" />
-    <meta property="og:image:width" content="2807" />
-    <meta property="og:image:height" content="1344" />
+    <meta property="og:image" content="https://spotsteer.eu/assets/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SpotSteer: run your home on the cheap hours" />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- The brand only: the operator's name and postal address stay on /contact, per config/site.ts. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://spotsteer.eu/#organization",
+            "name": "SpotSteer",
+            "url": "https://spotsteer.eu",
+            "logo": "https://spotsteer.eu/icon-512.png",
+            "email": "hello@spotsteer.eu",
+            "areaServed": "EU",
+            "description": "Automates household energy consumption around day-ahead electricity spot prices."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://spotsteer.eu/#website",
+            "name": "SpotSteer",
+            "url": "https://spotsteer.eu",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://spotsteer.eu/#organization" }
+          }
+        ]
+      }
+    </script>
 
     <!-- Both site faces are self-hosted (see the @font-face block in spotsteer.css), so the
          first paint waits on nothing from fonts.googleapis.com. The hero headline is painted
@@ -38,7 +73,7 @@
       type="font/woff2"
       crossorigin
     />
-    <link rel="preload" as="image" href="/assets/backdrop.jpeg" fetchpriority="high" />
+    <link rel="preload" as="image" href="/assets/backdrop.webp" fetchpriority="high" />
 
     <!-- Appliance glyphs for /savings. Self-hosted like the text faces: the eight-icon subset,
          downloaded once into /fonts. Hotlinking fonts.googleapis.com would hand every visitor's

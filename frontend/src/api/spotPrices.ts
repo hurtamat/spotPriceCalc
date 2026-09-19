@@ -33,7 +33,8 @@ export const DAY_LABELS: Record<DayKey, string> = {
 
 export const DAY_ORDER: DayKey[] = ['yesterday', 'today', 'tomorrow'];
 
-/** Local calendar date (YYYY-MM-DD) offset from today by the given day. */
+/** Local calendar date (YYYY-MM-DD) offset from today by the given day.
+ *  `public/warm.js` repeats this for the today case; the two must agree or nothing is adopted. */
 export function dateForDay(day: DayKey): string {
   const d = new Date();
   d.setDate(d.getDate() + (day === 'yesterday' ? -1 : day === 'tomorrow' ? 1 : 0));
@@ -43,12 +44,28 @@ export function dateForDay(day: DayKey): string {
   return `${y}-${m}-${dd}`;
 }
 
+declare global {
+  interface Window {
+    __warmPrices?: { url: string; promise: Promise<ZoneSpotPrices | null> };
+  }
+}
+
 export async function fetchSpotPrices(
   biddingZoneId: number,
   date: string,
   signal?: AbortSignal,
 ): Promise<ZoneSpotPrices> {
   const url = `${API_BASE}/api/spotprices?biddingZoneId=${biddingZoneId}&date=${date}`;
+
+  // warm.js started this exact request during HTML parse. Adopted once: a second caller must issue
+  // a real request rather than re-read a response from hours ago.
+  const warm = window.__warmPrices;
+  if (warm?.url === url) {
+    window.__warmPrices = undefined;
+    const warmed = await warm.promise;
+    if (warmed) return warmed;
+  }
+
   const res = await fetch(url, { signal });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
