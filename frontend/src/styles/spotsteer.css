@@ -3744,3 +3744,20 @@ a:hover {
   font-weight: 600;
   color: var(--color-text);
 }
+
+/* Location is asked for on demand, never on page load. */
+.sb-locate {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Cards from the previous zone, held in place while the new ones load. */
+.sb-indiv-grid[data-loading] {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}

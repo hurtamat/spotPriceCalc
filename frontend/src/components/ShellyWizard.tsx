@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
 import { fetchZones, type ZoneOption } from '../api/zones';
@@ -67,33 +67,33 @@ const RELAY_COMPONENTS = [
 
 const DAY_FLOW = [
   { n: '1', title: 'Prices publish', body: 'Each afternoon the exchange publishes tomorrow’s prices for your zone.' },
-  { n: '2', title: 'The device asks us', body: 'The script calls SpotSteer with your current slider values and gets a plan back.' },
-  { n: '3', title: 'The plan is frozen', body: 'Your hours are chosen once for the day, so nothing flips on and off as prices wobble.' },
-  { n: '4', title: 'The relay follows it', body: 'On inside those hours, off outside them, until you change a slider.' },
+  { n: '2', title: 'The device asks us', body: 'The script calls SpotSteer with your current slider values and gets back the hours for the day, chosen once.' },
+  { n: '3', title: 'The relay follows it', body: 'On inside those hours, off outside them, so nothing flips as prices wobble, until you change a slider.' },
 ];
 
 const TROUBLES = [
   {
-    q: 'Virtual components did not appear',
-    a: 'Virtual components need firmware 1.4 or newer and a Gen2 or Gen3 device. Update the Shelly, then Stop and Start the script once so it can create them again. If the app still shows nothing, pull to refresh the device page, since the app caches the component list.',
+    q: 'The new sliders never appeared in the Shelly app',
+    a: 'They only work on a Shelly Gen2 or newer with up-to-date firmware, so update the Shelly first, then press Stop and Start on the script once so it can try again. If the app still shows nothing, swipe down on the device page to refresh it. Until you do, the app keeps showing you the screen as it was before.',
   },
   {
-    q: 'The script stops after a reboot',
-    a: 'Run on startup was not enabled. Open Scripts, press the pencil next to the script and switch it on, then Start it again.',
+    q: 'The script stops whenever the Shelly loses power',
+    a: 'Run on startup is switched off, so the script does not come back by itself. Open Scripts, press the pencil next to the script, turn Run on startup on, then press Start.',
   },
   {
     q: 'The relay never switches on',
-    a: 'Check that Hours needed and Ready by leave a window that is actually reachable: four hours with a 02:00 deadline and a do-not-run window across the night has nowhere to fit. Also check the Shelly has internet, and open the script console. It prints the hours it picked, or says why it could not.',
+    a: 'Usually the settings leave it nowhere to run: four hours of power, finished by 02:00, and a do-not-run window across the night do not fit together, so widen one of them. If that is not it, check the Shelly is online, then open the script and read the messages it prints underneath. It lists the hours it picked, or says why it could not pick any.',
   },
   {
-    q: 'I want to control two channels',
-    a: 'Add the script twice, changing switchId to the second channel in the second copy. Each copy then keeps its own plan.',
+    q: 'I replaced the script and now there are two sets of sliders',
+    a: 'Deleting a script does not delete the sliders it added, and a new script never takes the old ones over. It adds its own, so you end up looking at both while only one of them does anything. Delete the leftover ones first, in the Shelly web page under Virtual components, then start the new script.',
   },
   {
-    q: 'Can I stop it without deleting anything?',
-    a: 'Yes. Stop the script in the Shelly web page, or set Hours needed to zero in the app. The relay stays wherever it was and nothing is removed.',
+    q: 'The script keeps printing an error about something being "not defined"',
+    a: 'A script was replaced while it was still running, and one leftover instruction from the old one keeps going off looking for code that is no longer there. The giveaway is the timing: the errors arrive evenly, once every five minutes. Press Stop, then Start. If they keep coming, restart the Shelly, which clears them for good.',
   },
 ];
+
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
   v: h,
@@ -148,10 +148,11 @@ function HourSelect({ id, label, value, onChange }: {
 }
 
 export function ShellyWizard() {
-  const zoneState = useDetectedZone();
+  const { state: zoneState, request: locate } = useDetectedZone();
   const [zones, setZones] = useState<ZoneOption[]>([]);
   const [zoneCode, setZoneCode] = useState('');
-  const [touchedZone, setTouchedZone] = useState(false);
+  // A ref, not state: flipping this on mousedown must not re-render and close the open dropdown.
+  const touchedZone = useRef(false);
 
   const [mode, setMode] = useState<Mode>('relay');
   const [hours, setHours] = useState(3);
@@ -173,12 +174,12 @@ export function ShellyWizard() {
     return () => ctl.abort();
   }, []);
 
-  // Prefill from the detected zone, but never overwrite a choice the user has already made.
+  // Prefill from the detected zone, but never overwrite a choice — or an open dropdown.
   useEffect(() => {
-    if (zoneState.status === 'ready' && zoneState.detected && !touchedZone) {
+    if (zoneState.status === 'ready' && zoneState.detected && !touchedZone.current) {
       setZoneCode(zoneState.detected.code);
     }
-  }, [zoneState, touchedZone]);
+  }, [zoneState]);
 
   const zone = zones.find((z) => z.code === zoneCode);
   const isRelay = mode === 'relay';
@@ -299,8 +300,10 @@ export function ShellyWizard() {
                 id="sb-sw-zone"
                 className="sb-sw-input"
                 value={zoneCode}
+                onMouseDown={() => (touchedZone.current = true)}
+                onKeyDown={() => (touchedZone.current = true)}
                 onChange={(e) => {
-                  setTouchedZone(true);
+                  touchedZone.current = true;
                   setZoneCode(e.target.value);
                 }}
               >
@@ -316,6 +319,10 @@ export function ShellyWizard() {
                   <>
                     Zone code <code>{zone.code}</code>, times in {zone.time_zone_id}.
                   </>
+                ) : zoneState.status === 'idle' ? (
+                  <button type="button" className="sb-locate" onClick={locate}>
+                    Use my location
+                  </button>
                 ) : zoneState.status === 'locating' ? (
                   'Checking your location…'
                 ) : zoneState.status === 'failed' ? (

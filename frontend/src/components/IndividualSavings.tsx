@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchApplianceSavings, type ApplianceSavings } from '../api/savings';
 import { fetchZones, type ZoneOption } from '../api/zones';
 import { useDetectedZone } from '../hooks/useDetectedZone';
@@ -19,11 +19,13 @@ const ct = (v: number) => `${v.toFixed(1)} c/kWh`;
 
 /** Owns the zone picker: the zone changes only these cards, never the estimator beside them. */
 export function IndividualSavings() {
-  const zoneState = useDetectedZone();
+  const { state: zoneState, request: locate } = useDetectedZone();
   const [zones, setZones] = useState<ZoneOption[]>([]);
   const [zoneCode, setZoneCode] = useState('');
-  const [touchedZone, setTouchedZone] = useState(false);
+  // A ref, not state: flipping this on mousedown must not re-render and close the open dropdown.
+  const touchedZone = useRef(false);
   const [data, setData] = useState<ApplianceSavings | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const ctl = new AbortController();
@@ -33,20 +35,27 @@ export function IndividualSavings() {
     return () => ctl.abort();
   }, []);
 
-  // Prefill from the detected zone, but never overwrite a choice the user has already made.
+  // Prefill from the detected zone, but never overwrite a choice — or an open dropdown.
   useEffect(() => {
-    if (zoneState.status === 'ready' && zoneState.detected && !touchedZone) {
+    if (zoneState.status === 'ready' && zoneState.detected && !touchedZone.current) {
       setZoneCode(zoneState.detected.code);
     }
-  }, [zoneState, touchedZone]);
+  }, [zoneState]);
 
   useEffect(() => {
     if (!zoneCode) return;
     const ctl = new AbortController();
-    setData(null);
+    // The old cards stay up while the new zone loads: emptying the grid collapses the page
+    // and the browser clamps you back to the top.
+    setLoading(true);
     fetchApplianceSavings(zoneCode, ctl.signal)
-      .then(setData)
-      .catch(() => undefined);
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!ctl.signal.aborted) setLoading(false);
+      });
     return () => ctl.abort();
   }, [zoneCode]);
 
@@ -72,8 +81,10 @@ export function IndividualSavings() {
             id="sb-indiv-zone"
             className="sb-sw-input"
             value={zoneCode}
+            onMouseDown={() => (touchedZone.current = true)}
+            onKeyDown={() => (touchedZone.current = true)}
             onChange={(e) => {
-              setTouchedZone(true);
+              touchedZone.current = true;
               setZoneCode(e.target.value);
             }}
           >
@@ -87,6 +98,10 @@ export function IndividualSavings() {
           <div className="sb-sw-note">
             {zone ? (
               <>Times in {zone.time_zone_id}.</>
+            ) : zoneState.status === 'idle' ? (
+              <button type="button" className="sb-locate" onClick={locate}>
+                Use my location
+              </button>
             ) : zoneState.status === 'locating' ? (
               'Checking your location…'
             ) : zoneState.status === 'failed' ? (
@@ -98,7 +113,7 @@ export function IndividualSavings() {
         </div>
       </div>
 
-      <div className="sb-indiv-grid">
+      <div className="sb-indiv-grid" data-loading={loading || undefined}>
         {(data?.appliances ?? []).map((a) => (
           <div
             className="sb-card sb-indiv-card"
