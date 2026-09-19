@@ -49,12 +49,14 @@ production too.
   file per zone in `src/map/zones/`, no map library. Clicking a zone drives the price chart.
   `src/api/zones.ts` maps each GeoJSON zone to our backend bidding-zone id. Selectable zones clear
   3:1 against the page ground so they read as controls; the selected one is the brand amber.
-- **Price chart.** Calls `GET /api/spotprices?biddingZoneId=…&from=…&to=…` and shows the day-ahead
+- **Price chart.** Calls `GET /api/spotprices?biddingZoneId=…&date=…` and shows the day-ahead
   curve for yesterday / today / tomorrow. Zone comes from the map (desktop defaults to
   Germany-Luxembourg, id 7); results are cached per zone and day. The curve is sliced and labelled in
   the zone's own local time, not the viewer's and not CET, and the offset is printed under the chart.
   Cheap / average / expensive are the brand's temperature pair rather than a red-green traffic light,
-  which is also the safer pair for colour blindness.
+  which is also the safer pair for colour blindness. `public/warm.js` starts today's request during
+  HTML parse, so it does not wait on the bundle, and `fetchSpotPrices` adopts that promise when the
+  URL matches. It repeats `dateForDay` and `MOBILE_QUERY`, which is why both are commented as shared.
 - **Mobile price section.** A two-panel slider (chart and map): nothing preselected, tap a zone to
   slide to the graph, use the handle or swipe to slide back.
 - **Savings teaser to `/savings`.** The estimator and the appliance cards used to sit on the landing
