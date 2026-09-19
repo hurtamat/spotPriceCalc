@@ -19,6 +19,9 @@
       content="See the hourly spot price for your European bidding zone, and let SpotSteer run your EV charger, boiler and heat pump in the cheap hours. Works with Home Assistant and Shelly. No new hardware."
     />
     <link rel="canonical" href="https://spotsteer.eu/" />
+    
+    <link rel="preconnect" href="%VITE_API_BASE_URL%" crossorigin />
+    <script src="/warm.js" data-api="%VITE_API_BASE_URL%"></script>
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SpotSteer" />
@@ -70,7 +73,7 @@
       type="font/woff2"
       crossorigin
     />
-    <link rel="preload" as="image" href="/assets/backdrop.jpeg" fetchpriority="high" />
+    <link rel="preload" as="image" href="/assets/backdrop.webp" fetchpriority="high" />
 
     <!-- Appliance glyphs for /savings. Self-hosted like the text faces: the eight-icon subset,
          downloaded once into /fonts. Hotlinking fonts.googleapis.com would hand every visitor's
