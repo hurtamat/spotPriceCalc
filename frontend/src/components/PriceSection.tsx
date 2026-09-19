@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type TouchEvent as ReactTouchEvent,
+} from 'react';
 import {
   DAY_LABELS,
   DAY_ORDER,
@@ -10,9 +18,13 @@ import {
 } from '../api/spotPrices';
 import { ZoneMap } from './ZoneMap';
 import { ZONE_BY_ID } from '../api/zones';
-import { PriceBarChart, buildDaySlots, utcOffsetLabel } from './PriceBarChart';
+import { buildDaySlots, utcOffsetLabel } from '../lib/daySlots';
 import { publishSelection } from '../state/selectionStore';
 import { fixed } from '../lib/format';
+
+const PriceBarChart = lazy(() =>
+  import('./PriceBarChart').then((m) => ({ default: m.PriceBarChart })),
+);
 
 const QUANTILE_TEXT: Record<PriceQuantile, string> = {
   Green: 'var(--color-q-green-text)',
@@ -247,7 +259,9 @@ function Chart({
 
       <div className="sb-chart-plot">
         {derived ? (
-          <PriceBarChart slots={derived.slots} />
+          <Suspense fallback={<div className="sb-chart-state">Drawing the curve…</div>}>
+            <PriceBarChart slots={derived.slots} />
+          </Suspense>
         ) : state?.status === 'loading' ? (
           <div className="sb-chart-state">
             Loading {DAY_LABELS[day].toLowerCase()}&apos;s prices…
