@@ -222,7 +222,10 @@ things (`BiddingZoneSeedData`, the private math helpers).
    eligible    = price slots fully inside [windowStart, anchor]  minus  the unavailable window
    ```
    The `max(…, now)` matters whenever a client sends a deadline closer than 24h — the cheapest hours of a
-   look-back window are often ones that have already passed, and a device cannot run in them.
+   look-back window are often ones that have already passed, and a device cannot run in them. `BuildAsync`
+   takes `nowUtc` as an optional parameter for the one caller that wants those hours:
+   `/api/savings/appliances` passes the market day's start, so the whole day ranks even once it is half
+   over. No device may do that.
    This is deliberately **not** a calendar day: anchoring on the deadline and looking back keeps the cheap
    overnight block (e.g. 23:00→05:00) whole instead of slicing it at midnight. `LoadSlotsAsync` reads a day
    either side of the deadline so the look-back can reach into the previous day.

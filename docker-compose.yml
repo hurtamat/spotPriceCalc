@@ -56,7 +56,9 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      # Repo root, not ./frontend: the bundle pulls in scripts/shelly/dist (see frontend/Dockerfile).
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         # Baked into the bundle at build time. The browser talks to the API via the host mapping.
         VITE_API_BASE_URL: "http://localhost:8080"

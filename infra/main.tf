@@ -7,6 +7,12 @@ locals {
     calc     = var.image_tag == "" ? "mcr.microsoft.com/k8se/quickstart:latest" : "${local.acr_login_server}/spotprice-calc:${var.image_tag}"
     frontend = var.image_tag == "" ? "mcr.microsoft.com/k8se/quickstart:latest" : "${local.acr_login_server}/spotprice-frontend:${var.image_tag}"
   }
+
+  # The generated FQDN stays allowed: it keeps working if a custom domain is ever unbound.
+  cors_origins = concat(
+    ["https://${azurerm_container_app.frontend.ingress[0].fqdn}"],
+    [for host in var.frontend_hostnames : "https://${host}"],
+  )
 }
 
 resource "azurerm_resource_group" "main" {
@@ -270,12 +276,42 @@ resource "azurerm_container_app" "backend" {
         value = "http://${azurerm_container_app.calc.name}/"
       }
 
-      env {
-        name  = "Cors__AllowedOrigins__0"
-        value = "https://${azurerm_container_app.frontend.ingress[0].fqdn}"
+      dynamic "env" {
+        for_each = local.cors_origins
+        iterator = origin
+        content {
+          name  = "Cors__AllowedOrigins__${origin.key}"
+          value = origin.value
+        }
       }
     }
   }
 
   depends_on = [azurerm_role_assignment.acr_pull]
+}
+
+# ---------------------------------------------------------------- custom domains
+
+# `az containerapp hostname bind` created these and their managed certificates. Declared here so an
+# apply does not strip them back out; the certificate fields are ignored because Azure owns them.
+resource "azurerm_container_app_custom_domain" "frontend" {
+  for_each = toset(var.frontend_hostnames)
+
+  name             = each.value
+  container_app_id = azurerm_container_app.frontend.id
+
+  lifecycle {
+    ignore_changes = [certificate_binding_type, container_app_environment_certificate_id]
+  }
+}
+
+resource "azurerm_container_app_custom_domain" "api" {
+  count = var.api_hostname == "" ? 0 : 1
+
+  name             = var.api_hostname
+  container_app_id = azurerm_container_app.backend.id
+
+  lifecycle {
+    ignore_changes = [certificate_binding_type, container_app_environment_certificate_id]
+  }
 }

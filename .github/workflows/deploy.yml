@@ -67,7 +67,8 @@ jobs:
           az acr build -r "$ACR" -t "spotprice-backend:$TAG" -f spotPriceCalc/Dockerfile .
           az acr build -r "$ACR" -t "spotprice-calc:$TAG" ./calc-service
           az acr build -r "$ACR" -t "spotprice-frontend:$TAG" \
-            --build-arg VITE_API_BASE_URL="${{ steps.tf.outputs.backend_url }}" ./frontend
+            --build-arg VITE_API_BASE_URL="${{ steps.tf.outputs.backend_url }}" \
+            -f frontend/Dockerfile .
 
       - name: Apply
         run: terraform apply -auto-approve -input=false -var="image_tag=${{ steps.tag.outputs.sha }}"

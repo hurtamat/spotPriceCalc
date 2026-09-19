@@ -1,15 +1,10 @@
-// Stands where the estimator and the per-appliance cards used to sit on the landing
-// page, and hands both off to /savings. The six glyphs are the same Material Symbols
-// ligatures the appliance cards use, so the teaser previews the real thing rather
-// than describing it. Deliberately carries no numbers: the estimate belongs on the
-// page that can ask the questions behind it.
 const APPS = [
   { icon: 'electric_car', label: 'Electric car' },
-  { icon: 'heat_pump', label: 'Heat pump' },
+  { icon: 'heat_pump', label: 'Pool heating' },
   { icon: 'water_heater', label: 'Boiler' },
-  { icon: 'local_laundry_service', label: 'Washing machine' },
+  { icon: 'local_laundry_service', label: 'Dryer' },
   { icon: 'dishwasher', label: 'Dishwasher' },
-  { icon: 'cool_to_dry', label: 'Dryer' },
+  { icon: 'cool_to_dry', label: 'Air conditioning' },
 ];
 
 export function SavingsTeaser() {

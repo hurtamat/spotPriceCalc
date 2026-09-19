@@ -38,6 +38,16 @@
     U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* Material Symbols, subsetted to our eight glyphs (2.7KB), self-hosted.
+   Apache-2.0; see fonts/LICENSE-APACHE.txt. */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/material-symbols-subset.woff2') format('woff2');
+}
+
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
@@ -93,14 +103,16 @@
   --color-warm-tint: rgba(232, 149, 43, 0.14);
 
   /* ── price semantics ──────────────────────────────────────────
-     The names follow the API's PriceQuantile (Green/Yellow/Red) and are
-     kept so the chart mapping stays readable, but the values are the
-     brand's temperature pair: cool means cheap, warm means expensive.
-     Blue against orange is also the safest pair for colour blindness,
-     which a red/green traffic light is not. */
-  --color-q-green: #35a8c9;
-  --color-q-yellow: #8d9aa6;
+     Names follow the API's PriceQuantile. The map's own three colours:
+     blue is a live zone, amber is the picked one, grey is out of play.
+     The chart reuses them so the two halves of the page speak once. */
+  --color-q-green: #3fa8d1;
+  --color-q-yellow: #7f8d99;
   --color-q-red: #e8952b;
+  /* Lifted for text: the fills are tuned as bars. */
+  --color-q-green-text: #63bcdd;
+  --color-q-yellow-text: #a7b4bf;
+  --color-q-red-text: #f2ab52;
 
   /* ── radius scale ─────────────────────────────────────────────
      Four steps and a pill. Nothing on the site may invent a fifth. */
@@ -473,23 +485,13 @@ a:hover {
   color: var(--color-text);
 }
 
-/* The links are the only navigation in the bar, so they stay at every width. Below
-   700px they tighten up and the row scrolls sideways if four labels do not fit;
-   .sb-nav-links is already an overflow-x container with its scrollbar hidden. */
-@media (max-width: 700px) {
-  .sb-nav-inner {
-    gap: 14px;
-  }
-
+/* Below the site's mobile breakpoint the links go entirely. Four section anchors never fit
+   beside the wordmark, and the fix until now was a sideways-scrolling row faded out at its
+   right edge, which is a navigation people have to discover. The bar keeps the wordmark,
+   which is the one thing it has to do: get you back to the landing page. */
+@media (max-width: 900px) {
   .sb-nav-links {
-    gap: 16px;
-    font-size: 13.5px;
-    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent 100%);
-    mask-image: linear-gradient(to right, #000 88%, transparent 100%);
-  }
-
-  .sb-nav-links .sb-link {
-    font-size: inherit;
+    display: none;
   }
 }
 
@@ -707,34 +709,6 @@ a:hover {
   margin-bottom: 9px;
 }
 
-.sb-stepper {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.sb-step-btn {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  background: var(--color-accent-tint);
-  color: var(--color-accent-strong);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
-  font-size: 20px;
-}
-
-.sb-step-btn:hover {
-  background: var(--color-accent-tint-2);
-}
-
-.sb-step-val {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 26px;
-  min-width: 1.4ch;
-  text-align: center;
-}
-
 .sb-input {
   width: 100%;
   min-height: 44px;
@@ -827,6 +801,20 @@ a:hover {
   color: var(--color-text-mute);
 }
 
+/* A link inside fine print stays fine print: underlined so it reads as a link, but not the
+   accent blue, which would pull more attention than the caveat deserves. */
+.sb-fine-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--color-divider);
+}
+
+.sb-fine-link:hover {
+  color: var(--color-text-dim);
+  text-decoration-color: currentColor;
+}
+
 /* ── section scaffolding ───────────────────────────────────────── */
 .sb-section {
   padding: clamp(48px, 8vw, 104px) 0;
@@ -901,8 +889,11 @@ a:hover {
   gap: 18px;
 }
 
+/* Full width so the day tabs always wrap to their own row. Without it the tabs ride up
+   beside the stats whenever those are narrow, and the card relayouts as data arrives. */
 .sb-chart-stats-group {
   display: flex;
+  flex: 1 1 100%;
   gap: 30px;
   flex-wrap: wrap;
 }
@@ -912,12 +903,23 @@ a:hover {
   color: var(--color-text-mute);
 }
 
+.sb-stat-cap-avg {
+  color: var(--color-q-yellow-text);
+}
+
 .sb-stat-cap-accent {
-  color: var(--color-accent-strong);
+  color: var(--color-q-green-text);
 }
 
 .sb-stat-cap-pop {
-  color: var(--color-warm-strong);
+  color: var(--color-q-red-text);
+}
+
+.sb-stat-unit {
+  font-size: 12.5px;
+  color: var(--color-text-mute);
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 .sb-stat-big {
@@ -928,11 +930,22 @@ a:hover {
   white-space: nowrap;
 }
 
-.sb-stat-unit {
-  font-size: 12.5px;
+/* The dash standing in for a missing number. Same box, clearly not a value. */
+.sb-stat-big:not([style]) {
   color: var(--color-text-mute);
-  font-weight: 400;
-  letter-spacing: 0;
+}
+
+/* Narrow screens: three bare figures, kept on one row and packed left like the desktop
+   layout rather than spread edge to edge. */
+@media (max-width: 560px) {
+  .sb-chart-stats-group {
+    flex-wrap: nowrap;
+    gap: 26px;
+  }
+
+  .sb-stat-big {
+    font-size: 20px;
+  }
 }
 
 .sb-day-tabs {
@@ -1009,8 +1022,18 @@ a:hover {
   margin-top: -12px;
 }
 
+/* The chart, the loading line and the "not published yet" line all land here, so the card is
+   the same height whichever one is showing. 230px is PriceBarChart's own height. */
+.sb-chart-plot {
+  width: 100%;
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .sb-chart-state {
-  min-height: 210px;
+  min-height: 230px;
   display: grid;
   place-items: center;
   text-align: center;
@@ -1220,8 +1243,19 @@ a:hover {
     justify-content: center;
     gap: 16px;
     overflow-y: auto; /* scroll the chart within the stage if it's taller */
+    /* Nothing inside may force the column wider than the stage. A flex child defaults to
+       min-width:auto, so one nowrap stat row was enough to push a sideways scrollbar out. */
+    min-width: 0;
+    overflow-x: clip;
+    overscroll-behavior: contain;
     transform: none;
     pointer-events: auto;
+  }
+
+  .sb-chart-card,
+  .sb-chart-plot {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .sb-price-head {
@@ -1777,27 +1811,25 @@ a:hover {
   .sb-teaser p {
     max-width: none;
   }
-}
 
-@media (max-width: 440px) {
+  /* Six appliance tiles under the copy is a screenful of preview before the button. */
   .sb-teaser-apps {
-    grid-template-columns: repeat(2, 1fr);
+    display: none;
   }
 }
 
 /* ── /savings page shell ───────────────────────────────────────── */
-.sb-savings-head {
-  padding: clamp(32px, 5vw, 64px) 0 clamp(24px, 3vw, 40px);
-  max-width: 62ch;
+.sb-savings-intro {
+  max-width: 46ch;
 }
 
-.sb-savings-head h1 {
+.sb-savings-intro h1 {
   font-size: clamp(34px, 5vw, 56px);
   letter-spacing: -0.04em;
   margin-bottom: 16px;
 }
 
-.sb-savings-head p {
+.sb-savings-intro p {
   color: var(--color-text-dim);
   font-size: clamp(15px, 1.5vw, 18px);
 }
@@ -1815,16 +1847,24 @@ a:hover {
   color: var(--color-accent-strong);
 }
 
-.sb-savings-grid {
+/* Estimator beside the paragraph that frames it; the cards get the full width below. */
+.sb-savings-top {
   display: grid;
   grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
   gap: clamp(24px, 4vw, 56px);
-  align-items: start;
+  align-items: center;
+  padding-top: clamp(32px, 5vw, 64px);
+  margin-bottom: clamp(40px, 6vw, 72px);
 }
 
+/* Stacked, the heading has to come first; on desktop it is the right-hand column. */
 @media (max-width: 900px) {
-  .sb-savings-grid {
+  .sb-savings-top {
     grid-template-columns: 1fr;
+  }
+
+  .sb-savings-intro {
+    order: -1;
   }
 }
 
@@ -1989,20 +2029,41 @@ a:hover {
 }
 
 /* ── individual savings (per-appliance cards) ──────────────────── */
-/* Now a /savings section rather than a landing-page one, so it sits in a single
-   column beside the estimator instead of spanning the page. */
 .sb-indiv {
   scroll-margin-top: calc(var(--nav-h) + 20px);
   min-width: 0;
 }
 
-/* Headline with its line of context stacked under it, not floated into the top
-   right corner of the section. */
 .sb-indiv-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin-bottom: 18px;
+}
+
+.sb-indiv-headings {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 18px;
+}
+
+.sb-indiv-zone {
+  flex: none;
+  max-width: 280px;
+}
+
+/* Sized to the country name, so the arrow sits beside it rather than at the end of a wide field. */
+.sb-indiv-zone .sb-sw-input {
+  width: auto;
+  max-width: 100%;
+}
+
+@media (max-width: 560px) {
+  .sb-indiv-zone {
+    max-width: none;
+  }
 }
 
 .sb-indiv-head h3 {
@@ -2045,8 +2106,9 @@ a:hover {
   place-items: center;
 }
 
-/* Material Symbols is a ligature font (see the <link> in index.html): the glyph name is the
-   element's text, so it must not wrap, break or get letter-spaced. */
+/* A ligature font: the glyph name is the element's text, so it must not wrap, break or get
+   letter-spaced. Our subset is static at wght 400, so font-variation-settings is inert; it
+   stays in case the variable face comes back. */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
@@ -2059,6 +2121,8 @@ a:hover {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
@@ -2114,10 +2178,6 @@ a:hover {
   background: var(--color-accent-tint);
 }
 
-.sb-indiv-detail {
-  font-size: 12.5px;
-  color: var(--color-text-dim);
-}
 
 .sb-indiv-mid {
   font-size: 12.5px;
@@ -2156,6 +2216,65 @@ a:hover {
    with .sb-legal at runtime (see api/legal.ts), so this only sets what Termly doesn't. */
 .sb-legal {
   overflow-wrap: anywhere;
+}
+
+/* Termly's own stylesheet paints for a white page (black headings, #595959 body, Arial) and
+   does it with !important, so inline styles never get a look in. It is also injected after our
+   sheet, so a tie on specificity goes to them: the doubled .sb-legal is what wins these back. */
+.sb-legal.sb-legal [data-custom-class='title'],
+.sb-legal.sb-legal [data-custom-class='title'] *,
+.sb-legal.sb-legal [data-custom-class='heading_1'],
+.sb-legal.sb-legal [data-custom-class='heading_1'] *,
+.sb-legal.sb-legal [data-custom-class='heading_2'],
+.sb-legal.sb-legal [data-custom-class='heading_2'] * {
+  color: var(--color-text) !important;
+  font-family: var(--font-heading) !important;
+  letter-spacing: -0.02em;
+}
+
+.sb-legal.sb-legal [data-custom-class='heading_1'],
+.sb-legal.sb-legal [data-custom-class='heading_1'] * {
+  font-size: 21px !important;
+}
+
+.sb-legal.sb-legal [data-custom-class='heading_2'],
+.sb-legal.sb-legal [data-custom-class='heading_2'] * {
+  font-size: 17px !important;
+}
+
+.sb-legal.sb-legal [data-custom-class='body_text'],
+.sb-legal.sb-legal [data-custom-class='body_text'] *,
+.sb-legal.sb-legal [data-custom-class='subtitle'],
+.sb-legal.sb-legal [data-custom-class='subtitle'] * {
+  color: var(--color-text-dim) !important;
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+}
+
+.sb-legal.sb-legal [data-custom-class='link'],
+.sb-legal.sb-legal [data-custom-class='link'] * {
+  color: var(--color-accent) !important;
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+}
+
+/* Anything Termly left carrying only an inline colour, the stray rgb(0,0,0) and rgb(127,127,127)
+   wrappers between sections, has no !important behind it, so one rule catches the lot. */
+.sb-legal [style*='rgb(0, 0, 0)'],
+.sb-legal [style*='rgb(127, 127, 127)'] {
+  color: var(--color-text) !important;
+}
+
+.sb-legal h1,
+.sb-legal h2,
+.sb-legal h3,
+.sb-legal h4 {
+  color: var(--color-text);
+  font-family: var(--font-heading);
+}
+
+.sb-legal li {
+  color: var(--color-text-dim);
 }
 
 /* ── legal documents as pages (/privacy, /terms) ── */
@@ -3566,4 +3685,79 @@ a:hover {
 .sb-sw-close-body {
   font-size: 13.5px;
   color: var(--color-neutral-700);
+}
+
+/* ── /contact ───────────────────────────────────────────────────────────────
+   Same narrow measure as the legal pages it carries the identity for. */
+.sb-contact-page {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.sb-contact-lead {
+  font-size: 15px;
+  color: var(--color-text-mute);
+  max-width: 52ch;
+  margin: 0 0 18px;
+}
+
+.sb-contact-page .sb-contact-row {
+  max-width: 420px;
+  justify-content: space-between;
+}
+
+.sb-contact-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.sb-contact-copy .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.sb-contact-note {
+  max-width: 58ch;
+  margin-top: 10px;
+}
+
+.sb-contact-h2 {
+  font-size: 20px;
+  margin: 34px 0 12px;
+}
+
+/* <address> is machine-readable; browsers italicise it, which a postal address isn't. */
+.sb-impressum {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-style: normal;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-mute);
+}
+
+.sb-impressum-name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Location is asked for on demand, never on page load. */
+.sb-locate {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Cards from the previous zone, held in place while the new ones load. */
+.sb-indiv-grid[data-loading] {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
 }

@@ -9,6 +9,8 @@ import { Footer } from './components/Footer';
 import { SavingsPage } from './components/SavingsPage';
 import { ShellyWizard } from './components/ShellyWizard';
 import { LegalPage } from './components/LegalPage';
+import { ContactPage } from './components/ContactPage';
+import { ROUTES } from './config/site';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { usePageTitle } from './hooks/usePageTitle';
 import { HomeAssistantPage } from './components/HomeAssistantPage';
@@ -25,11 +27,12 @@ export default function App() {
   // that knows the route. The landing page is the brand alone; everything else is
   // the brand plus where you are.
   usePageTitle(path);
-  if (path === '/home-assistant') return <HomeAssistantPage />;
-  if (path === '/shelly') return <ShellyWizard />;
-  if (path === '/savings') return <SavingsPage />;
-  if (path === '/privacy') return <LegalPage kind="privacy" />;
-  if (path === '/terms') return <LegalPage kind="terms" />;
+  if (path === ROUTES.homeAssistant) return <HomeAssistantPage />;
+  if (path === ROUTES.shelly) return <ShellyWizard />;
+  if (path === ROUTES.savings) return <SavingsPage />;
+  if (path === ROUTES.privacy) return <LegalPage kind="privacy" />;
+  if (path === ROUTES.terms) return <LegalPage kind="terms" />;
+  if (path === ROUTES.contact) return <ContactPage />;
 
   return (
     <div className="sb-shell">

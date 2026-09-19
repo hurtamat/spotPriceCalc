@@ -61,25 +61,26 @@ const SET_ENTITIES = [
 const TROUBLES = [
   {
     q: 'The device never switches on',
-    a: 'Check Enabled is on, then check that Duration and Ready by leave a window that is actually reachable. A four hour duration with a 02:00 deadline and a do-not-run window across the night has nowhere to fit. Also confirm a plan exists on the status entity: if it says waiting for plan, there is nothing to run against yet.',
+    a: 'Check Enabled is on. Then check the settings leave it somewhere to run: four hours of Duration, a Ready by of 02:00 and a do-not-run window across the night do not fit together. Last, look at the status. If it says waiting for plan, no schedule has arrived yet, so there is nothing for it to follow.',
   },
   {
     q: 'Status says "backend unavailable"',
-    a: 'Home Assistant cannot reach our API. Verify the Backend URL has no trailing slash, then check outbound network access from the Home Assistant host. The integration retries on its own, so the plan reappears once the connection is back without a restart.',
+    a: 'Home Assistant cannot reach us. Check the Backend URL is typed exactly as given, with no slash on the end, and that the machine running Home Assistant can get online. There is nothing else to do. It keeps trying on its own, and the schedule comes back by itself once the connection does, with no restart needed.',
   },
   {
-    q: 'The price shows but there is no level',
-    a: 'The level needs a full day of prices to compare against, so right after setup or in the gap before the next publication it stays unknown until the curve arrives. If it is still empty the next day, reload the integration from Settings, Devices and services.',
+    q: 'The price is there but it does not say cheap or expensive',
+    a: 'Cheap, normal and expensive only mean something once a whole day of prices is there to compare against. Just after setup, or in the short gap before the next day is published, there is nothing to compare, so it stays unknown. If it is still blank the next day, open Settings, then Devices and services, and reload SpotSteer.',
   },
   {
-    q: 'I want to control a second appliance',
-    a: 'Add the integration a second time. Each entry gets its own entities, its own duration and its own deadline, so your boiler and your EV charger can each have their own plan and their own controlled switch.',
+    q: 'The hours it picks move around from day to day',
+    a: 'Ready by counts forward from the moment the schedule is made, so one made at 08:00 and one made at 20:00 are looking at two different stretches of time. Keep nudging the sliders and the finish time wanders with them. Give it something fixed instead: pick an hour you would never want it running in anyway, say 19:00. Every day then ends at the same point, and it is still free to use all the cheap hours before it. This matters most with Continuous switched on, where a finish time landing in the middle of a cheap stretch cuts that stretch in half.',
   },
   {
     q: 'The device switches at the wrong time',
-    a: 'Check the latitude and longitude in the integration options, since those decide which bidding zone your prices come from. The plan itself is computed and delivered in UTC, so a wrong zone, not a wrong clock, is the usual cause.',
+    a: 'Almost always the location rather than the clock. The latitude and longitude in the integration options decide whose prices you get, so check those first: the wrong place gives you the wrong prices, delivered perfectly on time.',
   },
 ];
+
 
 function PlusIcon({ open }: { open: boolean }) {
   return (

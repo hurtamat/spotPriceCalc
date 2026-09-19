@@ -32,6 +32,18 @@ variable "postgres_admin_username" {
   default = "spotadmin"
 }
 
+variable "frontend_hostnames" {
+  description = "Custom domains on the frontend app. The first is canonical; all become CORS origins."
+  type        = list(string)
+  default     = ["spotsteer.eu", "www.spotsteer.eu"]
+}
+
+variable "api_hostname" {
+  description = "Custom domain on the backend app. Empty falls back to the generated FQDN."
+  type        = string
+  default     = "api.spotsteer.eu"
+}
+
 variable "entsoe_token" {
   description = "ENTSO-E Transparency Platform security token."
   type        = string

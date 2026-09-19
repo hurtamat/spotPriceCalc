@@ -1,4 +1,7 @@
-/** Loads the Termly-generated legal documents from `public/legal/`, kept exactly as exported. */
+/** Loads the legal documents from `public/legal/`. Edited Termly exports: anything that can go
+ *  stale (mailbox, address, site URL) is a `{{token}}` filled from `config/site.ts` at load. */
+
+import { LEGAL_TOKENS } from '../config/site';
 
 export type LegalKind = 'privacy' | 'terms';
 
@@ -59,6 +62,13 @@ function hardenLinks(html: string): string {
   return html.replace(/<a\s/g, '<a target="_blank" rel="noopener noreferrer" ');
 }
 
+/** An unknown token is left visible: one that renders empty is a hole nobody notices. */
+function injectTokens(html: string): string {
+  return html.replace(/\{\{(\w+)\}\}/g, (match, key: string) =>
+    key in LEGAL_TOKENS ? LEGAL_TOKENS[key] : match,
+  );
+}
+
 const cache = new Map<LegalKind, string>();
 
 /** Fetches a legal document and prepares it for embedding. Cached per kind. */
@@ -71,8 +81,10 @@ export async function loadLegalDocument(kind: LegalKind): Promise<string> {
     throw new Error(`Failed to load ${kind} document: ${response.status}`);
   }
 
-  const prepared = hardenLinks(
-    scopeStyleBlocks(collapseBlankRuns(stripDocumentTitle(stripTermlyLogo(await response.text())))),
+  const prepared = injectTokens(
+    hardenLinks(
+      scopeStyleBlocks(collapseBlankRuns(stripDocumentTitle(stripTermlyLogo(await response.text())))),
+    ),
   );
   cache.set(kind, prepared);
   return prepared;

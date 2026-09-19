@@ -1,7 +1,4 @@
-// The photograph is the hero. It is a real <img> rather than a CSS background so it
-// can carry fetchpriority and explicit intrinsic dimensions: it is the LCP element,
-// and a background-image can do neither.
-const BACKDROP = '/assets/backdrop.png';
+const BACKDROP = '/assets/backdrop.jpeg';
 
 export function Hero() {
   return (
@@ -25,7 +22,7 @@ export function Hero() {
             finger.
           </h1>
           <p className="sb-hero-sub" style={{ '--i': 1 } as React.CSSProperties}>
-            Electricity prices change every hour. SpotSteer watches the spot market and runs your
+            Electricity prices change every hour. SpotSteer watches the market and runs your
             devices when power is cheapest.
           </p>
         </div>
@@ -34,8 +31,6 @@ export function Hero() {
   );
 }
 
-// The three claims that used to crowd the hero. Trust marks belong under the value
-// proposition, not inside it.
 const CLAIMS = [
   { num: 'All', label: 'EU zones covered' },
   { num: '0€', label: 'new hardware' },

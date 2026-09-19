@@ -1,10 +1,10 @@
 output "backend_url" {
   description = "Public backend URL as VITE_API_BASE_URL for frontend"
-  value       = "https://${azurerm_container_app.backend.ingress[0].fqdn}"
+  value       = var.api_hostname == "" ? "https://${azurerm_container_app.backend.ingress[0].fqdn}" : "https://${var.api_hostname}"
 }
 
 output "frontend_url" {
-  value = "https://${azurerm_container_app.frontend.ingress[0].fqdn}"
+  value = length(var.frontend_hostnames) == 0 ? "https://${azurerm_container_app.frontend.ingress[0].fqdn}" : "https://${var.frontend_hostnames[0]}"
 }
 
 output "acr_name" {
