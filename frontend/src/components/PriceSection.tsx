@@ -5,12 +5,20 @@ import {
   dateForDay,
   fetchSpotPrices,
   type DayKey,
+  type PriceQuantile,
   type ZoneSpotPrices,
 } from '../api/spotPrices';
 import { ZoneMap } from './ZoneMap';
 import { ZONE_BY_ID } from '../api/zones';
 import { PriceBarChart, buildDaySlots, utcOffsetLabel } from './PriceBarChart';
 import { publishSelection } from '../state/selectionStore';
+import { fixed } from '../lib/format';
+
+const QUANTILE_TEXT: Record<PriceQuantile, string> = {
+  Green: 'var(--color-q-green-text)',
+  Yellow: 'var(--color-q-yellow-text)',
+  Red: 'var(--color-q-red-text)',
+};
 
 // Default selection until the user picks a zone on the map (Germany-Luxembourg = id 7).
 const DEFAULT_ZONE_ID = 7;
@@ -188,7 +196,7 @@ function Chart({
     };
   }, [state, day]);
 
-  const fmt = (v: number) => v.toFixed(1);
+  const fmt = (v: number) => fixed(v, 1);
 
   // An empty curve still carries the zone's timezone, so the footer keeps its offset.
   const timeZone = state?.status === 'ready' ? state.data.timeZoneId : null;
@@ -205,25 +213,22 @@ function Chart({
       <div className="sb-chart-stats">
         <div className="sb-chart-stats-group">
           <Stat
-            capClass="sb-stat-cap sb-stat-cap-accent"
             cap="Cheapest"
             value={derived ? fmt(derived.min) : '—'}
             unit={derived ? 'c/kWh' : ''}
-            valueColor={derived ? 'var(--color-q-green-text)' : undefined}
+            color={quantileText(derived?.minPt.quantile)}
           />
           <Stat
-            capClass="sb-stat-cap sb-stat-cap-avg"
             cap="Avg"
             value={derived ? fmt(derived.avg) : '—'}
             unit={derived ? 'c/kWh' : ''}
-            valueColor={derived ? 'var(--color-q-yellow-text)' : undefined}
+            color={derived ? 'var(--color-q-yellow-text)' : undefined}
           />
           <Stat
-            capClass="sb-stat-cap sb-stat-cap-pop"
             cap="Peak"
             value={derived ? fmt(derived.max) : '—'}
             unit={derived ? 'c/kWh' : ''}
-            valueColor={derived ? 'var(--color-q-red-text)' : undefined}
+            color={quantileText(derived?.maxPt.quantile)}
           />
         </div>
         <div className="sb-day-tabs">
@@ -280,23 +285,28 @@ function Chart({
   );
 }
 
+function quantileText(q: PriceQuantile | null | undefined): string | undefined {
+  return q ? QUANTILE_TEXT[q] : undefined;
+}
+
 function Stat({
-  capClass,
   cap,
   value,
   unit,
-  valueColor,
+  color,
 }: {
-  capClass: string;
   cap: string;
   value: string;
   unit: string;
-  valueColor?: string;
+  color?: string;
 }) {
+  const tint = color ? { color } : undefined;
   return (
     <div>
-      <div className={capClass}>{cap}</div>
-      <div className="sb-stat-big" style={valueColor ? { color: valueColor } : undefined}>
+      <div className="sb-stat-cap" style={tint}>
+        {cap}
+      </div>
+      <div className="sb-stat-big" style={tint}>
         {value} <span className="sb-stat-unit">{unit}</span>
       </div>
     </div>

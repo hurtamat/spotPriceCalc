@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { fetchApplianceSavings, type ApplianceSavings } from '../api/savings';
 import { fetchZones, type ZoneOption } from '../api/zones';
 import { useDetectedZone } from '../hooks/useDetectedZone';
+import { fixed } from '../lib/format';
 
 // The icon font is an eight-glyph subset, so a new key needs it regenerated — which is why air
 // conditioning borrows the dryer's snowflake.
@@ -14,8 +15,8 @@ const ICONS: Record<string, string> = {
   dryer: 'local_laundry_service',
 };
 
-const eur = (v: number) => `€${v.toFixed(2)}`;
-const ct = (v: number) => `${v.toFixed(1)} c/kWh`;
+const eur = (v: number) => `€${fixed(v, 2)}`;
+const ct = (v: number) => `${fixed(v, 1)} c/kWh`;
 
 /** Owns the zone picker: the zone changes only these cards, never the estimator beside them. */
 export function IndividualSavings() {

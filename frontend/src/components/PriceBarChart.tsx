@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine';
 import type { PricePoint, PriceQuantile } from '../api/spotPrices';
+import { fixed } from '../lib/format';
 
 const QUANTILE_COLOR: Record<PriceQuantile, string> = {
   Green: 'var(--color-q-green)',
@@ -125,7 +126,7 @@ export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; hei
           width: 44,
           disableTicks: true,
           disableLine: true,
-          valueFormatter: (v: number) => v.toFixed(0),
+          valueFormatter: (v: number) => fixed(v, 0),
           tickLabelStyle: { fontSize: 11, fill: 'var(--color-text-mute)' },
         },
       ]}
@@ -133,7 +134,7 @@ export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; hei
         {
           dataKey: 'ct',
           label: 'Price',
-          valueFormatter: (v: number | null) => (v == null ? 'no price' : `${v.toFixed(1)} c/kWh`),
+          valueFormatter: (v: number | null) => (v == null ? 'no price' : `${fixed(v, 1)} c/kWh`),
         },
       ]}
       hideLegend
