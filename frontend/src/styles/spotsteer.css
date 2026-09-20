@@ -106,6 +106,9 @@
      Names follow the API's PriceQuantile. The map's own three colours:
      blue is a live zone, amber is the picked one, grey is out of play.
      The chart reuses them so the two halves of the page speak once. */
+  /* The map's selectable-zone fill; also the chart card's slide-back slab. */
+  --color-map-zone: #2d7590;
+
   --color-q-green: #3fa8d1;
   --color-q-yellow: #7f8d99;
   --color-q-red: #e8952b;
@@ -873,6 +876,10 @@ a:hover {
   max-width: 46ch;
 }
 
+.sb-chart-stack {
+  position: relative;
+}
+
 .sb-chart-card {
   padding: clamp(18px, 2.5vw, 28px);
   box-shadow: var(--e-3);
@@ -1114,8 +1121,9 @@ a:hover {
     padding: 0;
     position: relative;
     overflow: hidden; /* the off-screen stage is clipped here */
-    height: min(80vh, 620px);
-    min-height: 460px;
+    /* A floor, not a fixed height: the chart stage sizes to its card, so nothing inside
+       has to scroll and a vertical drag always belongs to the page. */
+    min-height: max(460px, min(80vh, 620px));
     touch-action: pan-y; /* let vertical scroll through; we handle horizontal swipes */
   }
 
@@ -1125,7 +1133,6 @@ a:hover {
   .sb-price-inner {
     flex: 0 0 100%;
     width: 100%;
-    height: 100%;
     /* Default = parked on the MAP (the right stage), so the track is shifted one viewport
        left. Opening the chart brings it back to 0. */
     transform: translateX(var(--sb-slide, -100%));
@@ -1148,6 +1155,9 @@ a:hover {
     position: relative;
     left: auto;
     top: auto;
+    /* Explicit, so the map stage never stretches the section — the svg is far taller
+       than the stage and would otherwise set the height for both. */
+    height: max(460px, min(80vh, 620px));
     margin: 0;
     opacity: 1;
     z-index: 0;
@@ -1222,20 +1232,16 @@ a:hover {
     position: static;
     max-width: none;
     width: 100%;
-    height: 100%;
     box-sizing: border-box;
-    padding: clamp(18px, 5vw, 26px) clamp(26px, 7vw, 40px) clamp(18px, 5vw, 26px)
-      clamp(16px, 4vw, 22px); /* extra right padding clears the handle tab */
+    padding: clamp(18px, 5vw, 26px) clamp(16px, 4vw, 22px);
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: 16px;
-    overflow-y: auto; /* scroll the chart within the stage if it's taller */
     /* Nothing inside may force the column wider than the stage. A flex child defaults to
        min-width:auto, so one nowrap stat row was enough to push a sideways scrollbar out. */
     min-width: 0;
-    overflow-x: clip;
-    overscroll-behavior: contain;
+    overflow: clip;
     transform: none;
     pointer-events: auto;
   }
@@ -1250,28 +1256,40 @@ a:hover {
     display: none; /* on mobile the map already provides the context; save the space */
   }
 
-  /* Handle on the chart stage's RIGHT edge — the map lives to the right, so a › chevron
-     points back to it. Tap (or swipe left) to slide the track back to the map. */
+  /* A second card stacked behind the chart card, showing only as a strip down its right
+     side — that strip is the button back to the map (which lives to the right, hence ›).
+     The stack's right margin is what the slab peeks into. */
+  .sb-chart-stack {
+    --sb-handle-w: 30px;
+    margin-right: var(--sb-handle-w);
+  }
+
   .sb-chart-handle {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     position: absolute;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    z-index: 3;
-    width: 26px;
-    height: 72px;
-    padding: 0;
-    border: none;
-    border-radius: var(--r-md) 0 0 var(--r-md);
-    background: var(--color-accent);
+    inset: 0 calc(-1 * var(--sb-handle-w)) 0 0;
+    z-index: 0;
+    padding: 0 7px 0 0;
+    border: 1px solid var(--color-map-zone);
+    border-radius: var(--r-md);
+    background: var(--color-map-zone);
     color: var(--color-bg-deep);
-    font-size: 22px;
-    line-height: 1;
     cursor: pointer;
     box-shadow: var(--e-2);
+  }
+
+
+  .sb-chart-handle:active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  /* The card covers everything but that right strip. */
+  .sb-chart-card {
+    position: relative;
+    z-index: 1;
   }
 }
 
@@ -1326,7 +1344,7 @@ a:hover {
 /* Clears 3:1 against the page ground so a selectable zone is identifiable as a
    control, per WCAG 1.4.11, without competing with the amber selection. */
 .sb-zone-pick {
-  fill: #2d7590;
+  fill: var(--color-map-zone);
   cursor: pointer;
   transition: fill 0.12s ease;
   outline: none;
@@ -2304,7 +2322,9 @@ a:hover {
 .sb-ha-back {
   font-size: 13px;
   color: var(--color-neutral-600);
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   margin-bottom: 20px;
 }
 
@@ -3668,6 +3688,12 @@ a:hover {
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 19px;
+}
+
+/* Arrows set inside a line of text ride the cap height, not the baseline. */
+.sb-sw-close-title svg,
+.sb-faq-link svg {
+  vertical-align: -2px;
 }
 
 .sb-sw-close-body {

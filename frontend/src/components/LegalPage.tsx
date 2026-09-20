@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
 import { loadLegalDocument, LEGAL_URLS, type LegalKind } from '../api/legal';
+import { ArrowLeft } from './icons';
 
 export type { LegalKind };
 
@@ -38,7 +39,8 @@ export function LegalPage({ kind }: { kind: LegalKind }) {
 
       <section className="sb-section sb-legal-page">
         <a className="sb-ha-back" href="/">
-          ← Back to SpotSteer
+          <ArrowLeft size={14} />
+          Back to SpotSteer
         </a>
         <h1 className="sb-legal-title">{TITLES[kind]}</h1>
 

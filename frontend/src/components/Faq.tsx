@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ArrowRight } from './icons';
 
 const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = [
   {
@@ -59,7 +60,7 @@ export function Faq() {
                       <>
                         {' '}
                         <a className="sb-faq-link" href={f.link.href}>
-                          {f.link.label} →
+                          {f.link.label} <ArrowRight size={14} />
                         </a>
                       </>
                     )}

@@ -49,6 +49,9 @@ export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; hei
           // Per-bar colour via an ordinal map keyed on the category.
           colorMap: { type: 'ordinal', values: categories, colors },
           tickLabelInterval: (_value: unknown, index: number) => index % labelEvery === 0,
+          // Axis labels are bare hours ("3", "15"); the tooltip keeps the full "03:00".
+          valueFormatter: (value: string, ctx: { location: string }) =>
+            ctx.location === 'tick' ? value.replace(/^0?(\d+):00$/, '$1') : value,
           disableTicks: true,
           disableLine: true,
           tickLabelStyle: { fontSize: 11, fill: 'var(--color-text-mute)' },

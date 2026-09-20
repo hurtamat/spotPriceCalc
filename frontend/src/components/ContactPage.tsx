@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
 import { SITE, OPERATOR, OPERATOR_ADDRESS_LINES, ROUTES } from '../config/site';
+import { ArrowLeft } from './icons';
+
 export function ContactPage() {
   const [copied, setCopied] = useState(false);
 
@@ -21,7 +23,8 @@ export function ContactPage() {
 
       <section className="sb-section sb-contact-page">
         <a className="sb-ha-back" href={ROUTES.home}>
-          ← Back to {SITE.name}
+          <ArrowLeft size={14} />
+          Back to {SITE.name}
         </a>
         <h1 className="sb-legal-title">Contact</h1>
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
+import { ArrowLeft } from './icons';
 
 // One-click links into the visitor's own Home Assistant. my.home-assistant.io resolves to
 // whatever instance they have configured, so these work without knowing their address.
@@ -114,7 +115,8 @@ export function HomeAssistantPage() {
 
       <section className="sb-section sb-ha-head">
         <a className="sb-ha-back" href="/#devices">
-          ← Back to supported systems
+          <ArrowLeft size={14} />
+          Back to supported systems
         </a>
         <div className="sb-ha-title-row">
           {/* The logo artwork already reads "Home Assistant", so there is no heading beside it. */}

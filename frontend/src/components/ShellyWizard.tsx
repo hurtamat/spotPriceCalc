@@ -8,9 +8,7 @@ import {
   generateScheduleScript,
   type WizardAnswers,
 } from '../shelly/generate';
-
-// Layout and copy come from the "Shelly.dc.html" Claude Design canvas. The script itself is still
-// generated locally from the minified device templates — the design's sample script is a mock-up.
+import { ArrowLeft, ArrowRight, Check } from './icons';
 
 type Mode = 'relay' | 'colour';
 
@@ -28,9 +26,6 @@ const MODES: { key: Mode; title: string; body: string }[] = [
 ];
 
 const COLOUR_LEGEND = [
-  // These three are the LED colours the device itself is set to by priceColor.js
-  // ([0,100,0] / [100,55,0] / [100,0,0]), not site palette. The legend has to match the
-  // plug on the wall, so it does not follow the brand's teal-and-amber price scale.
   { title: 'Cheap', body: 'Bottom third of today’s prices.', color: '#22c55e', glow: 'rgba(34,197,94,.22)' },
   { title: 'Average', body: 'Middle of the day’s range.', color: '#f59e0b', glow: 'rgba(245,158,11,.22)' },
   { title: 'Expensive', body: 'Top third, wait if you can.', color: '#ef4444', glow: 'rgba(239,68,68,.22)' },
@@ -239,7 +234,8 @@ export function ShellyWizard() {
       <div className="sb-sw">
         <section className="sb-sw-hero">
           <a className="sb-ha-back" href="/#devices">
-            ← Back to supported systems
+            <ArrowLeft size={14} />
+            Back to supported systems
           </a>
           <img className="sb-sw-logo" src="/assets/logo-shelly.png" alt="Shelly" />
           <h1 className="sb-sw-h1">Configure your Shelly</h1>
@@ -374,7 +370,9 @@ export function ShellyWizard() {
                   data-on={continuous}
                   onClick={() => setContinuous((v) => !v)}
                 >
-                  <span className="sb-sw-box">✓</span>
+                  <span className="sb-sw-box">
+                    <Check size={13} strokeWidth={2.6} />
+                  </span>
                   <span style={{ display: 'block', minWidth: 0 }}>
                     <span className="sb-sw-opt-title">Run in one unbroken block</span>
                     <span className="sb-sw-opt-body">
@@ -389,7 +387,9 @@ export function ShellyWizard() {
                   data-on={quiet}
                   onClick={() => setQuiet((v) => !v)}
                 >
-                  <span className="sb-sw-box">✓</span>
+                  <span className="sb-sw-box">
+                    <Check size={13} strokeWidth={2.6} />
+                  </span>
                   <span style={{ display: 'block', minWidth: 0 }}>
                     <span className="sb-sw-opt-title">Never run during certain hours</span>
                     <span className="sb-sw-opt-body">A quiet period, or hours the appliance is in use.</span>
@@ -614,12 +614,12 @@ export function ShellyWizard() {
           <div className="sb-sw-close">
             <a className="sb-card" href="/">
               <span className="sb-sw-close-kicker">Back to</span>
-              <span className="sb-sw-close-title">SpotSteer home →</span>
+              <span className="sb-sw-close-title">SpotSteer home <ArrowRight size={17} /></span>
               <span className="sb-sw-close-body">Prices, savings and the rest of the picture.</span>
             </a>
             <a className="sb-card" href="/home-assistant">
               <span className="sb-sw-close-kicker">Other path</span>
-              <span className="sb-sw-close-title">Home Assistant guide →</span>
+              <span className="sb-sw-close-title">Home Assistant guide <ArrowRight size={17} /></span>
               <span className="sb-sw-close-body">
                 Already running Home Assistant? Drive any device from there instead.
               </span>

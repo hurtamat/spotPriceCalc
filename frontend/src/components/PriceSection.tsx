@@ -21,6 +21,7 @@ import { ZONE_BY_ID } from '../api/zones';
 import { buildDaySlots, utcOffsetLabel } from '../lib/daySlots';
 import { publishSelection } from '../state/selectionStore';
 import { fixed } from '../lib/format';
+import { ChevronRight } from './icons';
 
 const PriceBarChart = lazy(() =>
   import('./PriceBarChart').then((m) => ({ default: m.PriceBarChart })),
@@ -145,16 +146,6 @@ export function PriceSection() {
       </div>
 
       <div className="sb-price-inner">
-        {/* Mobile-only handle that slides the track back to the map to re-pick. */}
-        <button
-          type="button"
-          className="sb-chart-handle"
-          onClick={() => setPanelOpen(false)}
-          aria-label="Back to map, change zone"
-        >
-          <span aria-hidden="true">›</span>
-        </button>
-
         <div className="sb-price-col">
           <div className="sb-price-head">
             <h2>Today&apos;s price curve</h2>
@@ -163,9 +154,20 @@ export function PriceSection() {
               the price through the day.
             </p>
           </div>
+          
+          <div className="sb-chart-stack">
+            <button
+              type="button"
+              className="sb-chart-handle"
+              onClick={() => setPanelOpen(false)}
+              aria-label="Back to map, change zone"
+            >
+              <ChevronRight />
+            </button>
 
-          <div className="sb-card sb-chart-card">
-            <Chart state={state} day={day} onPickDay={setDay} zoneName={zoneName} />
+            <div className="sb-card sb-chart-card">
+              <Chart state={state} day={day} onPickDay={setDay} zoneName={zoneName} />
+            </div>
           </div>
         </div>
       </div>
