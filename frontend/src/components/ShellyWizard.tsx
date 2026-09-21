@@ -9,6 +9,8 @@ import {
   type WizardAnswers,
 } from '../shelly/generate';
 import { ArrowLeft, ArrowRight, Check } from './icons';
+import { DayFlow } from './DayFlow';
+import { GuideMeta } from './GuideMeta';
 
 type Mode = 'relay' | 'colour';
 
@@ -58,12 +60,6 @@ const RELAY_COMPONENTS = [
   { id: 'number:203', name: 'Unavailable to (hour)', desc: 'End of that window.' },
   { id: 'text:200', name: 'Running today', desc: 'The hours it picked for today, in your local time.' },
   { id: 'text:201', name: 'Running tomorrow', desc: 'The same for tomorrow, once prices publish.' },
-];
-
-const DAY_FLOW = [
-  { n: '1', title: 'Prices publish', body: 'Each afternoon the exchange publishes tomorrow’s prices for your zone.' },
-  { n: '2', title: 'The device asks us', body: 'The script calls SpotSteer with your current slider values and gets back the hours for the day, chosen once.' },
-  { n: '3', title: 'The relay follows it', body: 'On inside those hours, off outside them, so nothing flips as prices wobble, until you change a slider.' },
 ];
 
 const TROUBLES = [
@@ -243,19 +239,7 @@ export function ShellyWizard() {
             Answer three questions. We write the script with your settings already inside it, you paste it
             into the device once, and from then on the Shelly runs on its own, cloud or no cloud.
           </p>
-          <div className="sb-sw-meta">
-            <span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 7v5l3.5 2" />
-              </svg>
-              ~3 minutes
-            </span>
-            <span className="sb-sw-dot">·</span>
-            <span>Shelly Gen2 or newer</span>
-            <span className="sb-sw-dot">·</span>
-            <span>Nothing to install</span>
-          </div>
+          <GuideMeta items={['~3 minutes', 'Shelly Gen2 or newer', 'Nothing to install']} />
         </section>
 
         <section id="configure" className="sb-sw-form">
@@ -565,20 +549,7 @@ export function ShellyWizard() {
           </div>
         </section>
 
-        <section className="sb-sw-section">
-          <h2 className="sb-sw-h2" style={{ marginBottom: 18 }}>
-            What it does each day
-          </h2>
-          <div className="sb-sw-flow">
-            {DAY_FLOW.map((s) => (
-              <div key={s.n} className="sb-card sb-sw-flow-card">
-                <div className="sb-sw-flow-n">{s.n}</div>
-                <div className="sb-sw-flow-title">{s.title}</div>
-                <p className="sb-sw-flow-body">{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        <DayFlow sectionClassName="sb-sw-section" headingClassName="sb-sw-h2" />
 
         <section id="troubleshooting" className="sb-sw-section">
           <h2 className="sb-sw-h2" style={{ marginBottom: 18 }}>

@@ -275,7 +275,7 @@ a:hover {
 @media (prefers-reduced-motion: no-preference) {
   .sb-reveal .sb-steps > *,
   .sb-reveal .sb-ha-rail > .sb-ha-step,
-  .sb-reveal .sb-ha-flow > *,
+  .sb-reveal .sb-flow > *,
   .sb-reveal .sb-int-grid > *,
   .sb-reveal .sb-claims > *,
   .sb-reveal .sb-teaser-apps > * {
@@ -285,22 +285,22 @@ a:hover {
 
   .sb-reveal.is-in .sb-steps > *,
   .sb-reveal.is-in .sb-ha-rail > .sb-ha-step,
-  .sb-reveal.is-in .sb-ha-flow > *,
+  .sb-reveal.is-in .sb-flow > *,
   .sb-reveal.is-in .sb-int-grid > *,
   .sb-reveal.is-in .sb-claims > *,
   .sb-reveal.is-in .sb-teaser-apps > * {
     animation: sb-hero-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-ha-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(2) {
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(2) {
     animation-delay: 80ms;
   }
 
-  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-ha-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(3) {
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(3) {
     animation-delay: 160ms;
   }
 
-  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-ha-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(4) {
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(4) {
     animation-delay: 240ms;
   }
 
@@ -2335,20 +2335,10 @@ a:hover {
   margin: 0 0 14px;
 }
 
-.sb-ha-shot figcaption {
-  margin-top: 11px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--color-text-mute);
-}
-
-/* Near-black bezel, so a dark Home Assistant screenshot reads as a screen rather
-   than as a picture that lost its background. */
+/* The screenshots are already dark, so they need rounding and lift, not a bezel. */
 .sb-ha-frame {
   border-radius: var(--r-md);
-  padding: 8px;
-  background: var(--color-bg-deep);
-  border: 1px solid var(--color-hairline);
+  overflow: hidden;
   box-shadow: var(--e-2);
 }
 
@@ -2356,7 +2346,6 @@ a:hover {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: var(--r-sm);
 }
 
 .sb-ha-back {
@@ -2405,23 +2394,7 @@ a:hover {
   margin: 0;
 }
 
-.sb-ha-meta {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-top: 20px;
-}
 
-/* Three facts, three boxes. They were a dot-separated string, which put two
-   separators on one line and read as decoration. */
-.sb-ha-chip {
-  font-size: 12px;
-  color: var(--color-text-dim);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--r-pill);
-  padding: 5px 11px;
-}
 
 .sb-ha-h2 {
   font-size: clamp(22px, 3.4vw, 34px);
@@ -2434,46 +2407,20 @@ a:hover {
   max-width: 58ch;
 }
 
-/* Before you start */
-.sb-ha-prereq {
-  padding: clamp(18px, 2.5vw, 26px);
-}
 
-.sb-ha-prereq h2 {
-  font-size: 19px;
-  margin: 0 0 14px;
-}
 
-.sb-ha-prereq-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
-}
 
-.sb-ha-prereq-item {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
 
-.sb-ha-prereq-check {
-  flex: none;
-  margin-top: 3px;
-  color: var(--color-accent);
-}
 
-.sb-ha-prereq-title {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 14.5px;
-}
 
-.sb-ha-prereq-note {
-  font-size: 13px;
-  color: var(--color-neutral-600);
-}
 
 /* Steps */
+/* The step cards carry their own bottom margin for the stacked case, which would
+   otherwise land on top of the section's full padding. */
+.sb-ha-steps-sec {
+  padding-bottom: clamp(24px, 3.4vw, 44px);
+}
+
 .sb-ha-rail {
   display: grid;
   grid-template-columns: 1fr;
@@ -2772,14 +2719,18 @@ a:hover {
   color: var(--color-neutral-700);
 }
 
+/* Narrower than the card it sits in, and centred: at full width the chart
+   dominates the section it is only illustrating. */
 .sb-ha-cardshot {
-  margin: 0;
+  margin: 0 auto;
+  max-width: 840px;
 }
 
 .sb-ha-cardshot figcaption {
   margin-top: 12px;
   font-size: 12.5px;
   color: var(--color-text-mute);
+  text-align: center;
 }
 
 .sb-ha-more-grid {
@@ -2862,23 +2813,23 @@ a:hover {
   transform: rotate(45deg);
 }
 
-/* Each list beside the screen it describes, the second row mirrored so the page
-   does not read as two identical rows. Two splits only, then the rail breaks it. */
+/* Phone first: heading, then the panel it names, then the detail. The list used
+   to arrive before the picture, which made three long text blocks in a row.
+   From 760px the picture moves beside the list and every other row mirrors. */
 .sb-ha-pair {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
-  gap: clamp(20px, 4vw, 48px);
-  align-items: center;
-  margin-bottom: clamp(26px, 4vw, 44px);
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-bottom: clamp(30px, 5vw, 48px);
 }
 
-.sb-ha-pair-flip .sb-ha-pair-text {
-  order: 2;
+.sb-ha-pair-title {
+  font-size: 19px;
+  margin: 0;
 }
 
-.sb-ha-pair-text h3 {
-  font-size: 18px;
-  margin: 0 0 10px;
+.sb-ha-pair-text {
+  min-width: 0;
 }
 
 .sb-ha-shot {
@@ -2890,36 +2841,57 @@ a:hover {
 }
 
 .sb-ha-shot .sb-ha-frame {
-  max-width: 300px;
+  max-width: 420px;
+  width: 100%;
 }
 
-.sb-ha-shot figcaption {
-  text-align: center;
-}
-
-@media (max-width: 760px) {
+@media (min-width: 760px) {
   .sb-ha-pair {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    grid-template-areas:
+      'title shot'
+      'rows shot';
+    align-items: center;
+    column-gap: clamp(20px, 4vw, 48px);
+    row-gap: 12px;
   }
 
-  /* Mirroring only works with two columns; stacked, the text always leads. */
-  .sb-ha-pair-flip .sb-ha-pair-text {
-    order: 0;
+  .sb-ha-pair-flip {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    grid-template-areas:
+      'shot title'
+      'shot rows';
+  }
+
+  .sb-ha-pair-title {
+    grid-area: title;
+    align-self: end;
+    font-size: 23px;
+  }
+
+  .sb-ha-pair-text {
+    grid-area: rows;
+    align-self: start;
+  }
+
+  .sb-ha-shot {
+    grid-area: shot;
   }
 }
 
-.sb-ha-flow {
+.sb-flow {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: clamp(18px, 3vw, 30px);
+  margin-top: clamp(22px, 3vw, 34px);
 }
 
-.sb-ha-flow-item {
+.sb-flow-item {
   position: relative;
   padding-top: 26px;
 }
 
-.sb-ha-flow-item::before {
+.sb-flow-item::before {
   content: '';
   position: absolute;
   top: 6px;
@@ -2929,11 +2901,7 @@ a:hover {
   background: var(--color-divider);
 }
 
-.sb-ha-flow-item:last-child::before {
-  right: calc(100% - 13px);
-}
-
-.sb-ha-node {
+.sb-flow-node {
   position: absolute;
   top: 0;
   left: 0;
@@ -2944,18 +2912,18 @@ a:hover {
   background: var(--color-bg);
 }
 
-.sb-ha-node[data-last='true'] {
+.sb-flow-node[data-last='true'] {
   background: var(--color-accent);
 }
 
-.sb-ha-flow-title {
+.sb-flow-title {
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 16px;
   margin-bottom: 6px;
 }
 
-.sb-ha-flow-body {
+.sb-flow-body {
   margin: 0;
   font-size: 13.5px;
   color: var(--color-neutral-700);
@@ -3120,7 +3088,8 @@ a:hover {
   max-width: 52ch;
 }
 
-.sb-sw-meta {
+/* Shared by both setup guides, so /shelly and /home-assistant open alike. */
+.sb-guide-meta {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -3130,13 +3099,15 @@ a:hover {
   color: var(--color-neutral-600);
 }
 
-.sb-sw-meta svg {
+.sb-guide-meta svg {
   vertical-align: -2px;
   margin-right: 5px;
 }
 
-.sb-sw-dot {
+.sb-guide-meta-item:not(:last-child)::after {
+  content: '\00b7';
   color: var(--color-neutral-400);
+  margin-left: 10px;
 }
 
 /* Content that swaps when the script choice changes. Each carries key={mode}, so React remounts it and
@@ -3716,42 +3687,10 @@ a:hover {
 }
 
 /* ── day flow + troubleshooting ── */
-.sb-sw-flow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-}
 
-.sb-sw-flow-card {
-  padding: 22px;
-  box-shadow: var(--e-1);
-}
 
-.sb-sw-flow-n {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--r-sm);
-  background: var(--color-accent-100);
-  color: var(--color-accent);
-  display: grid;
-  place-items: center;
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 17px;
-  margin-bottom: 12px;
-}
 
-.sb-sw-flow-title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 16px;
-  margin-bottom: 6px;
-}
 
-.sb-sw-flow-body {
-  font-size: 13.5px;
-  color: var(--color-neutral-700);
-}
 
 .sb-sw-faq {
   display: flex;

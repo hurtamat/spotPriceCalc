@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
 import { ArrowLeft, ArrowRight, Check } from './icons';
+import { DayFlow } from './DayFlow';
+import { GuideMeta } from './GuideMeta';
 
 // One-click links into the visitor's own Home Assistant. my.home-assistant.io resolves to
 // whatever instance they have configured, so these work without knowing their address.
@@ -21,16 +23,7 @@ const RUN_ENTITY = 'binary_sensor.spotsteer_running';
 // long so the open one finishes rolling up before the other rolls down.
 const DRAWER_MS = 280;
 
-const META = ['About 5 minutes', 'Installed through HACS', 'Home Assistant 2024.11+'];
-
-const PREREQS = [
-  { title: 'Home Assistant 2024.11 or newer', note: 'Any kind of install.' },
-  { title: 'HACS', note: 'The add-on store SpotSteer is downloaded from.' },
-  {
-    title: 'A device to switch',
-    note: 'Anything Home Assistant already controls.',
-  },
-];
+const META = ['~5 minutes', 'Home Assistant 2024.11+', 'Installed through HACS'];
 
 const CONTROLS = [
   {
@@ -62,8 +55,8 @@ const SETTINGS = [
 ];
 
 const REPORTS = [
-  { name: 'Current price', desc: 'What power costs this moment.' },
-  { name: 'Next end', desc: 'When the current stretch is over.' },
+  { name: 'Current price', desc: 'What power costs at this moment.' },
+  { name: 'Next end', desc: 'When the cheap stretch ends.' },
   { name: 'Next start', desc: 'When the next cheap stretch begins.' },
   { name: 'Price level', desc: 'Cheap, average or expensive today.' },
   { name: 'Running', desc: 'Whether the device is switched on right now.' },
@@ -87,22 +80,6 @@ const CARD_STEPS = [
   },
 ];
 
-// The mark is a dial with one point marked; the rail repeats it, filling the last node.
-const DAY_FLOW = [
-  {
-    title: 'Tomorrow’s prices arrive',
-    body: 'Every afternoon, for your area.',
-  },
-  {
-    title: 'SpotSteer picks the hours',
-    body: 'Once, and then it sticks to them.',
-  },
-  {
-    title: 'Your device follows them',
-    body: 'The hours never move under you during the day.',
-  },
-];
-
 const TROUBLES = [
   {
     q: 'Setup says it cannot reach SpotSteer',
@@ -118,7 +95,7 @@ const TROUBLES = [
   },
   {
     q: 'The prices look like somebody else’s',
-    a: 'That is the zone, not the clock. Open Configure and check Electricity zone. Times are always shown in your own.',
+    a: 'That is the zone, not the clock. Open SpotSteer in Home Assistant, press Configure, and check the electricity zone. Times themselves are always shown in yours.',
   },
 ];
 
@@ -137,6 +114,39 @@ function MyHaBadge({ href, src, alt }: { href: string; src: string; alt: string 
     <a className="sb-ha-badge" href={href} target="_blank" rel="noopener noreferrer">
       <img src={src} alt={alt} loading="lazy" />
     </a>
+  );
+}
+
+function Panel({
+  title,
+  rows,
+  img,
+  alt,
+  flip,
+}: {
+  title: string;
+  rows: { name: string; desc: string }[];
+  img: string;
+  alt: string;
+  flip?: boolean;
+}) {
+  return (
+    <div className={flip ? 'sb-ha-pair sb-ha-pair-flip' : 'sb-ha-pair'}>
+      <h3 className="sb-ha-pair-title">{title}</h3>
+      <figure className="sb-ha-shot">
+        <div className="sb-ha-frame">
+          <img src={img} alt={alt} />
+        </div>
+      </figure>
+      <div className="sb-ha-pair-text">
+        {rows.map((r) => (
+          <div key={r.name} className="sb-ha-ref-row">
+            <div className="sb-ha-ref-name">{r.name}</div>
+            <div className="sb-ha-ref-desc">{r.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -184,40 +194,17 @@ export function HomeAssistantPage() {
           <img src="/assets/logo-homeassistant.png" alt="Home Assistant" height={34} />
           <span className="sb-ha-pill">Setup guide</span>
         </div>
-        <h1 className="sb-ha-h1">Run any device in the cheapest hours</h1>
+        <h1 className="sb-ha-h1">Configure your Home Assistant</h1>
         <p className="sb-ha-lede">
           SpotSteer watches tomorrow&rsquo;s electricity prices and switches your boiler, car
           charger or washing machine on when power is cheap.
         </p>
-        <div className="sb-ha-meta">
-          {META.map((m) => (
-            <span key={m} className="sb-ha-chip">
-              {m}
-            </span>
-          ))}
-        </div>
+        <GuideMeta items={META} />
       </section>
 
-      <section className="sb-section sb-ha-tight">
-        <div className="sb-card sb-ha-prereq">
-          <h2>Before you start</h2>
-          <div className="sb-ha-prereq-grid">
-            {PREREQS.map((p) => (
-              <div key={p.title} className="sb-ha-prereq-item">
-                <Check size={17} className="sb-ha-prereq-check" />
-                <div>
-                  <div className="sb-ha-prereq-title">{p.title}</div>
-                  <div className="sb-ha-prereq-note">{p.note}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="sb-section sb-ha-tight">
+      <section className="sb-section sb-ha-tight sb-ha-steps-sec">
         <h2 className="sb-ha-h2">Two steps</h2>
-        <p className="sb-ha-sub">Every button opens your own Home Assistant, already filled in.</p>
+        <p className="sb-ha-sub">Both buttons open your own Home Assistant.</p>
 
         <div className="sb-ha-rail">
           <div className="sb-card sb-ha-step">
@@ -226,8 +213,8 @@ export function HomeAssistantPage() {
               <h3>Install</h3>
             </div>
             <p>
-              The button opens HACS inside your Home Assistant with SpotSteer already filled in.
-              Press <strong>Download</strong>, then restart.
+              The button opens HACS with SpotSteer already filled in. Press{' '}
+              <strong>Download</strong>, then restart Home Assistant.
             </p>
             <div className="sb-ha-actions">
               <MyHaBadge
@@ -274,8 +261,8 @@ export function HomeAssistantPage() {
               <h3>Configure</h3>
             </div>
             <p>
-              The button opens the SpotSteer setup dialog. Fill it in and press Submit. There is no
-              address to type in anywhere.
+              Pick the country you are in and the device you want switched, then press Submit. That
+              is the whole setup.
             </p>
             <div className="sb-ha-actions">
               <MyHaBadge
@@ -290,7 +277,7 @@ export function HomeAssistantPage() {
               onClick={() => togglePanel('more')}
               aria-expanded={panel === 'more'}
             >
-              Custom automation instead
+              Or drive it yourself
               <PlusIcon open={panel === 'more'} />
             </button>
           </div>
@@ -314,8 +301,9 @@ export function HomeAssistantPage() {
                   <div className="sb-ha-more-card">
                     <div className="sb-ha-more-title">Use it as a planner only</div>
                     <p>
-                      Leave the device empty during setup and SpotSteer just tells you the cheap
-                      hours. Act on this turning on and off however you like.
+                      Leave the device empty in step 2 and SpotSteer only tells you the cheap hours.
+                      This is the switch it publishes, on while they last. Trigger your own
+                      automation on it.
                     </p>
                     <div className="sb-ha-copyrow">
                       <code>{RUN_ENTITY}</code>
@@ -357,69 +345,31 @@ export function HomeAssistantPage() {
       <section className="sb-section sb-ha-tight">
         <h2 className="sb-ha-h2">What it looks like in Home Assistant</h2>
         <p className="sb-ha-sub">
-          Three panels appear next to your device. One switch, one set of settings, and one that
-          simply tells you what is going on.
+          Three panels appear on your SpotSteer device page. One switch, one set of settings, and
+          one that simply tells you what is going on.
         </p>
 
-        <div className="sb-ha-pair">
-          <div className="sb-ha-pair-text">
-            <h3>The on switch</h3>
-            {CONTROLS.map((e) => (
-              <div key={e.name} className="sb-ha-ref-row">
-                <div className="sb-ha-ref-name">{e.name}</div>
-                <div className="sb-ha-ref-desc">{e.desc}</div>
-              </div>
-            ))}
-          </div>
-          <figure className="sb-ha-shot">
-            <div className="sb-ha-frame">
-              <img
-                src="/assets/ha-controls.png"
-                alt="A Home Assistant panel with an Enabled toggle and a Refresh plan button"
-              />
-            </div>
-          </figure>
-        </div>
+        <Panel
+          title="The on switch"
+          rows={CONTROLS}
+          img="/assets/ha-controls.png"
+          alt="A Home Assistant panel with an Enabled toggle and a Refresh plan button"
+        />
 
-        <div className="sb-ha-pair sb-ha-pair-flip">
-          <div className="sb-ha-pair-text">
-            <h3>What you can change any time</h3>
-            {SETTINGS.map((e) => (
-              <div key={e.name} className="sb-ha-ref-row">
-                <div className="sb-ha-ref-name">{e.name}</div>
-                <div className="sb-ha-ref-desc">{e.desc}</div>
-              </div>
-            ))}
-          </div>
-          <figure className="sb-ha-shot">
-            <div className="sb-ha-frame">
-              <img
-                src="/assets/ha-configuration.png"
-                alt="A Home Assistant panel of sliders and time pickers for duration, deadline and quiet hours"
-              />
-            </div>
-          </figure>
-        </div>
+        <Panel
+          title="What you can change any time"
+          rows={SETTINGS}
+          img="/assets/ha-configuration.png"
+          alt="A Home Assistant panel of sliders and time pickers for duration, deadline and quiet hours"
+          flip
+        />
 
-        <div className="sb-ha-pair">
-          <div className="sb-ha-pair-text">
-            <h3>What SpotSteer reports back</h3>
-            {REPORTS.map((e) => (
-              <div key={e.name} className="sb-ha-ref-row">
-                <div className="sb-ha-ref-name">{e.name}</div>
-                <div className="sb-ha-ref-desc">{e.desc}</div>
-              </div>
-            ))}
-          </div>
-          <figure className="sb-ha-shot">
-            <div className="sb-ha-frame">
-              <img
-                src="/assets/ha-sensors.png"
-                alt="A Home Assistant panel listing the current price, price level and when the device next runs"
-              />
-            </div>
-          </figure>
-        </div>
+        <Panel
+          title="What SpotSteer reports back"
+          rows={REPORTS}
+          img="/assets/ha-sensors.png"
+          alt="A Home Assistant panel listing the current price, price level and when the device next runs"
+        />
       </section>
 
       <section id="card" className="sb-section sb-ha-tight">
@@ -448,28 +398,13 @@ export function HomeAssistantPage() {
               />
             </div>
             <figcaption>
-              The shaded blocks are the hours your device will run. It redraws itself every day.
+              The shaded blocks are the hours your device will run.
             </figcaption>
           </figure>
         </div>
       </section>
 
-      <section className="sb-section sb-ha-tight">
-        <h2 className="sb-ha-h2">What happens each day</h2>
-        <div className="sb-ha-flow">
-          {DAY_FLOW.map((f, i) => (
-            <div key={f.title} className="sb-ha-flow-item">
-              <span
-                className="sb-ha-node"
-                data-last={i === DAY_FLOW.length - 1}
-                aria-hidden="true"
-              />
-              <div className="sb-ha-flow-title">{f.title}</div>
-              <p className="sb-ha-flow-body">{f.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <DayFlow sectionClassName="sb-section sb-ha-tight" headingClassName="sb-ha-h2" />
 
       <section id="troubleshooting" className="sb-section sb-ha-tight">
         <h2 className="sb-ha-h2">Troubleshooting</h2>
