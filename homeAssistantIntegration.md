@@ -12,7 +12,7 @@ For the endpoint it consumes see [`smartHomeIntegration.md`](./smartHomeIntegrat
 
 > **Status in one line:** working against a live backend. The integration calls
 > `POST /api/homeassistant/schedule`, stores the committed blocks, drives
-> `binary_sensor.spotbuddy_running` and the price sensors off them, and ships its own Lovelace card.
+> `binary_sensor.spotsteer_running` and the price sensors off them, and ships its own Lovelace card.
 > Verified end to end with the backend running locally; not yet against the deployed one.
 
 ---
@@ -26,7 +26,7 @@ what this is.
 
 ## The model: publish state, don't control devices
 
-The integration never touches a device. It publishes `binary_sensor.spotbuddy_running`, which is
+The integration never touches a device. It publishes `binary_sensor.spotsteer_running`, which is
 **on** while the current time falls inside a committed run block, and the user wires that to whatever
 they already own via an automation. One integration, any hardware — which is the whole
 supplier/hardware-agnostic pitch in [IDEA.md](./IDEA.md).
@@ -35,18 +35,18 @@ supplier/hardware-agnostic pitch in [IDEA.md](./IDEA.md).
 
 | Entity | Platform | Role |
 | --- | --- | --- |
-| `binary_sensor.spotbuddy_running` | binary_sensor | **The contract.** On inside a run block. Attributes carry `zone_name`, `scheduled`, the full `blocks` list, and `schedule` (the same blocks as an on/off step series, for charting cards). |
-| `sensor.spotbuddy_current_price` | sensor | EUR/MWh for the current slot, read off the curve at each tick. `state_class: measurement`, so Home Assistant's built-in history graph plots it with no card. |
-| `sensor.spotbuddy_price_level` | sensor (enum) | `green` / `yellow` / `red` for the current slot, read off the curve. |
-| `sensor.spotbuddy_next_start` | sensor (timestamp) | When the appliance next switches on; the *following* block while one is running. Rendered in the user's timezone by Home Assistant. |
-| `sensor.spotbuddy_next_end` | sensor (timestamp) | End of the running block, or of the next one when idle. |
-| `switch.spotbuddy_enabled` | switch | Master off switch. |
-| `switch.spotbuddy_continuous_block` | switch | Hours back-to-back, or split for the cheapest slots. |
-| `number.spotbuddy_duration` | number | Hours of power needed. The one always-required field. |
-| `time.spotbuddy_ready_by` | time | The deadline. The eligible window is the 24h before it, clipped to never start before now. |
-| `switch.spotbuddy_unavailable_window` | switch | Whether the do-not-run window applies. Off ⇒ the two times below are ignored and no `unavailable` is sent. |
-| `time.spotbuddy_unavailable_from` / `_to` | time | The do-not-run window itself. |
-| `button.spotbuddy_refresh_plan` | button | Fetch the plan again now. |
+| `binary_sensor.spotsteer_running` | binary_sensor | **The contract.** On inside a run block. Attributes carry `zone_name`, `scheduled`, the full `blocks` list, and `schedule` (the same blocks as an on/off step series, for charting cards). |
+| `sensor.spotsteer_current_price` | sensor | EUR/MWh for the current slot, read off the curve at each tick. `state_class: measurement`, so Home Assistant's built-in history graph plots it with no card. |
+| `sensor.spotsteer_price_level` | sensor (enum) | `green` / `yellow` / `red` for the current slot, read off the curve. |
+| `sensor.spotsteer_next_start` | sensor (timestamp) | When the appliance next switches on; the *following* block while one is running. Rendered in the user's timezone by Home Assistant. |
+| `sensor.spotsteer_next_end` | sensor (timestamp) | End of the running block, or of the next one when idle. |
+| `switch.spotsteer_enabled` | switch | Master off switch. |
+| `switch.spotsteer_continuous_block` | switch | Hours back-to-back, or split for the cheapest slots. |
+| `number.spotsteer_duration` | number | Hours of power needed. The one always-required field. |
+| `time.spotsteer_ready_by` | time | The deadline. The eligible window is the 24h before it, clipped to never start before now. |
+| `switch.spotsteer_unavailable_window` | switch | Whether the do-not-run window applies. Off ⇒ the two times below are ignored and no `unavailable` is sent. |
+| `time.spotsteer_unavailable_from` / `_to` | time | The do-not-run window itself. |
+| `button.spotsteer_refresh_plan` | button | Fetch the plan again now. |
 
 The config entities map one-to-one onto the fields of `ScheduleRequest.cs`, which is flat: one
 request is one job. As with the Shelly script, **one appliance per config entry** — add a second
@@ -58,10 +58,10 @@ change the hours in the HA UI and the plan re-fetches. No re-pasting.
 ## Architecture
 
 ```
-custom_components/spotbuddy/           (in the spotprice-ha repo)
+custom_components/spotsteer/           (in the spotprice-ha repo)
 ├─ __init__.py        setup/unload/reload lifecycle, device-name sync
 ├─ api.py             HTTP client for the backend; the only place aiohttp appears
-├─ coordinator.py     SpotBuddyCoordinator + the SpotBuddyPlan/ScheduledBlock model
+├─ coordinator.py     SpotSteerCoordinator + the SpotSteerPlan/ScheduledBlock model
 ├─ config_flow.py     initial setup + options flow (backend URL, zone, controlled switch)
 ├─ entity.py          shared identity: unique_id, device_info, translation key
 ├─ binary_sensor.py   the run-block sensor
@@ -124,7 +124,7 @@ recorder database.
 
 **There is no "current price" field, deliberately.** The curve is the single representation: the
 coordinator finds the slot containing its own `utcnow()` on every quarter-hourly tick, so
-`sensor.spotbuddy_current_price` and `sensor.spotbuddy_price_level` track the slot. A value computed
+`sensor.spotsteer_current_price` and `sensor.spotsteer_price_level` track the slot. A value computed
 server-side at request time would be stale within the hour, since the plan is only fetched twice a
 day — and it would be derived from this same curve anyway.
 
@@ -155,7 +155,7 @@ the deadline's date** so it does not drift an hour across a DST change.
 
 ## The card
 
-The integration ships a Lovelace card, `www/spotbuddy-card.js`, registered in `async_setup` with
+The integration ships a Lovelace card, `www/spotsteer-card.js`, registered in `async_setup` with
 `async_register_static_paths` plus `add_extra_js_url` (versioned, so a browser cache does not serve
 an old copy). It appears in the card picker, so nobody installs a frontend repository or writes YAML.
 
@@ -164,7 +164,7 @@ keeps two appliances apart. It draws the curve coloured by level, shades each pl
 bands when the hours are split — and converts every time to the viewer's timezone. The card is the
 only place that conversion happens.
 
-For people who prefer their own chart, `binary_sensor.spotbuddy_running` also carries `schedule`, the
+For people who prefer their own chart, `binary_sensor.spotsteer_running` also carries `schedule`, the
 blocks as an on/off step series, which is the shape a stepline chart wants.
 
 ## What is not built
@@ -185,7 +185,7 @@ blocks as an on/off step series, which is the shape a stepline chart wants.
 
 CI in the integration repo runs hassfest, HACS validation and `black`.
 
-To try it locally, symlink or copy `custom_components/spotbuddy/` into your HA config directory and
+To try it locally, symlink or copy `custom_components/spotsteer/` into your HA config directory and
 restart HA, then add the integration from Settings → Devices & Services.
 
 **Changing the wire format touches both repos.** The response shape is defined by

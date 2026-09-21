@@ -274,6 +274,8 @@ a:hover {
    integration we want read first. Pure CSS cascade, no animation dependency. */
 @media (prefers-reduced-motion: no-preference) {
   .sb-reveal .sb-steps > *,
+  .sb-reveal .sb-ha-rail > .sb-ha-step,
+  .sb-reveal .sb-ha-flow > *,
   .sb-reveal .sb-int-grid > *,
   .sb-reveal .sb-claims > *,
   .sb-reveal .sb-teaser-apps > * {
@@ -282,21 +284,23 @@ a:hover {
   }
 
   .sb-reveal.is-in .sb-steps > *,
+  .sb-reveal.is-in .sb-ha-rail > .sb-ha-step,
+  .sb-reveal.is-in .sb-ha-flow > *,
   .sb-reveal.is-in .sb-int-grid > *,
   .sb-reveal.is-in .sb-claims > *,
   .sb-reveal.is-in .sb-teaser-apps > * {
     animation: sb-hero-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  .sb-reveal.is-in :is(.sb-steps, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(2) {
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-ha-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(2) {
     animation-delay: 80ms;
   }
 
-  .sb-reveal.is-in :is(.sb-steps, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(3) {
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-ha-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(3) {
     animation-delay: 160ms;
   }
 
-  .sb-reveal.is-in :is(.sb-steps, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(4) {
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-ha-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(4) {
     animation-delay: 240ms;
   }
 
@@ -2309,7 +2313,7 @@ a:hover {
    Ported from the Claude Design canvas. Sections stack in one narrow column, so
    the shared .sb-section padding is trimmed rather than repeated per block. */
 /* A guide reads better at a narrower measure than the 1160px marketing shell. */
-.sb-ha-head,
+.sb-ha-hero,
 .sb-ha-tight {
   max-width: 1000px;
   margin-inline: auto;
@@ -2317,6 +2321,42 @@ a:hover {
 
 .sb-ha-tight {
   padding-top: 0;
+}
+
+/* Copy left, the card that is the whole point on the right. The asset carries the
+   section, so the type scale is planned down around it rather than up. */
+.sb-ha-hero {
+  padding-bottom: clamp(34px, 5vw, 56px);
+}
+
+.sb-ha-h1 {
+  font-size: clamp(30px, 4.4vw, 46px);
+  line-height: 1.08;
+  margin: 0 0 14px;
+}
+
+.sb-ha-shot figcaption {
+  margin-top: 11px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-text-mute);
+}
+
+/* Near-black bezel, so a dark Home Assistant screenshot reads as a screen rather
+   than as a picture that lost its background. */
+.sb-ha-frame {
+  border-radius: var(--r-md);
+  padding: 8px;
+  background: var(--color-bg-deep);
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--e-2);
+}
+
+.sb-ha-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--r-sm);
 }
 
 .sb-ha-back {
@@ -2358,31 +2398,29 @@ a:hover {
   gap: 6px;
 }
 
-.sb-ha-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: var(--r-pill);
-  background: var(--color-accent);
-}
-
 .sb-ha-lede {
-  font-size: clamp(16px, 1.7vw, 20px);
+  font-size: clamp(15.5px, 1.6vw, 18px);
   color: var(--color-neutral-700);
-  max-width: 56ch;
+  max-width: 46ch;
+  margin: 0;
 }
 
 .sb-ha-meta {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
-  margin-top: 22px;
-  font-size: 12.5px;
-  color: var(--color-neutral-600);
+  margin-top: 20px;
 }
 
-.sb-ha-sep {
-  color: var(--color-neutral-400);
+/* Three facts, three boxes. They were a dot-separated string, which put two
+   separators on one line and read as decoration. */
+.sb-ha-chip {
+  font-size: 12px;
+  color: var(--color-text-dim);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-pill);
+  padding: 5px 11px;
 }
 
 .sb-ha-h2 {
@@ -2418,11 +2456,9 @@ a:hover {
   align-items: flex-start;
 }
 
-.sb-ha-prereq-item svg {
+.sb-ha-prereq-check {
   flex: none;
-  width: 17px;
-  height: 17px;
-  margin-top: 2px;
+  margin-top: 3px;
   color: var(--color-accent);
 }
 
@@ -2438,13 +2474,136 @@ a:hover {
 }
 
 /* Steps */
+.sb-ha-rail {
+  display: grid;
+  grid-template-columns: 1fr;
+  column-gap: clamp(14px, 2vw, 20px);
+  row-gap: 0;
+  align-items: stretch;
+}
+
+.sb-ha-rail > .sb-ha-step {
+  margin-bottom: clamp(14px, 2vw, 20px);
+}
+
 .sb-ha-step {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  padding: clamp(20px, 3vw, 30px);
-  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 10px;
+  padding: clamp(20px, 3vw, 28px);
 }
+
+.sb-ha-step-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.sb-ha-step-head h3 {
+  font-size: 19px;
+  margin: 0;
+}
+
+.sb-ha-step > p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-neutral-700);
+}
+
+/* Pins the last element of each card to the bottom, so a short card and a long
+   one still end on the same line. */
+.sb-ha-step-foot {
+  margin-top: auto;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Each drawer is a full-width cell of the step grid, sitting straight after its
+   own card. Above 760px the order below moves both under the pair instead.
+   Same 0fr to 1fr row as the troubleshooting panels, so it measures its own
+   content and everything below is pushed down by the real height. */
+.sb-ha-drawer {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.sb-ha-drawer[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.sb-ha-drawer > div {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-ha-drawer {
+    transition: none;
+  }
+}
+
+@media (min-width: 760px) {
+  .sb-ha-rail {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sb-ha-step {
+    order: 1;
+  }
+
+  .sb-ha-drawer {
+    order: 2;
+  }
+
+  .sb-ha-drawer-b {
+    order: 3;
+  }
+}
+
+/* The bottom margin lives inside the clipped box, so it collapses with the
+   drawer instead of leaving a gap behind when it is shut. */
+.sb-ha-drawer-inner {
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  padding: clamp(18px, 2.4vw, 24px);
+  margin-bottom: clamp(14px, 2vw, 20px);
+}
+
+.sb-ha-drawer-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+/* The official my.home-assistant.io badge. It is a remote SVG with no intrinsic
+   box, so the height is set here and the row reserves it. */
+.sb-ha-badge {
+  display: inline-flex;
+  border-radius: var(--r-sm);
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sb-ha-badge:hover {
+  transform: translateY(-1px);
+}
+
+.sb-ha-badge:active {
+  transform: scale(0.98);
+}
+
+.sb-ha-badge img {
+  display: block;
+  height: 32px;
+  width: auto;
+}
+
 
 .sb-ha-step-n {
   flex: none;
@@ -2460,37 +2619,12 @@ a:hover {
   font-size: 18px;
 }
 
-.sb-ha-step-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.sb-ha-step-body h3 {
-  font-size: 21px;
-  margin: 0 0 6px;
-}
-
-.sb-ha-step-body > p {
-  font-size: 14.5px;
-  color: var(--color-neutral-700);
-  max-width: 52ch;
-  margin: 0;
-}
-
 .sb-ha-actions {
   display: flex;
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 18px;
-}
-
-.sb-ha-cta {
-  padding: 14px 28px;
-  font-size: 15px;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
+  margin-top: 2px;
 }
 
 .sb-ha-textbtn {
@@ -2505,25 +2639,11 @@ a:hover {
 }
 
 .sb-ha-manual {
-  margin-top: 16px;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--r-sm);
-  padding: 16px 18px;
-  background: var(--color-pop-100);
-}
-
-.sb-ha-manual-title {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 8px;
-}
-
-.sb-ha-manual ol {
   margin: 0;
-  padding-left: 20px;
-  font-size: 13.5px;
-  color: var(--color-neutral-700);
+  padding: 0 0 0 20px;
+  border-left: 2px solid var(--color-accent-tint-2);
+  font-size: 13px;
+  color: var(--color-neutral-600);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2538,44 +2658,10 @@ a:hover {
 
 /* The configure field list. Plain rows on purpose: a screenshot of the real
    dialog belongs here later, and a hand-drawn mock would only go stale. */
-.sb-ha-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 22px;
-  border-top: 1px solid var(--color-divider);
-  padding-top: 18px;
-}
 
-.sb-ha-field-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
 
-.sb-ha-field-label {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 14.5px;
-}
 
-.sb-ha-optional {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-neutral-600);
-  background: var(--color-pop-100);
-  padding: 2px 8px;
-  border-radius: var(--r-pill);
-}
 
-.sb-ha-field-note {
-  font-size: 13.5px;
-  color: var(--color-neutral-700);
-  margin: 4px 0 0;
-  max-width: 60ch;
-}
 
 /* That's it */
 .sb-ha-done {
@@ -2640,45 +2726,66 @@ a:hover {
 }
 
 /* Want more control */
-.sb-ha-more {
-  border: 1px dashed var(--color-neutral-400);
-  border-radius: var(--r-md);
-  padding: clamp(18px, 2.5vw, 26px);
+.sb-ha-more-card {
+  background: var(--color-bg-deep);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-sm);
+  padding: 18px 20px;
 }
 
-.sb-ha-more-head {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
+/* ── the dashboard card section ── */
+.sb-ha-cardsec {
+  padding: clamp(20px, 3vw, 34px);
 }
 
-.sb-ha-more-head h2 {
-  font-size: 19px;
+.sb-ha-cardsteps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: clamp(16px, 2.6vw, 30px);
+  margin-bottom: clamp(22px, 3.2vw, 34px);
+}
+
+.sb-ha-cardstep {
+  border-top: 2px solid var(--color-accent-tint-2);
+  padding-top: 13px;
+  min-width: 0;
+}
+
+.sb-ha-cardstep-n {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+}
+
+.sb-ha-cardstep-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 17px;
+  margin-top: 5px;
+}
+
+.sb-ha-cardstep-body {
+  margin: 5px 0 0;
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
+}
+
+.sb-ha-cardshot {
   margin: 0;
 }
 
-.sb-ha-more-head span {
-  font-size: 12px;
-  color: var(--color-neutral-600);
-}
-
-.sb-ha-more-lede {
-  font-size: 13.5px;
-  color: var(--color-neutral-600);
-  max-width: 60ch;
-  margin: 0 0 16px;
+.sb-ha-cardshot figcaption {
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--color-text-mute);
 }
 
 .sb-ha-more-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 14px;
-}
-
-.sb-ha-more-card {
-  padding: 18px;
 }
 
 .sb-ha-more-card p {
@@ -2730,7 +2837,6 @@ a:hover {
 }
 
 /* Disclosures: entity reference and troubleshooting */
-.sb-ha-disclosure,
 .sb-ha-trouble > button {
   width: 100%;
   display: flex;
@@ -2742,14 +2848,6 @@ a:hover {
   text-align: left;
   font-family: var(--font-heading);
   font-weight: 600;
-}
-
-.sb-ha-disclosure {
-  padding: 16px 20px;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--r-md);
-  font-size: 15px;
-  color: var(--color-neutral-700);
 }
 
 .sb-ha-plus {
@@ -2764,39 +2862,103 @@ a:hover {
   transform: rotate(45deg);
 }
 
-.sb-ha-ref-grid {
+/* Each list beside the screen it describes, the second row mirrored so the page
+   does not read as two identical rows. Two splits only, then the rail breaks it. */
+.sb-ha-pair {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-  gap: 14px;
-  padding-top: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: clamp(20px, 4vw, 48px);
+  align-items: center;
+  margin-bottom: clamp(26px, 4vw, 44px);
 }
 
-.sb-ha-ref {
-  padding: 20px;
+.sb-ha-pair-flip .sb-ha-pair-text {
+  order: 2;
 }
 
-.sb-ha-ref-tag {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-accent-800);
-  background: var(--color-accent-100);
-  padding: 4px 11px;
-  border-radius: var(--r-pill);
-  display: inline-block;
-  margin-bottom: 12px;
-}
-
-.sb-ha-ref-tag-muted {
-  color: var(--color-neutral-700);
-  background: var(--color-pop-100);
-}
-
-.sb-ha-ref-lede {
-  font-size: 12.5px;
-  color: var(--color-neutral-600);
+.sb-ha-pair-text h3 {
+  font-size: 18px;
   margin: 0 0 10px;
+}
+
+.sb-ha-shot {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sb-ha-shot .sb-ha-frame {
+  max-width: 300px;
+}
+
+.sb-ha-shot figcaption {
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .sb-ha-pair {
+    grid-template-columns: 1fr;
+  }
+
+  /* Mirroring only works with two columns; stacked, the text always leads. */
+  .sb-ha-pair-flip .sb-ha-pair-text {
+    order: 0;
+  }
+}
+
+.sb-ha-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: clamp(18px, 3vw, 30px);
+}
+
+.sb-ha-flow-item {
+  position: relative;
+  padding-top: 26px;
+}
+
+.sb-ha-flow-item::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-divider);
+}
+
+.sb-ha-flow-item:last-child::before {
+  right: calc(100% - 13px);
+}
+
+.sb-ha-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 13px;
+  height: 13px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--color-accent);
+  background: var(--color-bg);
+}
+
+.sb-ha-node[data-last='true'] {
+  background: var(--color-accent);
+}
+
+.sb-ha-flow-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.sb-ha-flow-body {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--color-neutral-700);
 }
 
 .sb-ha-ref-row {
@@ -2818,11 +2980,6 @@ a:hover {
   font-size: 12.5px;
   color: var(--color-neutral-700);
   margin-top: 3px;
-}
-
-.sb-ha-ref-row code {
-  color: var(--color-neutral-600);
-  word-break: break-all;
 }
 
 .sb-ha-troubles {
@@ -2858,14 +3015,12 @@ a:hover {
   overflow: hidden;
 }
 
-.sb-ha-trouble-a,
-.sb-ha-ref-grid {
+.sb-ha-panel > div > * {
   opacity: 0;
   transition: opacity 0.2s ease 0.05s;
 }
 
-.sb-ha-panel[data-open='true'] .sb-ha-trouble-a,
-.sb-ha-panel[data-open='true'] .sb-ha-ref-grid {
+.sb-ha-panel[data-open='true'] > div > * {
   opacity: 1;
 }
 
@@ -2918,8 +3073,7 @@ a:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .sb-ha-panel,
-  .sb-ha-trouble-a,
-  .sb-ha-ref-grid,
+  .sb-ha-panel > div > *,
   .sb-ha-plus {
     transition: none;
   }

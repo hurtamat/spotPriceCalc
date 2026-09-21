@@ -1,87 +1,126 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
-import { ArrowLeft } from './icons';
+import { ArrowLeft, ArrowRight, Check } from './icons';
 
 // One-click links into the visitor's own Home Assistant. my.home-assistant.io resolves to
 // whatever instance they have configured, so these work without knowing their address.
+const REPO_URL = 'https://github.com/hurtamat/spotprice-ha';
 const HACS_URL =
   'https://my.home-assistant.io/redirect/hacs_repository/?owner=hurtamat&repository=spotprice-ha&category=integration';
 const CONFIG_URL = 'https://my.home-assistant.io/redirect/config_flow_start/?domain=spotsteer';
 const BLUEPRINT_URL =
   'https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=' +
   encodeURIComponent(
-    'https://github.com/hurtamat/spotprice-ha/blob/main/blueprints/automation/spotsteer/cheap_hours_switch.yaml',
+    `${REPO_URL}/blob/main/blueprints/automation/spotsteer/cheap_hours_switch.yaml`,
   );
 
 const RUN_ENTITY = 'binary_sensor.spotsteer_running';
 
+// Matches the drawer's transition in the stylesheet. Swapping drawers waits this
+// long so the open one finishes rolling up before the other rolls down.
+const DRAWER_MS = 280;
+
+const META = ['About 5 minutes', 'Installed through HACS', 'Home Assistant 2024.11+'];
+
 const PREREQS = [
-  { title: 'A running Home Assistant', note: 'Version 2024.4 or newer.' },
-  { title: 'HACS installed', note: 'For the one-click install route.' },
-  { title: 'A smart plug or switch', note: 'The device you want controlled.' },
-];
-
-// Mirrors the config flow in custom_components/spotsteer/config_flow.py. Keep in step.
-const CONFIG_FIELDS = [
+  { title: 'Home Assistant 2024.11 or newer', note: 'Any kind of install.' },
+  { title: 'HACS', note: 'The add-on store SpotSteer is downloaded from.' },
   {
-    label: 'Latitude and longitude',
-    note: 'Already filled in from your Home Assistant location. They decide which price zone you get, so leave them alone unless you are setting up for another address.',
-    required: true,
-  },
-  {
-    label: 'Controlled switch',
-    note: 'The device to run in the cheap hours. Pick it and setup is finished: SpotSteer switches it on and off from then on, with no automation to write.',
-    required: false,
+    title: 'A device to switch',
+    note: 'Anything Home Assistant already controls.',
   },
 ];
 
-const READ_ENTITIES = [
-  { name: 'Running', desc: 'On during the cheap hours it picked.', id: RUN_ENTITY },
-  { name: 'Status', desc: 'What it is currently doing.', id: 'sensor.spotsteer_status' },
+const CONTROLS = [
   {
-    name: 'Current price',
-    desc: 'The spot price right now in EUR per MWh.',
-    id: 'sensor.spotsteer_current_price',
+    name: 'Enabled',
+    desc: 'Pause SpotSteer without removing it. Your device goes back to being ordinary.',
   },
   {
-    name: 'Price level',
-    desc: 'Cheap, average or expensive for this hour.',
-    id: 'sensor.spotsteer_price_level',
+    name: 'Refresh plan',
+    desc: 'Fetch the newest prices and pick the hours again, right now.',
   },
 ];
 
-const SET_ENTITIES = [
-  { name: 'Duration', desc: 'How many hours of power the device needs.' },
-  { name: 'Ready by', desc: 'The deadline it must finish by.' },
-  { name: 'Continuous block', desc: 'One unbroken run, or split for the cheapest hours.' },
-  { name: 'Unavailable from / to', desc: 'A do-not-run window.' },
-  { name: 'Enabled', desc: 'Master off switch.' },
+const SETTINGS = [
+  {
+    name: 'Continuous block',
+    desc: 'Run in one go, or in whichever hours are cheapest.',
+  },
+  { name: 'Duration', desc: 'How many hours the device needs.' },
+  { name: 'Ready by', desc: 'When it has to be finished.' },
+  {
+    name: 'Unavailable from',
+    desc: 'The start of a stretch it must never run in.',
+  },
+  { name: 'Unavailable to', desc: 'The end of that stretch.' },
+  {
+    name: 'Use unavailable window',
+    desc: 'Switch that quiet stretch on and off without losing the times.',
+  },
+];
+
+const REPORTS = [
+  { name: 'Current price', desc: 'What power costs this moment.' },
+  { name: 'Next end', desc: 'When the current stretch is over.' },
+  { name: 'Next start', desc: 'When the next cheap stretch begins.' },
+  { name: 'Price level', desc: 'Cheap, average or expensive today.' },
+  { name: 'Running', desc: 'Whether the device is switched on right now.' },
+];
+
+const CARD_STEPS = [
+  {
+    n: 'Step 1',
+    title: 'Choose your dashboard',
+    body: 'Any will do. Most people use the one they look at every morning.',
+  },
+  {
+    n: 'Step 2',
+    title: 'Edit it',
+    body: 'Press the pencil at the top right, then the plus inside a section.',
+  },
+  {
+    n: 'Step 3',
+    title: 'Search for SpotSteer',
+    body: 'Type SpotSteer in the card search, pick it and save.',
+  },
+];
+
+// The mark is a dial with one point marked; the rail repeats it, filling the last node.
+const DAY_FLOW = [
+  {
+    title: 'Tomorrow’s prices arrive',
+    body: 'Every afternoon, for your area.',
+  },
+  {
+    title: 'SpotSteer picks the hours',
+    body: 'Once, and then it sticks to them.',
+  },
+  {
+    title: 'Your device follows them',
+    body: 'The hours never move under you during the day.',
+  },
 ];
 
 const TROUBLES = [
   {
-    q: 'The device never switches on',
-    a: 'Check Enabled is on. Then check the settings leave it somewhere to run: four hours of Duration, a Ready by of 02:00 and a do-not-run window across the night do not fit together. Last, look at the status. If it says waiting for plan, no schedule has arrived yet, so there is nothing for it to follow.',
+    q: 'Setup says it cannot reach SpotSteer',
+    a: 'Almost always means Home Assistant cannot get online. Check that, then try again.',
   },
   {
-    q: 'Status says "backend unavailable"',
-    a: 'Home Assistant cannot reach us. Check the Backend URL is typed exactly as given, with no slash on the end, and that the machine running Home Assistant can get online. There is nothing else to do. It keeps trying on its own, and the schedule comes back by itself once the connection does, with no restart needed.',
+    q: 'The card says it has no prices yet',
+    a: 'Press Refresh plan on the SpotSteer device. If it stays empty, tomorrow’s prices have not been published yet. They arrive in the early afternoon and it fills in by itself.',
   },
   {
-    q: 'The price is there but it does not say cheap or expensive',
-    a: 'Cheap, normal and expensive only mean something once a whole day of prices is there to compare against. Just after setup, or in the short gap before the next day is published, there is nothing to compare, so it stays unknown. If it is still blank the next day, open Settings, then Devices and services, and reload SpotSteer.',
+    q: 'Nothing switches on',
+    a: 'Check Enabled is on, and that Controlled switch still points at a device that exists. If both are fine, your settings may not fit together: four hours needed, finished by 02:00, and quiet hours across the whole night leave nowhere to run.',
   },
   {
-    q: 'The hours it picks move around from day to day',
-    a: 'Ready by counts forward from the moment the schedule is made, so one made at 08:00 and one made at 20:00 are looking at two different stretches of time. Keep nudging the sliders and the finish time wanders with them. Give it something fixed instead: pick an hour you would never want it running in anyway, say 19:00. Every day then ends at the same point, and it is still free to use all the cheap hours before it. This matters most with Continuous switched on, where a finish time landing in the middle of a cheap stretch cuts that stretch in half.',
-  },
-  {
-    q: 'The device switches at the wrong time',
-    a: 'Almost always the location rather than the clock. The latitude and longitude in the integration options decide whose prices you get, so check those first: the wrong place gives you the wrong prices, delivered perfectly on time.',
+    q: 'The prices look like somebody else’s',
+    a: 'That is the zone, not the clock. Open Configure and check Electricity zone. Times are always shown in your own.',
   },
 ];
-
 
 function PlusIcon({ open }: { open: boolean }) {
   return (
@@ -91,11 +130,34 @@ function PlusIcon({ open }: { open: boolean }) {
   );
 }
 
+// The official my.home-assistant.io badges, so the affordance is the one people already
+// know from integration READMEs. Sized here because the remote SVG has no intrinsic box.
+function MyHaBadge({ href, src, alt }: { href: string; src: string; alt: string }) {
+  return (
+    <a className="sb-ha-badge" href={href} target="_blank" rel="noopener noreferrer">
+      <img src={src} alt={alt} loading="lazy" />
+    </a>
+  );
+}
+
 export function HomeAssistantPage() {
-  const [manualOpen, setManualOpen] = useState(false);
-  const [refOpen, setRefOpen] = useState(false);
+  // One drawer open at a time under the two step cards; null means neither.
+  const [panel, setPanel] = useState<'manual' | 'more' | null>(null);
+  const swapTimer = useRef<number | undefined>(undefined);
   const [openTrouble, setOpenTrouble] = useState(-1);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => () => window.clearTimeout(swapTimer.current), []);
+
+  const togglePanel = (which: 'manual' | 'more') => {
+    window.clearTimeout(swapTimer.current);
+    if (panel === which) return setPanel(null);
+    if (panel === null) return setPanel(which);
+    // Both would otherwise animate at once and the section would jump.
+    setPanel(null);
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    swapTimer.current = window.setTimeout(() => setPanel(which), reduced ? 0 : DRAWER_MS);
+  };
 
   const copyEntity = async () => {
     try {
@@ -113,28 +175,26 @@ export function HomeAssistantPage() {
     <div className="sb-shell">
       <Nav />
 
-      <section className="sb-section sb-ha-head">
+      <section className="sb-section sb-ha-hero">
         <a className="sb-ha-back" href="/#devices">
           <ArrowLeft size={14} />
           Back to supported systems
         </a>
         <div className="sb-ha-title-row">
-          {/* The logo artwork already reads "Home Assistant", so there is no heading beside it. */}
-          <img src="/assets/logo-homeassistant.png" alt="Home Assistant" height={40} />
-          <span className="sb-ha-pill">
-            <span className="sb-ha-dot" />
-            Setup guide
-          </span>
+          <img src="/assets/logo-homeassistant.png" alt="Home Assistant" height={34} />
+          <span className="sb-ha-pill">Setup guide</span>
         </div>
+        <h1 className="sb-ha-h1">Run any device in the cheapest hours</h1>
         <p className="sb-ha-lede">
-          SpotSteer works out your cheapest hours and switches your device on and off for you.
+          SpotSteer watches tomorrow&rsquo;s electricity prices and switches your boiler, car
+          charger or washing machine on when power is cheap.
         </p>
         <div className="sb-ha-meta">
-          <span>~5 minutes</span>
-          <span className="sb-ha-sep">·</span>
-          <span>Requires HACS</span>
-          <span className="sb-ha-sep">·</span>
-          <span>Home Assistant 2024.4+</span>
+          {META.map((m) => (
+            <span key={m} className="sb-ha-chip">
+              {m}
+            </span>
+          ))}
         </div>
       </section>
 
@@ -144,10 +204,7 @@ export function HomeAssistantPage() {
           <div className="sb-ha-prereq-grid">
             {PREREQS.map((p) => (
               <div key={p.title} className="sb-ha-prereq-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="3" y="3" width="18" height="18" rx="5" />
-                  <path d="M8.5 12.5 11 15l4.5-5" />
-                </svg>
+                <Check size={17} className="sb-ha-prereq-check" />
                 <div>
                   <div className="sb-ha-prereq-title">{p.title}</div>
                   <div className="sb-ha-prereq-note">{p.note}</div>
@@ -159,69 +216,120 @@ export function HomeAssistantPage() {
       </section>
 
       <section className="sb-section sb-ha-tight">
-        <h2 className="sb-ha-h2">Setup is two steps</h2>
-        <p className="sb-ha-sub">
-          Install, then configure. Both buttons open your own Home Assistant with everything
-          pre-filled.
-        </p>
+        <h2 className="sb-ha-h2">Two steps</h2>
+        <p className="sb-ha-sub">Every button opens your own Home Assistant, already filled in.</p>
 
-        <div className="sb-card sb-ha-step">
-          <span className="sb-ha-step-n">1</span>
-          <div className="sb-ha-step-body">
-            <h3>Install</h3>
+        <div className="sb-ha-rail">
+          <div className="sb-card sb-ha-step">
+            <div className="sb-ha-step-head">
+              <span className="sb-ha-step-n">1</span>
+              <h3>Install</h3>
+            </div>
             <p>
-              The button opens HACS in your Home Assistant with the SpotSteer repository already
-              filled in. Press <strong>Download</strong>, then restart Home Assistant.
+              The button opens HACS inside your Home Assistant with SpotSteer already filled in.
+              Press <strong>Download</strong>, then restart.
             </p>
             <div className="sb-ha-actions">
-              <a className="sb-btn sb-primary sb-ha-cta" href={HACS_URL} target="_blank" rel="noopener noreferrer">
-                Open in HACS
-              </a>
-              <button type="button" className="sb-ha-textbtn" onClick={() => setManualOpen((o) => !o)}>
-                {manualOpen ? 'Hide manual install' : 'Install manually instead'}
-              </button>
+              <MyHaBadge
+                href={HACS_URL}
+                src="https://my.home-assistant.io/badges/hacs_repository.svg"
+                alt="Open SpotSteer in the Home Assistant Community Store"
+              />
             </div>
-            {manualOpen && (
-              <div className="sb-ha-manual">
-                <div className="sb-ha-manual-title">Manual install, without HACS</div>
-                <ol>
-                  <li>Download the latest release archive from our repository.</li>
+            <button
+              type="button"
+              className="sb-ha-textbtn sb-ha-step-foot"
+              onClick={() => togglePanel('manual')}
+              aria-expanded={panel === 'manual'}
+            >
+              Install manually instead
+              <PlusIcon open={panel === 'manual'} />
+            </button>
+          </div>
+          <div className="sb-ha-drawer" data-open={panel === 'manual'}>
+            <div>
+              <div className="sb-ha-drawer-inner">
+                <div className="sb-ha-drawer-title">Install manually, without HACS</div>
+                <ol className="sb-ha-manual">
                   <li>
-                    Copy the <code>spotsteer</code> folder into <code>config/custom_components</code>.
+                    Download the latest version from{' '}
+                    <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+                      our GitHub page
+                    </a>
+                    .
                   </li>
                   <li>
-                    Check the result is <code>custom_components/spotsteer/</code>, then restart Home
-                    Assistant.
+                    Put the <code>spotsteer</code> folder into <code>config/custom_components</code>
+                    .
                   </li>
+                  <li>Restart Home Assistant.</li>
                 </ol>
               </div>
-            )}
+            </div>
           </div>
-        </div>
 
-        <div className="sb-card sb-ha-step">
-          <span className="sb-ha-step-n">2</span>
-          <div className="sb-ha-step-body">
-            <h3>Configure</h3>
+          <div className="sb-card sb-ha-step">
+            <div className="sb-ha-step-head">
+              <span className="sb-ha-step-n">2</span>
+              <h3>Configure</h3>
+            </div>
             <p>
-              The button opens the SpotSteer dialog inside Home Assistant. Fill it in and press
-              Submit.
+              The button opens the SpotSteer setup dialog. Fill it in and press Submit. There is no
+              address to type in anywhere.
             </p>
             <div className="sb-ha-actions">
-              <a className="sb-btn sb-primary sb-ha-cta" href={CONFIG_URL} target="_blank" rel="noopener noreferrer">
-                Add the integration
-              </a>
+              <MyHaBadge
+                href={CONFIG_URL}
+                src="https://my.home-assistant.io/badges/config_flow_start.svg"
+                alt="Start setting up the SpotSteer integration"
+              />
             </div>
-            <div className="sb-ha-fields">
-              {CONFIG_FIELDS.map((f) => (
-                <div key={f.label} className="sb-ha-field">
-                  <div className="sb-ha-field-head">
-                    <span className="sb-ha-field-label">{f.label}</span>
-                    {!f.required && <span className="sb-ha-optional">optional</span>}
+            <button
+              type="button"
+              className="sb-ha-textbtn sb-ha-step-foot"
+              onClick={() => togglePanel('more')}
+              aria-expanded={panel === 'more'}
+            >
+              Custom automation instead
+              <PlusIcon open={panel === 'more'} />
+            </button>
+          </div>
+          <div className="sb-ha-drawer sb-ha-drawer-b" data-open={panel === 'more'}>
+            <div>
+              <div className="sb-ha-drawer-inner">
+                <div className="sb-ha-drawer-title">Drive it from your own automations</div>
+                <div className="sb-ha-more-grid">
+                  <div className="sb-ha-more-card">
+                    <div className="sb-ha-more-title">Import our blueprint</div>
+                    <p>One button, then pick your device from a dropdown.</p>
+                    <a
+                      className="sb-btn sb-ha-ghost"
+                      href={BLUEPRINT_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Import blueprint
+                    </a>
                   </div>
-                  <p className="sb-ha-field-note">{f.note}</p>
+                  <div className="sb-ha-more-card">
+                    <div className="sb-ha-more-title">Use it as a planner only</div>
+                    <p>
+                      Leave the device empty during setup and SpotSteer just tells you the cheap
+                      hours. Act on this turning on and off however you like.
+                    </p>
+                    <div className="sb-ha-copyrow">
+                      <code>{RUN_ENTITY}</code>
+                      <button
+                        type="button"
+                        className="sb-btn sb-primary sb-ha-copybtn"
+                        onClick={copyEntity}
+                      >
+                        {copied ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </div>
@@ -233,84 +341,133 @@ export function HomeAssistantPage() {
           <div className="sb-ha-done-inner">
             <div className="sb-ha-done-head">
               <span className="sb-ha-done-check">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
+                <Check size={18} strokeWidth={2.6} />
               </span>
               <h2>That&rsquo;s it</h2>
             </div>
             <p>
-              Your device now runs in the cheapest hours of the day, automatically. In Home Assistant
-              you get a SpotSteer device showing whether it is running right now, the current price
-              and whether this hour counts as cheap, average or expensive, alongside the settings you
-              can change at any time.
+              If you picked a device in step 2, you are finished. SpotSteer turns it on when the
+              cheap hours start and off when they end. Flip it by hand any time and it stays that
+              way until the next quarter hour.
             </p>
           </div>
         </div>
       </section>
 
       <section className="sb-section sb-ha-tight">
-        <div className="sb-ha-more">
-          <div className="sb-ha-more-head">
-            <h2>Want more control?</h2>
-            <span>Optional, only if you want to drive other devices yourself</span>
-          </div>
-          <p className="sb-ha-more-lede">
-            Setup above is already complete. These two routes exist if you would rather orchestrate
-            things in your own automations instead of letting us switch the device directly.
-          </p>
-          <div className="sb-ha-more-grid">
-            <div className="sb-card sb-ha-more-card">
-              <div className="sb-ha-more-title">Import our blueprint</div>
-              <p>One button, then pick your entities from dropdowns. No YAML.</p>
-              <a className="sb-btn sb-ha-ghost" href={BLUEPRINT_URL} target="_blank" rel="noopener noreferrer">
-                Import blueprint
-              </a>
-            </div>
-            <div className="sb-card sb-ha-more-card">
-              <div className="sb-ha-more-title">Write your own automation</div>
-              <p>Trigger on this entity turning on and off, and act on whatever you like.</p>
-              <div className="sb-ha-copyrow">
-                <code>{RUN_ENTITY}</code>
-                <button type="button" className="sb-btn sb-primary sb-ha-copybtn" onClick={copyEntity}>
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
+        <h2 className="sb-ha-h2">What it looks like in Home Assistant</h2>
+        <p className="sb-ha-sub">
+          Three panels appear next to your device. One switch, one set of settings, and one that
+          simply tells you what is going on.
+        </p>
+
+        <div className="sb-ha-pair">
+          <div className="sb-ha-pair-text">
+            <h3>The on switch</h3>
+            {CONTROLS.map((e) => (
+              <div key={e.name} className="sb-ha-ref-row">
+                <div className="sb-ha-ref-name">{e.name}</div>
+                <div className="sb-ha-ref-desc">{e.desc}</div>
               </div>
-            </div>
+            ))}
           </div>
+          <figure className="sb-ha-shot">
+            <div className="sb-ha-frame">
+              <img
+                src="/assets/ha-controls.png"
+                alt="A Home Assistant panel with an Enabled toggle and a Refresh plan button"
+              />
+            </div>
+          </figure>
+        </div>
+
+        <div className="sb-ha-pair sb-ha-pair-flip">
+          <div className="sb-ha-pair-text">
+            <h3>What you can change any time</h3>
+            {SETTINGS.map((e) => (
+              <div key={e.name} className="sb-ha-ref-row">
+                <div className="sb-ha-ref-name">{e.name}</div>
+                <div className="sb-ha-ref-desc">{e.desc}</div>
+              </div>
+            ))}
+          </div>
+          <figure className="sb-ha-shot">
+            <div className="sb-ha-frame">
+              <img
+                src="/assets/ha-configuration.png"
+                alt="A Home Assistant panel of sliders and time pickers for duration, deadline and quiet hours"
+              />
+            </div>
+          </figure>
+        </div>
+
+        <div className="sb-ha-pair">
+          <div className="sb-ha-pair-text">
+            <h3>What SpotSteer reports back</h3>
+            {REPORTS.map((e) => (
+              <div key={e.name} className="sb-ha-ref-row">
+                <div className="sb-ha-ref-name">{e.name}</div>
+                <div className="sb-ha-ref-desc">{e.desc}</div>
+              </div>
+            ))}
+          </div>
+          <figure className="sb-ha-shot">
+            <div className="sb-ha-frame">
+              <img
+                src="/assets/ha-sensors.png"
+                alt="A Home Assistant panel listing the current price, price level and when the device next runs"
+              />
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <section id="card" className="sb-section sb-ha-tight">
+        <div className="sb-card sb-ha-cardsec">
+          <h2 className="sb-ha-h2">Put the price chart on a dashboard</h2>
+          <p className="sb-ha-sub">
+            SpotSteer comes with a chart of the whole day, and it is the easiest way to see what
+            your device is about to do. Three steps to put it on screen.
+          </p>
+          <div className="sb-ha-cardsteps">
+            {CARD_STEPS.map((c) => (
+              <div key={c.n} className="sb-ha-cardstep">
+                <div className="sb-ha-cardstep-n">{c.n}</div>
+                <div className="sb-ha-cardstep-title">{c.title}</div>
+                <p className="sb-ha-cardstep-body">{c.body}</p>
+              </div>
+            ))}
+          </div>
+          <figure className="sb-ha-cardshot">
+            <div className="sb-ha-frame">
+              <img
+                src="/assets/ha-card.png"
+                alt="The SpotSteer card on a dashboard: a day of prices with the hours it picked shaded"
+                width={1494}
+                height={770}
+              />
+            </div>
+            <figcaption>
+              The shaded blocks are the hours your device will run. It redraws itself every day.
+            </figcaption>
+          </figure>
         </div>
       </section>
 
       <section className="sb-section sb-ha-tight">
-        <button type="button" className="sb-ha-disclosure" onClick={() => setRefOpen((o) => !o)}>
-          Entity reference
-          <PlusIcon open={refOpen} />
-        </button>
-        <div className="sb-ha-panel" data-open={refOpen}>
-          <div>
-            <div className="sb-ha-ref-grid">
-              <div className="sb-card sb-ha-ref">
-                <div className="sb-ha-ref-tag">What SpotSteer tells you</div>
-                {READ_ENTITIES.map((e) => (
-                  <div key={e.id} className="sb-ha-ref-row">
-                    <div className="sb-ha-ref-name">{e.name}</div>
-                    <div className="sb-ha-ref-desc">{e.desc}</div>
-                    <code>{e.id}</code>
-                  </div>
-                ))}
-              </div>
-              <div className="sb-card sb-ha-ref">
-                <div className="sb-ha-ref-tag sb-ha-ref-tag-muted">What you tell SpotSteer</div>
-                <p className="sb-ha-ref-lede">All editable in the Home Assistant UI.</p>
-                {SET_ENTITIES.map((e) => (
-                  <div key={e.name} className="sb-ha-ref-row">
-                    <div className="sb-ha-ref-name">{e.name}</div>
-                    <div className="sb-ha-ref-desc">{e.desc}</div>
-                  </div>
-                ))}
-              </div>
+        <h2 className="sb-ha-h2">What happens each day</h2>
+        <div className="sb-ha-flow">
+          {DAY_FLOW.map((f, i) => (
+            <div key={f.title} className="sb-ha-flow-item">
+              <span
+                className="sb-ha-node"
+                data-last={i === DAY_FLOW.length - 1}
+                aria-hidden="true"
+              />
+              <div className="sb-ha-flow-title">{f.title}</div>
+              <p className="sb-ha-flow-body">{f.body}</p>
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -334,6 +491,20 @@ export function HomeAssistantPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="sb-section sb-ha-tight">
+        <div className="sb-ha-close">
+          <a className="sb-card sb-ha-close-card" href="/shelly">
+            <span className="sb-ha-close-kicker">No Home Assistant?</span>
+            <span className="sb-ha-close-title">
+              Set up a Shelly instead <ArrowRight size={17} />
+            </span>
+            <span className="sb-ha-close-note">
+              A Shelly plug runs the same cheap hours on its own.
+            </span>
+          </a>
         </div>
       </section>
       <Footer />
