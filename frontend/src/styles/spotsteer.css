@@ -738,9 +738,11 @@ a:hover {
   box-shadow: 0 0 0 3px var(--color-accent-tint);
 }
 
+/* Two even columns, so the six categories read as one block of equal choices
+   rather than a ragged wrap that sizes each pill by how long its word is. */
 .sb-chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
@@ -749,11 +751,12 @@ a:hover {
   font-size: 13px;
   font-family: var(--font-body);
   font-weight: 500;
-  padding: 8px 15px;
+  padding: 8px 12px;
   border-radius: var(--r-pill);
   border: 1.5px solid var(--color-divider);
   background: var(--color-surface);
   color: var(--color-text);
+  text-align: center;
   transition: all 0.15s;
 }
 
