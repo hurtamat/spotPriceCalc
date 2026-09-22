@@ -74,7 +74,7 @@ export function SavingsCalculator() {
           <div className="sb-calc-result-cap">Estimated saving</div>
           <div className="sb-calc-result-euros">
             ≈ {savedEur.toLocaleString('en-US')} €
-            <span style={{ fontSize: 18, opacity: 0.7, fontWeight: 600 }}> /yr</span>
+            <span className="sb-calc-result-per"> /yr</span>
           </div>
         </div>
         <div className="sb-calc-result-split">
@@ -84,9 +84,9 @@ export function SavingsCalculator() {
       </div>
 
       <p className="sb-fine">
-        Rough estimate against an average European fixed tariff. Learn more in{' '}
+        Rough estimate against an average European fixed tariff. Learn more in our{' '}
         <a className="sb-fine-link" href={ROUTES.terms}>
-          Risks and assumptions
+          terms and conditions
         </a>
         .
       </p>

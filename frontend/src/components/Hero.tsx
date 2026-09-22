@@ -18,8 +18,7 @@ export function Hero() {
       <div className="sb-hero-inner">
         <div className="sb-hero-copy">
           <h1 style={{ '--i': 0 } as React.CSSProperties}>
-            Cut your power bill <span className="sb-accent">up to 35%</span> without lifting a
-            finger.
+            <span className="sb-accent">Cut your power bill</span> without lifting a finger.
           </h1>
           <p className="sb-hero-sub" style={{ '--i': 1 } as React.CSSProperties}>
             Electricity prices change every hour. SpotSteer watches the market and runs your

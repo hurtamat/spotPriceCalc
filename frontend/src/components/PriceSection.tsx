@@ -272,7 +272,7 @@ function Chart({
           <div className="sb-chart-state">
             Couldn&apos;t reach the price API.
             <br />
-            <span style={{ fontSize: 12.5 }}>{state.message}</span>
+            <span className="sb-chart-state-detail">{state.message}</span>
           </div>
         ) : (
           <div className="sb-chart-state">{emptyMessage}</div>
