@@ -8,17 +8,17 @@ const BEATS = [
 
 type Props = { sectionClassName: string };
 
-/** The mark is a dial with one point marked; the rail repeats it, filling the last node. */
+/** The landing page's step rail, reused: the last node is the one that acts. */
 export function DayFlow({ sectionClassName }: Props) {
   return (
-    <section className={sectionClassName}>
+    <section className={`sb-dayflow ${sectionClassName}`}>
       <h2 className="sb-h2">What happens each day</h2>
-      <div className="sb-flow">
-        {BEATS.map((b, i) => (
-          <div key={b.title} className="sb-flow-item">
-            <span className="sb-flow-node" data-last={i === BEATS.length - 1} aria-hidden="true" />
-            <div className="sb-flow-title">{b.title}</div>
-            <p className="sb-flow-body">{b.body}</p>
+      <div className="sb-steps">
+        {BEATS.map((b) => (
+          <div key={b.title} className="sb-step">
+            <span className="sb-step-node" aria-hidden="true" />
+            <h3 className="sb-h4">{b.title}</h3>
+            <p>{b.body}</p>
           </div>
         ))}
       </div>

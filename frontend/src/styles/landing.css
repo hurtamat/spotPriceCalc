@@ -697,98 +697,10 @@
 }
 
 /* ── how it works / spot prices ────────────────────────────────── */
-/* A sequence rail, not three cards. The nodes repeat the mark: hollow rings for the
-   two reading steps, one filled amber for the step where something actually happens.
-   Columns are deliberately unequal so it reads as a progression rather than a set. */
-.sb-steps {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr 1.1fr;
-  gap: clamp(20px, 3vw, 44px);
-  margin-bottom: clamp(48px, 7vw, 88px);
-  position: relative;
-}
-
-.sb-step {
-  position: relative;
-  padding-top: 34px;
-}
-
-/* The rail itself, drawn behind the nodes and stopping at the last one. */
-.sb-step::before {
-  content: '';
-  position: absolute;
-  top: 9px;
-  left: 0;
-  right: calc(-1 * clamp(20px, 3vw, 44px));
-  height: 1px;
-  background: var(--color-divider);
-}
-
-.sb-step:last-child::before {
-  right: auto;
-  width: 18px;
-}
-
-.sb-step-node {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--r-pill);
-  border: 2px solid var(--color-accent);
-  background: var(--color-bg);
-}
-
-.sb-step:last-child .sb-step-node {
-  border-color: var(--color-warm);
-  background: var(--color-warm);
-  box-shadow: 0 0 0 5px var(--color-warm-tint);
-}
-
-.sb-step h3 {
-  margin-bottom: 10px;
-}
-
-.sb-step p {
-  color: var(--color-text-dim);
-  font-size: var(--text-md);
-  max-width: 34ch;
-}
-
-@media (max-width: 800px) {
-  .sb-steps {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
-
-  /* Vertical rail on the left once the row stacks. */
-  .sb-step {
-    padding-top: 0;
-    padding-left: 34px;
-  }
-
-  .sb-step::before {
-    top: 9px;
-    bottom: -28px;
-    left: 8px;
-    right: auto;
-    width: 1px;
-    height: auto;
-  }
-
-  .sb-step:last-child::before {
-    display: none;
-  }
-
-  .sb-step p {
-    max-width: none;
-  }
-}
-
 /* The tariff comparison: two halves of one statement, split by a single rule
    rather than boxed into two cards. */
 .sb-tariffs {
+  margin-top: clamp(48px, 7vw, 88px);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0;

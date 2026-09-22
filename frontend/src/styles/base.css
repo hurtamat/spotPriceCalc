@@ -151,7 +151,6 @@ a:hover {
 @media (prefers-reduced-motion: no-preference) {
   .sb-reveal .sb-steps > *,
   .sb-reveal .sb-ha-rail > .sb-ha-step,
-  .sb-reveal .sb-flow > *,
   .sb-reveal .sb-int-grid > *,
   .sb-reveal .sb-claims > *,
   .sb-reveal .sb-teaser-apps > * {
@@ -161,22 +160,21 @@ a:hover {
 
   .sb-reveal.is-in .sb-steps > *,
   .sb-reveal.is-in .sb-ha-rail > .sb-ha-step,
-  .sb-reveal.is-in .sb-flow > *,
   .sb-reveal.is-in .sb-int-grid > *,
   .sb-reveal.is-in .sb-claims > *,
   .sb-reveal.is-in .sb-teaser-apps > * {
     animation: sb-hero-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(2) {
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(2) {
     animation-delay: 80ms;
   }
 
-  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(3) {
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(3) {
     animation-delay: 160ms;
   }
 
-  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-flow, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(4) {
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(4) {
     animation-delay: 240ms;
   }
 

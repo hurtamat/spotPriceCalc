@@ -79,8 +79,6 @@
   margin: 0;
 }
 
-
-
 .sb-ha-h2 {
   margin: 0 0 8px;
 }
@@ -90,13 +88,6 @@
   margin: 0 0 24px;
   max-width: 58ch;
 }
-
-
-
-
-
-
-
 
 /* Steps */
 /* The step cards carry their own bottom margin for the stacked case, which would
@@ -234,7 +225,6 @@
   width: auto;
 }
 
-
 .sb-ha-step-n {
   flex: none;
   width: 38px;
@@ -288,10 +278,6 @@
 
 /* The configure field list. Plain rows on purpose: a screenshot of the real
    dialog belongs here later, and a hand-drawn mock would only go stale. */
-
-
-
-
 
 /* That's it */
 .sb-ha-done {
@@ -557,56 +543,6 @@
   .sb-ha-shot {
     grid-area: shot;
   }
-}
-
-.sb-flow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: clamp(18px, 3vw, 30px);
-  margin-top: clamp(22px, 3vw, 34px);
-}
-
-.sb-flow-item {
-  position: relative;
-  padding-top: 26px;
-}
-
-.sb-flow-item::before {
-  content: '';
-  position: absolute;
-  top: 6px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--color-divider);
-}
-
-.sb-flow-node {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 13px;
-  height: 13px;
-  border-radius: var(--r-pill);
-  border: 2px solid var(--color-accent);
-  background: var(--color-bg);
-}
-
-.sb-flow-node[data-last='true'] {
-  background: var(--color-accent);
-}
-
-.sb-flow-title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: var(--text-md);
-  margin-bottom: 6px;
-}
-
-.sb-flow-body {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--color-neutral-700);
 }
 
 .sb-ha-ref-row {
