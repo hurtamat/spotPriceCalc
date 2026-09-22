@@ -16,7 +16,6 @@ import {
   type PriceQuantile,
   type ZoneSpotPrices,
 } from '../api/spotPrices';
-import { ZoneMap } from './ZoneMap';
 import { ZONE_BY_ID } from '../api/zones';
 import { buildDaySlots, utcOffsetLabel } from '../lib/daySlots';
 import { publishSelection } from '../state/selectionStore';
@@ -26,6 +25,10 @@ import { ChevronRight } from './icons';
 const PriceBarChart = lazy(() =>
   import('./PriceBarChart').then((m) => ({ default: m.PriceBarChart })),
 );
+
+// 45 bidding-zone polygons, glob-imported at build time. Only this section draws them,
+// and only the landing page renders this section, so they stay out of every other route.
+const ZoneMap = lazy(() => import('./ZoneMap').then((m) => ({ default: m.ZoneMap })));
 
 const QUANTILE_TEXT: Record<PriceQuantile, string> = {
   Green: 'var(--color-q-green-text)',
@@ -136,7 +139,9 @@ export function PriceSection() {
     >
       {/* Large map as a background layer, bleeds off the right edge. */}
       <div className="sb-zonemap-bleed">
-        <ZoneMap selectedZoneId={zoneId} onSelect={handleSelect} />
+        <Suspense fallback={null}>
+          <ZoneMap selectedZoneId={zoneId} onSelect={handleSelect} />
+        </Suspense>
       </div>
 
       {/* Mobile-only nudge inviting the first tap. Hidden on desktop and once the panel opens. */}
