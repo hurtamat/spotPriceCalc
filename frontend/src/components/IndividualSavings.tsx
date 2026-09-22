@@ -66,7 +66,7 @@ export function IndividualSavings() {
     <section className="sb-indiv" id="individual-savings">
       <div className="sb-indiv-head">
         <div className="sb-indiv-headings">
-          <h3>Individual savings</h3>
+          <h3 className="sb-h3">Individual savings</h3>
           <span>
             {data
               ? "What one cycle saves, run in today's cheapest window instead of at an average European tariff. The best hour is the whole day's, so it may already have passed."

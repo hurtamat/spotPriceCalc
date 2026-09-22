@@ -103,7 +103,7 @@ function Question({ n, title, sub, children }: {
     <div className="sb-card sb-sw-q">
       <span className="sb-sw-n">{n}</span>
       <div className="sb-sw-qbody">
-        <h3>{title}</h3>
+        <h3 className="sb-h4">{title}</h3>
         <p className="sb-sw-qsub">{sub}</p>
         {children}
       </div>
@@ -234,8 +234,8 @@ export function ShellyWizard() {
             Back to supported systems
           </a>
           <img className="sb-sw-logo" src="/assets/logo-shelly.png" alt="Shelly" />
-          <h1 className="sb-sw-h1">Configure your Shelly</h1>
-          <p className="sb-sw-lede">
+          <h1 className="sb-display sb-sw-h1">Configure your Shelly</h1>
+          <p className="sb-lede sb-sw-lede">
             Answer three questions. We write the script with your settings already inside it, you paste it
             into the device once, and from then on the Shelly runs on its own, cloud or no cloud.
           </p>
@@ -430,7 +430,7 @@ export function ShellyWizard() {
           <div className="sb-sw-script-head">
             <div style={{ marginRight: 'auto' }}>
               <span className="sb-sw-eyebrow">Ready to paste</span>
-              <h2 key={mode} className="sb-sw-script-name sb-sw-swap">
+              <h2 key={mode} className="sb-h3 sb-sw-script-name sb-sw-swap">
                 {isRelay ? 'spotsteer-relay.js' : 'spotsteer-colour.js'}
               </h2>
             </div>
@@ -479,7 +479,7 @@ export function ShellyWizard() {
         </section>
 
         <section id="install" className="sb-sw-section">
-          <h2 className="sb-sw-h2">Then put it on the device</h2>
+          <h2 className="sb-h2 sb-sw-h2">Then put it on the device</h2>
           <p className="sb-sw-sub">Three taps in the Shelly app. You only ever do this once per device.</p>
           <div className="sb-card sb-sw-install">
             <div className="sb-sw-steps">
@@ -510,7 +510,7 @@ export function ShellyWizard() {
             <div className="sb-sw-device-grid">
               <div style={{ minWidth: 0 }}>
                 <span className="sb-sw-eyebrow">After the script starts</span>
-                <h2>Your settings turn into sliders in the Shelly app</h2>
+                <h2 className="sb-h2">Your settings turn into sliders in the Shelly app</h2>
                 <p className="sb-sw-device-lede">
                   The script creates virtual components on the device. Open the Shelly app, go to{' '}
                   <strong>Virtual components → Components</strong>, and everything you answered above is
@@ -549,10 +549,10 @@ export function ShellyWizard() {
           </div>
         </section>
 
-        <DayFlow sectionClassName="sb-sw-section" headingClassName="sb-sw-h2" />
+        <DayFlow sectionClassName="sb-sw-section" />
 
         <section id="troubleshooting" className="sb-sw-section">
-          <h2 className="sb-sw-h2" style={{ marginBottom: 18 }}>
+          <h2 className="sb-h2 sb-sw-h2" style={{ marginBottom: 18 }}>
             Troubleshooting
           </h2>
           <div className="sb-sw-faq">

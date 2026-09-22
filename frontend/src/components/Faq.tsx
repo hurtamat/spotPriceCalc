@@ -31,7 +31,7 @@ export function Faq() {
   return (
     <section id="faq" className="sb-section">
       <div className="sb-section-head">
-        <h2>Frequently asked</h2>
+        <h2 className="sb-h1">Frequently asked</h2>
       </div>
 
       <div className="sb-faq-list">

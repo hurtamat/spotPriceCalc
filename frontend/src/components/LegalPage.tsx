@@ -42,7 +42,7 @@ export function LegalPage({ kind }: { kind: LegalKind }) {
           <ArrowLeft size={14} />
           Back to SpotSteer
         </a>
-        <h1 className="sb-legal-title">{TITLES[kind]}</h1>
+        <h1 className="sb-h1 sb-legal-title">{TITLES[kind]}</h1>
 
         {failed ? (
           <p className="sb-legal-state">

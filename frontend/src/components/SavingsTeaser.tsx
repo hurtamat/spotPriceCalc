@@ -12,8 +12,8 @@ export function SavingsTeaser() {
     <section className="sb-teaser">
       <div className="sb-teaser-inner">
         <div>
-          <h2>What would this be worth in your house?</h2>
-          <p>
+          <h2 className="sb-h1">What would this be worth in your house?</h2>
+          <p className="sb-lede-sm">
             Tell us roughly what you run and how many of you there are, and see the yearly figure
             plus the hour each appliance would start on.
           </p>

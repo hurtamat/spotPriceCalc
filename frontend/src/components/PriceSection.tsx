@@ -148,8 +148,8 @@ export function PriceSection() {
       <div className="sb-price-inner">
         <div className="sb-price-col">
           <div className="sb-price-head">
-            <h2>Today&apos;s price curve</h2>
-            <p>
+            <h2 className="sb-h1">Today&apos;s price curve</h2>
+            <p className="sb-lede-sm">
               Pick a zone on the map for live spot prices. The graph shows
               the price through the day.
             </p>

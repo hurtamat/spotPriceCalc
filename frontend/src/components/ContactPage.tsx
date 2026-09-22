@@ -26,9 +26,9 @@ export function ContactPage() {
           <ArrowLeft size={14} />
           Back to {SITE.name}
         </a>
-        <h1 className="sb-legal-title">Contact</h1>
+        <h1 className="sb-h1 sb-legal-title">Contact</h1>
 
-        <p className="sb-contact-lead">
+        <p className="sb-lede-sm sb-contact-lead">
           Questions about {SITE.name}, your bidding zone, or a device we don&apos;t support yet?
           One mailbox, read by a person.
         </p>
@@ -57,7 +57,7 @@ export function ContactPage() {
           very little.
         </p>
 
-        <h2 className="sb-contact-h2">Who runs this site</h2>
+        <h2 className="sb-h4 sb-contact-h2">Who runs this site</h2>
         <address className="sb-impressum">
           <span className="sb-impressum-name">{OPERATOR.name}</span>
           <span className="sb-impressum-name">Ivan Trencansky</span>

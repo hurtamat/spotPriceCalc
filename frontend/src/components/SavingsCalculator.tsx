@@ -33,7 +33,7 @@ export function SavingsCalculator() {
 
   return (
     <div className="sb-card sb-calc">
-      <h3 className="sb-calc-title">Estimate it</h3>
+      <h3 className="sb-h3 sb-calc-title">Estimate it</h3>
 
       <div>
         <label className="sb-field-label" htmlFor="sb-calc-kwh">

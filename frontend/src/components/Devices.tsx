@@ -57,8 +57,8 @@ export function Devices() {
   return (
     <section id="devices" className="sb-section">
       <div className="sb-section-head">
-        <h2>The smart-home systems SpotSteer controls</h2>
-        <p>
+        <h2 className="sb-h1">The smart-home systems SpotSteer controls</h2>
+        <p className="sb-lede-sm">
           Already run one of these? You&apos;re ready. SpotSteer speaks to your existing hub,
           switches and plugs and runs them on the cheap hours. No new hardware, no rewiring.
         </p>

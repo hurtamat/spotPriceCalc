@@ -19,8 +19,8 @@ export function HowItWorks() {
   return (
     <section id="how" className="sb-section">
       <div className="sb-section-head">
-        <h2>What are spot prices</h2>
-        <p>
+        <h2 className="sb-h1">What are spot prices</h2>
+        <p className="sb-lede-sm">
           On the wholesale market, electricity is priced <strong>every single hour</strong>. That
           hourly wholesale price is the <em>spot price</em>. Households can benefit from these,
           and put money back in their own pocket every month.
@@ -31,7 +31,7 @@ export function HowItWorks() {
         {STEPS.map((s) => (
           <div key={s.title} className="sb-step">
             <span className="sb-step-node" aria-hidden="true" />
-            <h3>{s.title}</h3>
+            <h3 className="sb-h4">{s.title}</h3>
             <p>{s.body}</p>
           </div>
         ))}
@@ -39,7 +39,7 @@ export function HowItWorks() {
 
       <div className="sb-tariffs">
         <div className="sb-tariff sb-tariff-dynamic">
-          <h4>Dynamic / spot tariff</h4>
+          <h4 className="sb-h4">Dynamic / spot tariff</h4>
           <p>
             You pay the real hourly price. Now moving flexible loads into the cheap hours{' '}
             <strong>directly cuts your bill</strong>, and that&apos;s exactly what SpotSteer
@@ -47,7 +47,7 @@ export function HowItWorks() {
           </p>
         </div>
         <div className="sb-tariff sb-tariff-fixed">
-          <h4>Fixed tariff</h4>
+          <h4 className="sb-h4">Fixed tariff</h4>
           <p>
             You pay the same rate at any hour. Shifting your boiler or EV charging to cheap hours
             saves you <strong>nothing</strong>, because the meter can&apos;t tell the difference.

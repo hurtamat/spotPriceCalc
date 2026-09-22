@@ -248,6 +248,44 @@ h4 {
   letter-spacing: -0.015em;
 }
 
+/* ── heading system ───────────────────────────────────────────────
+   Every route sizes a heading through these six classes and no other
+   way. Size and tracking live here; margin belongs to the layout that
+   owns the heading, never to the heading itself. */
+.sb-display {
+  font-size: var(--text-display);
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.sb-h1 {
+  font-size: var(--text-h1);
+  letter-spacing: -0.035em;
+}
+
+.sb-h2 {
+  font-size: var(--text-h2);
+}
+
+.sb-h3 {
+  font-size: var(--text-h3);
+}
+
+.sb-h4 {
+  font-size: var(--text-h4);
+}
+
+/* The paragraph under a heading: two sizes, both dimmed against it. */
+.sb-lede {
+  font-size: var(--text-lede);
+  color: var(--color-text-dim);
+}
+
+.sb-lede-sm {
+  font-size: var(--text-lede-sm);
+  color: var(--color-text-dim);
+}
+
 p {
   margin: 0;
 }
@@ -604,16 +642,11 @@ a:hover {
 /* Planned against the image rather than set at poster scale: a headline this long
    at text-7xl is a font-size error, not a copy-length one. */
 .sb-hero h1 {
-  font-size: var(--text-display);
   margin: 0 0 20px;
-  line-height: 1.08;
-  letter-spacing: -0.035em;
 }
 
 .sb-hero-sub {
-  font-size: var(--text-lede);
   max-width: 44ch;
-  color: var(--color-text-dim);
   margin-bottom: 0;
 }
 
@@ -724,11 +757,6 @@ a:hover {
   .sb-calc {
     position: static;
   }
-}
-
-.sb-calc-title {
-  font-size: var(--text-h3);
-  margin: 0;
 }
 
 /* Label above the input, always, and at full body contrast: a form on a dark
@@ -870,14 +898,7 @@ a:hover {
   margin: 0 0 clamp(28px, 4vw, 48px);
 }
 
-.sb-section-head h2 {
-  font-size: var(--text-h1);
-  letter-spacing: -0.035em;
-}
-
 .sb-section-head p {
-  color: var(--color-text-dim);
-  font-size: var(--text-lede-sm);
   margin-top: 16px;
 }
 
@@ -904,14 +925,11 @@ a:hover {
 }
 
 .sb-price-head h2 {
-  font-size: var(--text-h1);
-  letter-spacing: -0.035em;
   margin: 0;
 }
 
 .sb-price-head p {
   margin: 10px 0 0;
-  color: var(--color-text-dim);
   max-width: 46ch;
 }
 
@@ -1456,9 +1474,6 @@ a:hover {
 }
 
 .sb-step h3 {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: var(--text-h4);
   margin-bottom: 10px;
 }
 
@@ -1514,7 +1529,6 @@ a:hover {
 }
 
 .sb-tariff h4 {
-  font-size: var(--text-h4);
   margin-bottom: 10px;
 }
 
@@ -1813,14 +1827,10 @@ a:hover {
 }
 
 .sb-teaser h2 {
-  font-size: var(--text-h1);
-  letter-spacing: -0.035em;
   margin-bottom: 16px;
 }
 
 .sb-teaser p {
-  color: var(--color-text-dim);
-  font-size: var(--text-lede-sm);
   max-width: 46ch;
   margin-bottom: 28px;
 }
@@ -1873,14 +1883,7 @@ a:hover {
 }
 
 .sb-savings-intro h1 {
-  font-size: var(--text-display);
-  letter-spacing: -0.04em;
   margin-bottom: 16px;
-}
-
-.sb-savings-intro p {
-  color: var(--color-text-dim);
-  font-size: var(--text-lede-sm);
 }
 
 .sb-back {
@@ -2107,11 +2110,6 @@ a:hover {
   }
 }
 
-.sb-indiv-head h3 {
-  font-size: var(--text-h3);
-  margin: 0;
-}
-
 .sb-indiv-head span {
   font-size: var(--text-sm);
   color: var(--color-text-mute);
@@ -2325,7 +2323,6 @@ a:hover {
 }
 
 .sb-legal-title {
-  font-size: var(--text-h1);
   margin: 14px 0 24px;
 }
 
@@ -2361,8 +2358,6 @@ a:hover {
 }
 
 .sb-ha-h1 {
-  font-size: var(--text-h1);
-  line-height: 1.08;
   margin: 0 0 14px;
 }
 
@@ -2419,8 +2414,6 @@ a:hover {
 }
 
 .sb-ha-lede {
-  font-size: var(--text-lede-sm);
-  color: var(--color-neutral-700);
   max-width: 46ch;
   margin: 0;
 }
@@ -2428,7 +2421,6 @@ a:hover {
 
 
 .sb-ha-h2 {
-  font-size: var(--text-h2);
   margin: 0 0 8px;
 }
 
@@ -2478,7 +2470,6 @@ a:hover {
 }
 
 .sb-ha-step-head h3 {
-  font-size: var(--text-xl);
   margin: 0;
 }
 
@@ -2677,7 +2668,6 @@ a:hover {
 
 .sb-ha-done-head h2 {
   color: var(--color-text);
-  font-size: var(--text-h2);
   margin: 0;
 }
 
@@ -2855,7 +2845,6 @@ a:hover {
 }
 
 .sb-ha-pair-title {
-  font-size: var(--text-xl);
   margin: 0;
 }
 
@@ -2897,7 +2886,6 @@ a:hover {
   .sb-ha-pair-title {
     grid-area: title;
     align-self: end;
-    font-size: var(--text-2xl);
   }
 
   .sb-ha-pair-text {
@@ -3109,13 +3097,10 @@ a:hover {
 }
 
 .sb-sw-h1 {
-  font-size: var(--text-display);
   margin: 0 0 14px;
 }
 
 .sb-sw-lede {
-  font-size: var(--text-lede);
-  color: var(--color-neutral-700);
   max-width: 52ch;
 }
 
@@ -3201,7 +3186,6 @@ a:hover {
 }
 
 .sb-sw-qbody h3 {
-  font-size: var(--text-xl);
   margin-bottom: 5px;
 }
 
@@ -3443,7 +3427,6 @@ a:hover {
 
 .sb-sw-script-name {
   color: var(--color-text);
-  font-size: var(--text-h3);
   margin-top: 7px;
 }
 
@@ -3529,7 +3512,6 @@ a:hover {
 }
 
 .sb-sw-h2 {
-  font-size: var(--text-h2);
   margin-bottom: 6px;
 }
 
@@ -3655,7 +3637,6 @@ a:hover {
 
 .sb-sw-device h2 {
   color: var(--color-text);
-  font-size: var(--text-h2);
   margin: 10px 0 14px;
 }
 
@@ -3833,8 +3814,6 @@ a:hover {
 }
 
 .sb-contact-lead {
-  font-size: var(--text-md);
-  color: var(--color-text-mute);
   max-width: 52ch;
   margin: 0 0 18px;
 }
@@ -3862,7 +3841,6 @@ a:hover {
 }
 
 .sb-contact-h2 {
-  font-size: var(--text-xl);
   margin: 34px 0 12px;
 }
 

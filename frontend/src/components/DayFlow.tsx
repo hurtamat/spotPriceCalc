@@ -6,13 +6,13 @@ const BEATS = [
   { title: 'Your device follows them', body: 'The hours never move under you during the day.' },
 ];
 
-type Props = { sectionClassName: string; headingClassName: string };
+type Props = { sectionClassName: string };
 
 /** The mark is a dial with one point marked; the rail repeats it, filling the last node. */
-export function DayFlow({ sectionClassName, headingClassName }: Props) {
+export function DayFlow({ sectionClassName }: Props) {
   return (
     <section className={sectionClassName}>
-      <h2 className={headingClassName}>What happens each day</h2>
+      <h2 className="sb-h2">What happens each day</h2>
       <div className="sb-flow">
         {BEATS.map((b, i) => (
           <div key={b.title} className="sb-flow-item">

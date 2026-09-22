@@ -132,7 +132,7 @@ function Panel({
 }) {
   return (
     <div className={flip ? 'sb-ha-pair sb-ha-pair-flip' : 'sb-ha-pair'}>
-      <h3 className="sb-ha-pair-title">{title}</h3>
+      <h3 className="sb-h4 sb-ha-pair-title">{title}</h3>
       <figure className="sb-ha-shot">
         <div className="sb-ha-frame">
           <img src={img} alt={alt} />
@@ -194,8 +194,8 @@ export function HomeAssistantPage() {
           <img src="/assets/logo-homeassistant.png" alt="Home Assistant" height={34} />
           <span className="sb-ha-pill">Setup guide</span>
         </div>
-        <h1 className="sb-ha-h1">Configure your Home Assistant</h1>
-        <p className="sb-ha-lede">
+        <h1 className="sb-h1 sb-ha-h1">Configure your Home Assistant</h1>
+        <p className="sb-lede-sm sb-ha-lede">
           SpotSteer watches tomorrow&rsquo;s electricity prices and switches your boiler, car
           charger or washing machine on when power is cheap.
         </p>
@@ -203,14 +203,14 @@ export function HomeAssistantPage() {
       </section>
 
       <section className="sb-section sb-ha-tight sb-ha-steps-sec">
-        <h2 className="sb-ha-h2">Two steps</h2>
+        <h2 className="sb-h2 sb-ha-h2">Two steps</h2>
         <p className="sb-ha-sub">Both buttons open your own Home Assistant.</p>
 
         <div className="sb-ha-rail">
           <div className="sb-card sb-ha-step">
             <div className="sb-ha-step-head">
               <span className="sb-ha-step-n">1</span>
-              <h3>Install</h3>
+              <h3 className="sb-h4">Install</h3>
             </div>
             <p>
               The button opens HACS with SpotSteer already filled in. Press{' '}
@@ -258,7 +258,7 @@ export function HomeAssistantPage() {
           <div className="sb-card sb-ha-step">
             <div className="sb-ha-step-head">
               <span className="sb-ha-step-n">2</span>
-              <h3>Configure</h3>
+              <h3 className="sb-h4">Configure</h3>
             </div>
             <p>
               Pick the country you are in and the device you want switched, then press Submit. That
@@ -331,7 +331,7 @@ export function HomeAssistantPage() {
               <span className="sb-ha-done-check">
                 <Check size={18} strokeWidth={2.6} />
               </span>
-              <h2>That&rsquo;s it</h2>
+              <h2 className="sb-h2">That&rsquo;s it</h2>
             </div>
             <p>
               If you picked a device in step 2, you are finished. SpotSteer turns it on when the
@@ -343,7 +343,7 @@ export function HomeAssistantPage() {
       </section>
 
       <section className="sb-section sb-ha-tight">
-        <h2 className="sb-ha-h2">What it looks like in Home Assistant</h2>
+        <h2 className="sb-h2 sb-ha-h2">What it looks like in Home Assistant</h2>
         <p className="sb-ha-sub">
           Three panels appear on your SpotSteer device page. One switch, one set of settings, and
           one that simply tells you what is going on.
@@ -374,7 +374,7 @@ export function HomeAssistantPage() {
 
       <section id="card" className="sb-section sb-ha-tight">
         <div className="sb-card sb-ha-cardsec">
-          <h2 className="sb-ha-h2">Put the price chart on a dashboard</h2>
+          <h2 className="sb-h2 sb-ha-h2">Put the price chart on a dashboard</h2>
           <p className="sb-ha-sub">
             SpotSteer comes with a chart of the whole day, and it is the easiest way to see what
             your device is about to do. Three steps to put it on screen.
@@ -404,10 +404,10 @@ export function HomeAssistantPage() {
         </div>
       </section>
 
-      <DayFlow sectionClassName="sb-section sb-ha-tight" headingClassName="sb-ha-h2" />
+      <DayFlow sectionClassName="sb-section sb-ha-tight" />
 
       <section id="troubleshooting" className="sb-section sb-ha-tight">
-        <h2 className="sb-ha-h2">Troubleshooting</h2>
+        <h2 className="sb-h2 sb-ha-h2">Troubleshooting</h2>
         <div className="sb-ha-troubles">
           {TROUBLES.map((t, i) => (
             <div key={t.q} className="sb-card sb-ha-trouble">
