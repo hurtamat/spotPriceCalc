@@ -352,14 +352,14 @@ export function HomeAssistantPage() {
         <Panel
           title="The on switch"
           rows={CONTROLS}
-          img="/assets/ha-controls.png"
+          img="/assets/ha-controls.webp"
           alt="A Home Assistant panel with an Enabled toggle and a Refresh plan button"
         />
 
         <Panel
           title="What you can change any time"
           rows={SETTINGS}
-          img="/assets/ha-configuration.png"
+          img="/assets/ha-configuration.webp"
           alt="A Home Assistant panel of sliders and time pickers for duration, deadline and quiet hours"
           flip
         />
@@ -367,7 +367,7 @@ export function HomeAssistantPage() {
         <Panel
           title="What SpotSteer reports back"
           rows={REPORTS}
-          img="/assets/ha-sensors.png"
+          img="/assets/ha-sensors.webp"
           alt="A Home Assistant panel listing the current price, price level and when the device next runs"
         />
       </section>
@@ -391,7 +391,7 @@ export function HomeAssistantPage() {
           <figure className="sb-ha-cardshot">
             <div className="sb-ha-frame">
               <img
-                src="/assets/ha-card.png"
+                src="/assets/ha-card.webp"
                 alt="The SpotSteer card on a dashboard: a day of prices with the hours it picked shaded"
                 width={1494}
                 height={770}

@@ -9,7 +9,6 @@ const LIVE = [
     logoHeight: 34,
     href: '/home-assistant',
     cta: 'Configure in Home Assistant',
-    dark: true,
     bullets: [
       'One integration, whole-home orchestration',
       'Everything HA controls becomes price-aware: climate, EV chargers, plugs, relays',
@@ -24,7 +23,6 @@ const LIVE = [
     logoHeight: 28,
     href: '/shelly',
     cta: 'Configure your Shelly',
-    dark: false,
     bullets: [
       'Five minute setup with one paste-in script',
       'Set and forget, it runs itself from then on',
@@ -39,20 +37,6 @@ const SOON = [
   { key: 'alexa', name: 'Amazon Alexa', logo: '/assets/logo-alexa.png', logoHeight: 38 },
 ];
 
-// Material Symbols, the icon family the site already loads (see index.html), rather
-// than a hand-drawn path.
-function Check({ dark }: { dark: boolean }) {
-  return (
-    <span
-      className="material-symbols-outlined sb-int-check"
-      style={{ color: dark ? 'var(--color-text)' : 'var(--color-accent)' }}
-      aria-hidden="true"
-    >
-      check
-    </span>
-  );
-}
-
 export function Devices() {
   return (
     <section id="devices" className="sb-section">
@@ -66,12 +50,7 @@ export function Devices() {
 
       <div className="sb-int-grid">
         {LIVE.map((i) => (
-          <div
-            key={i.key}
-            className="sb-int-card"
-            data-key={i.key}
-            data-dark={i.dark || undefined}
-          >
+          <div key={i.key} className="sb-int-card" data-key={i.key}>
             <div className="sb-int-head">
               <img
                 src={i.logo}
@@ -92,7 +71,10 @@ export function Devices() {
             <div className="sb-int-bullets">
               {i.bullets.map((b) => (
                 <div key={b} className="sb-int-bullet">
-                  <Check dark={i.dark} />
+                  {/* Material Symbols, the family the site already loads. */}
+                  <span className="material-symbols-outlined sb-int-check" aria-hidden="true">
+                    check
+                  </span>
                   {b}
                 </div>
               ))}

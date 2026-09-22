@@ -37,8 +37,7 @@ body {
 .sb-indiv-time,
 .sb-indiv-saving,
 .sb-calc-result-euros,
-.sb-calc-result-pct,
-.sb-teaser-num {
+.sb-calc-result-pct {
   font-variant-numeric: tabular-nums;
 }
 

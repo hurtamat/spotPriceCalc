@@ -495,7 +495,7 @@ export function ShellyWizard() {
             </div>
             <div className="sb-sw-shot">
               <div className="sb-sw-frame">
-                <img src="/assets/shelly-scripts-tab.png" alt="The Scripts tab in the Shelly app" />
+                <img src="/assets/shelly-scripts-tab.webp" alt="The Scripts tab in the Shelly app" />
               </div>
               <div className="sb-sw-shot-cap">
                 <code>{'{ }'}</code>The Scripts tab, in the app's left rail
@@ -538,7 +538,7 @@ export function ShellyWizard() {
                 <div style={{ display: 'flex', justifyContent: 'center', minWidth: 0 }}>
                   <div className="sb-sw-phone">
                     <img
-                      src="/assets/shelly-virtual-components.png"
+                      src="/assets/shelly-virtual-components.webp"
                       alt="Shelly app showing the virtual components SpotSteer created"
                       onError={() => setHasPhoneShot(false)}
                     />

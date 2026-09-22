@@ -311,14 +311,6 @@
   box-shadow: var(--e-1);
 }
 
-.sb-axis {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--text-xs);
-  color: var(--color-text-mute);
-  margin-top: 4px;
-}
-
 .sb-legend {
   display: flex;
   gap: 20px;
@@ -803,8 +795,8 @@
 }
 
 /* Home Assistant leads, so it gets the one filled surface on the page: brand teal
-   deepened until white text clears AA on it. */
-.sb-int-card[data-dark] {
+   deepened until white text clears AA on it, and everything inside it lifts to match. */
+.sb-int-card[data-key='homeassistant'] {
   background:
     radial-gradient(
       120% 140% at 12% 0%,
@@ -853,7 +845,7 @@
   white-space: nowrap;
 }
 
-.sb-int-card[data-dark] .sb-int-badge {
+.sb-int-card[data-key='homeassistant'] .sb-int-badge {
   background: rgba(232, 237, 241, 0.12);
   color: var(--color-text);
   border-color: rgba(232, 237, 241, 0.22);
@@ -871,7 +863,7 @@
   background: var(--color-divider);
 }
 
-.sb-int-card[data-dark] .sb-int-rule {
+.sb-int-card[data-key='homeassistant'] .sb-int-rule {
   background: rgba(232, 237, 241, 0.16);
 }
 
@@ -890,7 +882,7 @@
   color: var(--color-text-dim);
 }
 
-.sb-int-card[data-dark] .sb-int-bullet {
+.sb-int-card[data-key='homeassistant'] .sb-int-bullet {
   color: rgba(232, 237, 241, 0.88);
 }
 
@@ -899,6 +891,11 @@
   font-size: var(--text-lg);
   line-height: 1;
   margin-top: 2px;
+  color: var(--color-accent);
+}
+
+.sb-int-card[data-key='homeassistant'] .sb-int-check {
+  color: var(--color-text);
 }
 
 .sb-int-cta {
@@ -941,12 +938,6 @@
   color: var(--color-text-mute);
   font-size: var(--text-xs);
   white-space: nowrap;
-}
-
-.sb-int-note {
-  font-size: var(--text-sm);
-  color: var(--color-text-mute);
-  margin-top: 26px;
 }
 
 @media (max-width: 900px) {
