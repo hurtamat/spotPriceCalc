@@ -1,0 +1,153 @@
+/* ── nav ───────────────────────────────────────────────────────── */
+/* No wrap at any width: the links collapse to a scrollable row on small screens
+   rather than pushing the bar onto a second line. Height stays 64-68px. */
+.sb-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  /* Light enough to see the photograph through, dark enough to keep the links at
+     AA over it. The blur does most of the work. */
+  background: color-mix(in srgb, var(--color-bg) 52%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+/* The bar spans the viewport; its contents stay on the same 1160px grid as the
+   rest of the page. */
+.sb-nav-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  min-height: var(--nav-h);
+  padding: 0 clamp(16px, 4vw, 40px);
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 26px);
+  flex-wrap: nowrap;
+}
+
+.sb-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  letter-spacing: -0.035em;
+  margin-right: auto;
+  flex: 0 0 auto;
+  /* It is an <a> back to the landing page; keep the wordmark's own colours. */
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.sb-brand:hover {
+  color: var(--color-text);
+}
+
+/* The lockup is rebuilt in HTML rather than dropped in as spotsteer-logo.svg so the
+   wordmark renders in the real webfont. Weights match the logo file exactly:
+   Spot at 700, Steer at 400. */
+.sb-brand-word-a {
+  font-weight: 700;
+}
+
+.sb-brand-word-b {
+  font-weight: 400;
+}
+
+.sb-brand-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.sb-nav-links {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 30px);
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sb-nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+.sb-nav-links .sb-link {
+  white-space: nowrap;
+  color: var(--color-text-dim);
+}
+
+.sb-nav-links .sb-link:hover {
+  color: var(--color-text);
+}
+
+/* Below the site's mobile breakpoint the links go entirely. Four section anchors never fit
+   beside the wordmark, and the fix until now was a sideways-scrolling row faded out at its
+   right edge, which is a navigation people have to discover. The bar keeps the wordmark,
+   which is the one thing it has to do: get you back to the landing page. */
+@media (max-width: 900px) {
+  .sb-nav-links {
+    display: none;
+  }
+}
+
+/* ── footer ────────────────────────────────────────────────────── */
+.sb-footer {
+  border-top: 1px solid var(--color-divider);
+  padding: clamp(36px, 5vw, 56px) 0 40px;
+  margin-top: clamp(32px, 5vw, 64px);
+}
+
+.sb-footer-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sb-footer-link:hover {
+  color: var(--color-accent);
+}
+
+.sb-footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  margin-right: auto;
+}
+
+.sb-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--color-accent-tint);
+}
+
+.sb-contact-email {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--text-md);
+  word-break: break-all;
+}
+
+.sb-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-mute);
+}

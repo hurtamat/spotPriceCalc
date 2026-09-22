@@ -1,0 +1,92 @@
+/* ── shared primitives ─────────────────────────────────────────── */
+.sb-shell {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--nav-h) clamp(16px, 4vw, 40px) 0;
+  position: relative;
+}
+
+.sb-link {
+  cursor: pointer;
+  color: var(--color-text);
+  font-weight: 500;
+  font-size: var(--text-sm);
+}
+
+.sb-link:hover {
+  color: var(--color-accent);
+}
+
+/* Used on both <button> and <a> (the CTAs are anchors into #prices), hence the
+   explicit display / text-decoration that a <button> would get for free. */
+.sb-btn {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--r-pill);
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  transition:
+    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.18s,
+    box-shadow 0.18s;
+}
+
+.sb-btn:active {
+  transform: scale(0.98);
+}
+
+/* The primary button is the mark's amber against the dark ground. It is the one
+   warm thing on the page, which is what makes it the thing you click. Dark text
+   on amber clears AA comfortably; white on amber would not. */
+.sb-btn {
+  padding: 13px 26px;
+  font-size: var(--text-md);
+}
+
+.sb-primary {
+  background: var(--color-warm);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-2);
+}
+
+.sb-primary:hover {
+  background: var(--color-warm-strong);
+  color: var(--color-bg-deep); /* beats the global a:hover colour when .sb-primary is an anchor */
+  box-shadow: var(--e-3);
+}
+
+.sb-card {
+  background: var(--color-surface);
+  border-radius: var(--r-md);
+  border: 1px solid var(--color-divider);
+}
+
+/* ── section scaffolding ───────────────────────────────────────── */
+.sb-section {
+  padding: clamp(48px, 8vw, 104px) 0;
+  scroll-margin-top: calc(var(--nav-h) + 20px);
+}
+
+/* Left-aligned, and the body stacks under the headline rather than floating in a
+   right-hand column. */
+.sb-section-head {
+  max-width: 62ch;
+  margin: 0 0 clamp(28px, 4vw, 48px);
+}
+
+.sb-section-head p {
+  margin-top: 16px;
+}
+
+.sb-locate {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -1,0 +1,1246 @@
+/* ── hero ──────────────────────────────────────────────────────── */
+/* Full-bleed out of the 1160px shell. The photograph is a real <img> rather than a
+   CSS background so it can carry fetchpriority and explicit dimensions: it is the
+   LCP element and it must not shift the page when it lands. */
+.sb-hero {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-top: calc(-1 * var(--nav-h));
+  margin-bottom: clamp(28px, 4vw, 56px);
+  /* Height tracks the photograph's own 2.5:1 rather than the viewport, so cover
+     crops a sliver instead of zooming a 640px-wide original into a tall box. */
+  height: clamp(530px, 38vw, 620px);
+  display: flex;
+  align-items: flex-end;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.sb-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.sb-hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Pushed right and slightly down: the driveway and the charging car carry the
+     right half, the dark house and hedge give the headline something quiet to sit
+     on at the left. */
+  object-position: 62% 44%;
+  filter: saturate(1.08) contrast(1.04) brightness(1.06);
+}
+
+/* Two scrims, one job each. The horizontal one buys contrast for the headline; the
+   vertical one dissolves the photograph into the page ground so the hero does not
+   end on a hard edge, it just becomes the site. */
+.sb-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--color-bg) 96%, transparent) 0%,
+      color-mix(in srgb, var(--color-bg) 80%, transparent) 26%,
+      color-mix(in srgb, var(--color-bg) 24%, transparent) 56%,
+      transparent 76%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-bg-deep) 38%, transparent) 0%,
+      transparent 16%,
+      transparent 62%,
+      color-mix(in srgb, var(--color-bg) 78%, transparent) 88%,
+      var(--color-bg) 100%
+    );
+}
+
+.sb-hero-inner {
+  position: relative;
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: calc(var(--nav-h) + clamp(24px, 5vw, 72px)) clamp(16px, 4vw, 40px)
+    clamp(40px, 6vw, 76px);
+}
+
+.sb-hero-copy {
+  max-width: 780px;
+}
+
+/* Planned against the image rather than set at poster scale: a headline this long
+   at text-7xl is a font-size error, not a copy-length one. */
+.sb-hero h1 {
+  margin: 0 0 20px;
+}
+
+.sb-hero-sub {
+  max-width: 44ch;
+  margin-bottom: 0;
+}
+
+/* Hero entry. One move, on the thing the reader looks at first, so it reads as the
+   page arriving rather than as decoration. */
+@media (prefers-reduced-motion: no-preference) {
+  .sb-hero-copy > * {
+    animation: sb-hero-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+}
+
+@keyframes sb-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .sb-hero {
+    height: auto;
+    min-height: clamp(520px, 84vh, 660px);
+  }
+
+  .sb-hero-copy {
+    max-width: none;
+  }
+
+  /* Portrait crops most of the driveway away, so the scrim carries more of the
+     contrast and the image holds the car rather than the house. */
+  .sb-hero-media img {
+    object-position: 72% 50%;
+  }
+
+  .sb-hero-scrim {
+    background:
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-bg-deep) 55%, transparent) 0%,
+        color-mix(in srgb, var(--color-bg) 30%, transparent) 30%,
+        color-mix(in srgb, var(--color-bg) 88%, transparent) 62%,
+        var(--color-bg) 92%
+      );
+  }
+}
+
+/* ── the claim strip, directly under the hero ──────────────────── */
+/* These three used to sit inside the hero. They are trust marks, not the value
+   proposition, so they get their own band and a hairline instead of a card. */
+.sb-claims {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 3vw, 40px);
+  padding: clamp(20px, 3vw, 30px) 0;
+  border-top: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--color-hairline);
+  margin-bottom: clamp(40px, 6vw, 80px);
+}
+
+.sb-stat-num {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-h2);
+  letter-spacing: -0.03em;
+  color: var(--color-accent-strong);
+}
+
+.sb-stat-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-mute);
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .sb-claims {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .sb-claims > div {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+}
+
+.sb-accent {
+  color: var(--color-accent-strong);
+}
+
+/* ── price section + chart ─────────────────────────────────────── */
+.sb-price-section {
+  position: relative;
+  padding: clamp(28px, 5vw, 60px) 0;
+  scroll-margin-top: calc(var(--nav-h) + 20px);
+  overflow: hidden;
+}
+
+.sb-price-inner {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sb-price-col {
+  width: min(100%, 640px);
+}
+
+.sb-price-head {
+  margin-bottom: 20px;
+}
+
+.sb-price-head h2 {
+  margin: 0;
+}
+
+.sb-price-head p {
+  margin: 10px 0 0;
+  max-width: 46ch;
+}
+
+.sb-chart-stack {
+  position: relative;
+}
+
+.sb-chart-card {
+  padding: clamp(18px, 2.5vw, 28px);
+  box-shadow: var(--e-3);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sb-chart-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+/* Full width so the day tabs always wrap to their own row. Without it the tabs ride up
+   beside the stats whenever those are narrow, and the card relayouts as data arrives. */
+.sb-chart-stats-group {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.sb-stat-cap {
+  font-size: var(--text-xs);
+  color: var(--color-text-mute);
+}
+
+.sb-stat-unit {
+  font-size: var(--text-xs);
+  color: var(--color-text-mute);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.sb-stat-big {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-3xl);
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+/* The dash standing in for a missing number. Same box, clearly not a value. */
+.sb-stat-big:not([style]) {
+  color: var(--color-text-mute);
+}
+
+/* Narrow screens: three bare figures, kept on one row and packed left like the desktop
+   layout rather than spread edge to edge. */
+@media (max-width: 560px) {
+  .sb-chart-stats-group {
+    flex-wrap: nowrap;
+    gap: 26px;
+  }
+
+  .sb-stat-big {
+    font-size: var(--text-xl);
+  }
+}
+
+.sb-day-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--color-bg-deep);
+  border: 1px solid var(--color-divider);
+  padding: 4px;
+  border-radius: var(--r-pill);
+}
+
+.sb-day-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  background: transparent;
+  color: var(--color-text);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sb-day-tab {
+  color: var(--color-text-dim);
+}
+
+.sb-day-tab:hover {
+  color: var(--color-text);
+}
+
+.sb-day-tab[data-active='true'] {
+  background: var(--color-accent);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-1);
+}
+
+.sb-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--color-text-mute);
+  margin-top: 4px;
+}
+
+.sb-legend {
+  display: flex;
+  gap: 20px;
+  font-size: var(--text-sm);
+  flex-wrap: wrap;
+  color: var(--color-text-mute);
+  align-items: center;
+}
+
+.sb-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sb-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-pill);
+  display: inline-block;
+}
+
+.sb-chart-tz {
+  font-size: var(--text-xs);
+  color: var(--color-text-mute);
+  margin-top: -12px;
+}
+
+/* The chart, the loading line and the "not published yet" line all land here, so the card is
+   the same height whichever one is showing. 230px is PriceBarChart's own height. */
+.sb-chart-plot {
+  width: 100%;
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sb-chart-state {
+  min-height: 230px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--color-text-mute);
+  font-size: var(--text-sm);
+  padding: 20px;
+}
+
+.sb-chart-state-detail {
+  font-size: var(--text-xs);
+}
+
+.sb-chart-state code {
+  background: var(--color-bg-deep);
+  color: var(--color-accent-strong);
+  padding: 2px 7px;
+  border-radius: var(--r-xs);
+  font-size: var(--text-xs);
+}
+
+/* interactive bidding-zone map as a full-bleed background layer */
+.sb-price-section {
+  position: relative;
+  /* full-bleed: break out of the shell so the map can reach the window edge */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  overflow: hidden; /* clips the map at the viewport edge, not the shell edge */
+  min-height: 920px; /* room for the taller map so it isn't cropped top/bottom */
+  display: flex;
+  align-items: center;
+  justify-content: center; /* re-center the shell-width content inside 100vw */
+}
+
+.sb-zonemap-bleed {
+  position: absolute;
+  top: 50%;
+  /* Anchor to the CENTERED content, not the viewport. 50% = content centre; the
+     content's left edge is at (50% - 580px) for the 1160px shell. Starting ~80px
+     further left gives a modest bleed that stays tied to the layout on wide screens. */
+  left: calc(50% - 660px);
+  transform: translateY(-50%);
+  width: min(800px, 58vw);
+  z-index: 0;
+  pointer-events: none; /* ocean/empty passes through; zones re-enable below */
+  /* aggressive fade on the right edge, out to nothing (into the chart / background) */
+  -webkit-mask-image: linear-gradient(to right, #000 68%, transparent 94%);
+  mask-image: linear-gradient(to right, #000 68%, transparent 94%);
+}
+
+.sb-price-inner {
+  position: relative;
+  z-index: 1; /* chart card floats above the map */
+  flex: 1; /* fill the flex section so justify-content:flex-end keeps the card right */
+  width: 100%;
+  max-width: 1160px; /* match the shell so the chart stays where it was */
+  padding: 0 clamp(16px, 4vw, 40px); /* match shell horizontal padding */
+  box-sizing: border-box;
+  pointer-events: none; /* its empty left half must not block map clicks... */
+}
+
+.sb-price-col {
+  max-width: 560px; /* chart card on the right; map stays exposed on the left */
+  pointer-events: auto; /* ...but the card itself stays interactive */
+}
+
+/* The nudge pill and the slide-away handle are mobile-only affordances (see the
+   max-width: 900px block). On desktop the map + chart are always side by side, so
+   neither is needed. */
+.sb-map-nudge,
+.sb-chart-handle {
+  display: none;
+}
+
+.sb-zonemap {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── mobile: two-panel slider (map ⇄ chart) ────────────────────── */
+@media (max-width: 900px) {
+  /* TWO-PANEL SLIDER. The section is a horizontal track holding two full-width stages
+     side by side: the CHART (left) and the MAP (right). Nothing is preselected, so the
+     track starts parked on the MAP and the user is nudged to tap a zone — that slides the
+     track to the CHART (React sets data-panel-open="true"). The handle / a swipe slides it
+     back to re-pick. Each stage is its own full-screen panel, so exactly one is visible at
+     a time — never a split — and the heading is never stranded behind the map. */
+  .sb-price-section {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start; /* CRITICAL: anchor the 200vw track left (desktop rule
+                                    sets center, which would show half of each stage) */
+    padding: 0;
+    position: relative;
+    overflow: hidden; /* the off-screen stage is clipped here */
+    /* A floor, not a fixed height: the chart stage sizes to its card, so nothing inside
+       has to scroll and a vertical drag always belongs to the page. */
+    min-height: max(460px, min(80vh, 620px));
+    touch-action: pan-y; /* let vertical scroll through; we handle horizontal swipes */
+  }
+
+  /* Both stages are exactly one viewport wide and slide together as one track.
+     order: chart (price-inner) left, map (zonemap-bleed) right. */
+  .sb-zonemap-bleed,
+  .sb-price-inner {
+    flex: 0 0 100%;
+    width: 100%;
+    /* Default = parked on the MAP (the right stage), so the track is shifted one viewport
+       left. Opening the chart brings it back to 0. */
+    transform: translateX(var(--sb-slide, -100%));
+    transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .sb-price-inner {
+    order: 0;
+  }
+  .sb-zonemap-bleed {
+    order: 1;
+  }
+  .sb-price-section[data-panel-open='true'] .sb-zonemap-bleed,
+  .sb-price-section[data-panel-open='true'] .sb-price-inner {
+    --sb-slide: 0; /* slide the track right → show the chart (left stage) */
+  }
+
+  /* MAP stage: bright, interactive, ZOOMED to fill its panel; the right edge (Russia/
+     Turkey) fades with the exact same mask as the desktop view. */
+  .sb-zonemap-bleed {
+    position: relative;
+    left: auto;
+    top: auto;
+    /* Explicit, so the map stage never stretches the section — the svg is far taller
+       than the stage and would otherwise set the height for both. */
+    height: max(460px, min(80vh, 620px));
+    margin: 0;
+    opacity: 1;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 99%);
+    mask-image: linear-gradient(to right, #000 85%, transparent 99%);
+  }
+
+  .sb-zonemap {
+    width: min(120%, 720px); /* zoom: bleed past the panel so zones are big & tappable */
+    height: auto;
+    max-width: none;
+    flex: none;
+    /* Shift the map RIGHT so the faded eastern edge (Russia) slides off-screen and more
+       of western/central Europe is centered. Higher = further right / less Russia. */
+    transform: translateX(9%);
+  }
+
+  /* Nudge pill floating over the map stage, inviting the first tap. */
+  .sb-map-nudge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    padding: 9px 15px;
+    border-radius: var(--r-pill);
+    background: var(--color-accent);
+    color: var(--color-bg-deep);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    box-shadow: var(--e-2);
+    pointer-events: none;
+    transition: opacity 0.3s;
+    animation: sb-nudge-bob 1.8s ease-in-out infinite;
+  }
+
+  .sb-map-nudge-tap {
+    width: 9px;
+    height: 9px;
+    border-radius: var(--r-pill);
+    background: var(--color-bg-deep);
+    box-shadow: 0 0 0 0 rgba(15, 20, 24, 0.55);
+    animation: sb-nudge-ping 1.8s ease-out infinite;
+  }
+
+  .sb-price-section[data-panel-open='true'] .sb-map-nudge {
+    opacity: 0;
+  }
+
+  /* CHART stage — a fixed-size box that pins the handle; the column scrolls inside it. */
+  .sb-price-inner {
+    position: relative;
+    z-index: 2;
+    max-width: none;
+    padding: 0;
+    display: block;
+    overflow: hidden;
+    pointer-events: auto;
+    background: var(--color-bg);
+  }
+
+  .sb-price-col {
+    position: static;
+    max-width: none;
+    width: 100%;
+    box-sizing: border-box;
+    padding: clamp(18px, 5vw, 26px) clamp(16px, 4vw, 22px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    /* Nothing inside may force the column wider than the stage. A flex child defaults to
+       min-width:auto, so one nowrap stat row was enough to push a sideways scrollbar out. */
+    min-width: 0;
+    overflow: clip;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .sb-chart-card,
+  .sb-chart-plot {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .sb-price-head {
+    display: none; /* on mobile the map already provides the context; save the space */
+  }
+
+  /* A second card stacked behind the chart card, showing only as a strip down its right
+     side — that strip is the button back to the map (which lives to the right, hence ›).
+     The stack's right margin is what the slab peeks into. */
+  .sb-chart-stack {
+    --sb-handle-w: 30px;
+    margin-right: var(--sb-handle-w);
+  }
+
+  .sb-chart-handle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    position: absolute;
+    inset: 0 calc(-1 * var(--sb-handle-w)) 0 0;
+    z-index: 0;
+    padding: 0 7px 0 0;
+    border: 1px solid var(--color-map-zone);
+    border-radius: var(--r-md);
+    background: var(--color-map-zone);
+    color: var(--color-bg-deep);
+    cursor: pointer;
+    box-shadow: var(--e-2);
+  }
+
+
+  .sb-chart-handle:active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  /* The card covers everything but that right strip. */
+  .sb-chart-card {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@keyframes sb-nudge-bob {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+@keyframes sb-nudge-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 20, 24, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(15, 20, 24, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 20, 24, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-map-nudge,
+  .sb-map-nudge-tap {
+    animation: none;
+  }
+  .sb-zonemap-bleed,
+  .sb-price-inner {
+    transition: none;
+  }
+}
+
+.sb-zone {
+  stroke: var(--color-bg);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+
+/* non-selectable context countries (Balkans, Russia, Turkey, …) — greyed background */
+.sb-zone-context {
+  /* Deliberately dim: these are out of play, and lifting them above the selectable
+     zones would invert the hierarchy of the map. */
+  fill: #3a454e;
+  pointer-events: none;
+}
+
+/* selectable bidding zones */
+/* Clears 3:1 against the page ground so a selectable zone is identifiable as a
+   control, per WCAG 1.4.11, without competing with the amber selection. */
+.sb-zone-pick {
+  fill: var(--color-map-zone);
+  cursor: pointer;
+  transition: fill 0.12s ease;
+  outline: none;
+  pointer-events: auto; /* re-enable clicks (parent layer is pointer-events:none) */
+}
+
+.sb-zone-pick:hover,
+.sb-zone-pick:focus-visible {
+  fill: var(--color-accent);
+}
+
+/* The selected zone is the one warm thing on the map, which is the same job the
+   marker dot does in the logo. */
+.sb-zone-pick[data-selected='true'] {
+  fill: var(--color-warm);
+}
+
+/* ── how it works / spot prices ────────────────────────────────── */
+/* A sequence rail, not three cards. The nodes repeat the mark: hollow rings for the
+   two reading steps, one filled amber for the step where something actually happens.
+   Columns are deliberately unequal so it reads as a progression rather than a set. */
+.sb-steps {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1.1fr;
+  gap: clamp(20px, 3vw, 44px);
+  margin-bottom: clamp(48px, 7vw, 88px);
+  position: relative;
+}
+
+.sb-step {
+  position: relative;
+  padding-top: 34px;
+}
+
+/* The rail itself, drawn behind the nodes and stopping at the last one. */
+.sb-step::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 0;
+  right: calc(-1 * clamp(20px, 3vw, 44px));
+  height: 1px;
+  background: var(--color-divider);
+}
+
+.sb-step:last-child::before {
+  right: auto;
+  width: 18px;
+}
+
+.sb-step-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--color-accent);
+  background: var(--color-bg);
+}
+
+.sb-step:last-child .sb-step-node {
+  border-color: var(--color-warm);
+  background: var(--color-warm);
+  box-shadow: 0 0 0 5px var(--color-warm-tint);
+}
+
+.sb-step h3 {
+  margin-bottom: 10px;
+}
+
+.sb-step p {
+  color: var(--color-text-dim);
+  font-size: var(--text-md);
+  max-width: 34ch;
+}
+
+@media (max-width: 800px) {
+  .sb-steps {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  /* Vertical rail on the left once the row stacks. */
+  .sb-step {
+    padding-top: 0;
+    padding-left: 34px;
+  }
+
+  .sb-step::before {
+    top: 9px;
+    bottom: -28px;
+    left: 8px;
+    right: auto;
+    width: 1px;
+    height: auto;
+  }
+
+  .sb-step:last-child::before {
+    display: none;
+  }
+
+  .sb-step p {
+    max-width: none;
+  }
+}
+
+/* The tariff comparison: two halves of one statement, split by a single rule
+   rather than boxed into two cards. */
+.sb-tariffs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.sb-tariff {
+  padding: clamp(24px, 3vw, 38px);
+}
+
+.sb-tariff h4 {
+  margin-bottom: 10px;
+}
+
+.sb-tariff p {
+  font-size: var(--text-md);
+  margin: 0;
+  color: var(--color-text-dim);
+}
+
+.sb-tariff:first-child {
+  border-right: 1px solid var(--color-divider);
+}
+
+.sb-tariff-fixed {
+  background: var(--color-surface);
+}
+
+.sb-tariff-fixed h4 {
+  color: var(--color-text-mute);
+}
+
+/* The dynamic half is the one that pays, so it is the one carrying brand colour. */
+.sb-tariff-dynamic {
+  background: linear-gradient(
+    160deg,
+    var(--color-accent-tint) 0%,
+    color-mix(in srgb, var(--color-surface) 92%, transparent) 100%
+  );
+}
+
+.sb-tariff-dynamic h4 {
+  color: var(--color-accent-strong);
+}
+
+.sb-tariff-dynamic p strong {
+  color: var(--color-text);
+}
+
+@media (max-width: 720px) {
+  .sb-tariffs {
+    grid-template-columns: 1fr;
+  }
+
+  .sb-tariff:first-child {
+    border-right: none;
+    border-bottom: 1px solid var(--color-divider);
+  }
+}
+
+/* ── devices ───────────────────────────────────────────────────── */
+/* Bento, 4 items and exactly 4 cells, deliberately unequal. Home Assistant is the
+   headline integration so it takes two columns; Shelly runs full height beside it;
+   the two planned integrations share the remaining row as small tiles. The old
+   2x2 of identical squares gave the two shipping products the same weight as the
+   two that do not exist yet. */
+.sb-int-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto;
+  gap: 14px;
+}
+
+.sb-int-card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--r-md);
+  padding: clamp(22px, 2.6vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: var(--e-1);
+}
+
+.sb-int-card[data-key='homeassistant'] {
+  grid-column: 1 / span 2;
+  grid-row: 1;
+}
+
+.sb-int-card[data-key='shelly'] {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+.sb-int-card[data-soon] {
+  grid-row: 2;
+}
+
+/* Home Assistant leads, so it gets the one filled surface on the page: brand teal
+   deepened until white text clears AA on it. */
+.sb-int-card[data-dark] {
+  background:
+    radial-gradient(
+      120% 140% at 12% 0%,
+      color-mix(in srgb, var(--color-brand) 62%, transparent) 0%,
+      transparent 62%
+    ),
+    var(--color-accent-deep);
+  color: var(--color-text);
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  box-shadow: var(--e-2);
+}
+
+.sb-int-card img {
+  width: auto;
+  object-fit: contain;
+}
+
+/* Every partner logo ships dark-on-light. On a dark site they all have to be
+   flattened to the page's off-white or they disappear into the card. */
+.sb-logo-white {
+  filter: brightness(0) invert(1);
+  opacity: 0.94;
+}
+
+.sb-int-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* The dot here is real state, not decoration: it separates what ships today from
+   the two tiles that do not. */
+.sb-int-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: var(--color-accent-tint);
+  color: var(--color-accent-strong);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sb-int-card[data-dark] .sb-int-badge {
+  background: rgba(232, 237, 241, 0.12);
+  color: var(--color-text);
+  border-color: rgba(232, 237, 241, 0.22);
+}
+
+.sb-int-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--color-warm);
+}
+
+.sb-int-rule {
+  height: 1px;
+  background: var(--color-divider);
+}
+
+.sb-int-card[data-dark] .sb-int-rule {
+  background: rgba(232, 237, 241, 0.16);
+}
+
+.sb-int-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.sb-int-bullet {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--color-text-dim);
+}
+
+.sb-int-card[data-dark] .sb-int-bullet {
+  color: rgba(232, 237, 241, 0.88);
+}
+
+.sb-int-check {
+  flex: none;
+  font-size: var(--text-lg);
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.sb-int-cta {
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 12px 22px;
+  font-size: var(--text-sm);
+  background: var(--color-warm);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-1);
+}
+
+.sb-int-cta:hover {
+  background: var(--color-warm-strong);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-2);
+}
+
+/* Planned integrations: recognisable but plainly inactive. Small tiles, because
+   that is how much of the page they have earned. */
+.sb-int-soon {
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 150px;
+  padding: 28px 20px;
+  overflow: hidden;
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--color-divider);
+  box-shadow: none;
+}
+
+.sb-int-card[data-soon] img {
+  filter: brightness(0) invert(1) blur(1.4px);
+  opacity: 0.32;
+}
+
+.sb-logo-soon {
+  color: var(--color-text-mute);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.sb-int-note {
+  font-size: var(--text-sm);
+  color: var(--color-text-mute);
+  margin-top: 26px;
+}
+
+@media (max-width: 900px) {
+  .sb-int-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sb-int-card[data-key='homeassistant'] {
+    grid-column: 1 / span 2;
+  }
+
+  .sb-int-card[data-key='shelly'] {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+  }
+
+  .sb-int-card[data-soon] {
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 560px) {
+  .sb-int-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sb-int-card[data-key='homeassistant'],
+  .sb-int-card[data-key='shelly'],
+  .sb-int-card[data-soon] {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+/* ── savings teaser (links out to /savings) ────────────────────── */
+/* A full-bleed tinted band. It is the only section on the page that breaks the
+   1160px shell apart from the hero, which is what makes it register as a change of
+   subject rather than another block of the same page. */
+.sb-teaser {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: clamp(48px, 7vw, 88px) clamp(16px, 4vw, 40px);
+  background:
+    radial-gradient(
+      90% 120% at 85% 12%,
+      var(--color-accent-tint) 0%,
+      transparent 64%
+    ),
+    var(--color-bg-deep);
+  border-top: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--color-hairline);
+  overflow: hidden;
+}
+
+.sb-teaser-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+}
+
+.sb-teaser h2 {
+  margin-bottom: 16px;
+}
+
+.sb-teaser p {
+  max-width: 46ch;
+  margin-bottom: 28px;
+}
+
+/* The right column is the appliance set itself, which is the thing being offered.
+   Icons, not a bulleted list of the same six words. */
+.sb-teaser-apps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.sb-teaser-app {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 16px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--color-divider);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  font-size: var(--text-sm);
+  color: var(--color-text-dim);
+  line-height: 1.3;
+}
+
+.sb-teaser-app .material-symbols-outlined {
+  font-size: var(--text-3xl);
+  color: var(--color-accent);
+}
+
+@media (max-width: 860px) {
+  .sb-teaser-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .sb-teaser p {
+    max-width: none;
+  }
+
+  /* Six appliance tiles under the copy is a screenful of preview before the button. */
+  .sb-teaser-apps {
+    display: none;
+  }
+}
+
+/* ── faq ───────────────────────────────────────────────────────── */
+/* Heading above, questions under it. Capped at a comfortable measure so a long
+   question does not run the full 1160px. */
+.sb-faq-list {
+  display: flex;
+  flex-direction: column;
+  max-width: 880px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.sb-faq {
+  overflow: hidden;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-divider);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.sb-faq-q {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: var(--text-lede);
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  transition: color 0.15s;
+}
+
+.sb-faq-q:hover {
+  color: var(--color-accent-strong);
+}
+
+.sb-faq-icon {
+  flex: none;
+  font-family: var(--font-body);
+  font-size: var(--text-3xl);
+  font-weight: 400;
+  color: var(--color-warm);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animated open/close: grid-rows 0fr -> 1fr slides the panel to its natural
+   height without hard-coding it; the inner wrapper clips the overflow. */
+.sb-faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.sb-faq-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.sb-faq-panel > div {
+  overflow: hidden;
+}
+
+.sb-faq-a {
+  margin: 0;
+  padding: 0 4px 24px;
+  max-width: 68ch;
+  color: var(--color-text-dim);
+  font-size: var(--text-md);
+  line-height: 1.65;
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+}
+
+.sb-faq-panel[data-open='true'] .sb-faq-a {
+  opacity: 1;
+}
+
+.sb-faq-link {
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--color-accent-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-faq-panel,
+  .sb-faq-a {
+    transition: none;
+  }
+}

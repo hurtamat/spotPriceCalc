@@ -1,0 +1,142 @@
+/* Termly legal documents rendered inside LegalDialog. Their own stylesheet is prefixed
+   with .sb-legal at runtime (see api/legal.ts), so this only sets what Termly doesn't. */
+.sb-legal {
+  overflow-wrap: anywhere;
+}
+
+/* Termly's own stylesheet paints for a white page (black headings, #595959 body, Arial) and
+   does it with !important, so inline styles never get a look in. It is also injected after our
+   sheet, so a tie on specificity goes to them: the doubled .sb-legal is what wins these back. */
+.sb-legal.sb-legal [data-custom-class='title'],
+.sb-legal.sb-legal [data-custom-class='title'] *,
+.sb-legal.sb-legal [data-custom-class='heading_1'],
+.sb-legal.sb-legal [data-custom-class='heading_1'] *,
+.sb-legal.sb-legal [data-custom-class='heading_2'],
+.sb-legal.sb-legal [data-custom-class='heading_2'] * {
+  color: var(--color-text) !important;
+  font-family: var(--font-heading) !important;
+  letter-spacing: -0.02em;
+}
+
+.sb-legal.sb-legal [data-custom-class='heading_1'],
+.sb-legal.sb-legal [data-custom-class='heading_1'] * {
+  font-size: var(--text-2xl) !important;
+}
+
+.sb-legal.sb-legal [data-custom-class='heading_2'],
+.sb-legal.sb-legal [data-custom-class='heading_2'] * {
+  font-size: var(--text-lg) !important;
+}
+
+.sb-legal.sb-legal [data-custom-class='body_text'],
+.sb-legal.sb-legal [data-custom-class='body_text'] *,
+.sb-legal.sb-legal [data-custom-class='subtitle'],
+.sb-legal.sb-legal [data-custom-class='subtitle'] * {
+  color: var(--color-text-dim) !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--text-md) !important;
+}
+
+.sb-legal.sb-legal [data-custom-class='link'],
+.sb-legal.sb-legal [data-custom-class='link'] * {
+  color: var(--color-accent) !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--text-md) !important;
+}
+
+/* Anything Termly left carrying only an inline colour, the stray rgb(0,0,0) and rgb(127,127,127)
+   wrappers between sections, has no !important behind it, so one rule catches the lot. */
+.sb-legal [style*='rgb(0, 0, 0)'],
+.sb-legal [style*='rgb(127, 127, 127)'] {
+  color: var(--color-text) !important;
+}
+
+.sb-legal h1,
+.sb-legal h2,
+.sb-legal h3,
+.sb-legal h4 {
+  color: var(--color-text);
+  font-family: var(--font-heading);
+}
+
+.sb-legal li {
+  color: var(--color-text-dim);
+}
+
+/* ── legal documents as pages (/privacy, /terms) ── */
+.sb-legal-page {
+  max-width: 860px;
+  margin-inline: auto;
+}
+
+.sb-legal-title {
+  margin: 14px 0 24px;
+}
+
+.sb-legal-state {
+  color: var(--color-neutral-700);
+  font-size: var(--text-sm);
+}
+
+.sb-legal table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* ── /contact ───────────────────────────────────────────────────────────────
+   Same narrow measure as the legal pages it carries the identity for. */
+.sb-contact-page {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.sb-contact-lead {
+  max-width: 52ch;
+  margin: 0 0 18px;
+}
+
+.sb-contact-page .sb-contact-row {
+  max-width: 420px;
+  justify-content: space-between;
+}
+
+.sb-contact-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  padding: 6px 10px;
+}
+
+.sb-contact-copy .material-symbols-outlined {
+  font-size: var(--text-lg);
+}
+
+.sb-contact-note {
+  max-width: 58ch;
+  margin-top: 10px;
+}
+
+.sb-contact-h2 {
+  margin: 34px 0 12px;
+}
+
+/* <address> is machine-readable; browsers italicise it, which a postal address isn't. */
+.sb-impressum {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-style: normal;
+  font-size: var(--text-md);
+  line-height: 1.6;
+  color: var(--color-text-mute);
+}
+
+.sb-impressum-name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Location is asked for on demand, never on page load. */
