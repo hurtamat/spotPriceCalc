@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useCopyToClipboard } from '../../hooks/useCopyToClipboard';
 import { prefersReducedMotion } from '../../lib/media';
+import { CopyRow } from './CopyRow';
 
 // my.home-assistant.io forwards to the visitor's own instance.
 const REPO_URL = 'https://github.com/hurtamat/spotprice-ha';
@@ -13,7 +13,7 @@ const BLUEPRINT_URL =
     `${REPO_URL}/blob/main/blueprints/automation/spotsteer/cheap_hours_switch.yaml`,
   );
 
-const RUN_ENTITY = 'binary_sensor.spotsteer_running';
+export const RUN_ENTITY = 'binary_sensor.spotsteer_running';
 
 // Matches the drawer transition in guide-ha.css.
 const DRAWER_MS = 280;
@@ -39,7 +39,6 @@ function MyHaBadge({ href, src, alt }: { href: string; src: string; alt: string 
 export function HaSteps() {
   const [panel, setPanel] = useState<Drawer | null>(null);
   const swapTimer = useRef<number | undefined>(undefined);
-  const [copied, copy] = useCopyToClipboard();
 
   useEffect(() => () => window.clearTimeout(swapTimer.current), []);
 
@@ -156,16 +155,7 @@ export function HaSteps() {
                     This is the switch it publishes, on while they last. Trigger your own
                     automation on it.
                   </p>
-                  <div className="sb-ha-copyrow">
-                    <code>{RUN_ENTITY}</code>
-                    <button
-                      type="button"
-                      className="sb-btn sb-primary sb-ha-copybtn"
-                      onClick={() => copy(RUN_ENTITY)}
-                    >
-                      {copied ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
+                  <CopyRow text={RUN_ENTITY} />
                 </div>
               </div>
             </div>

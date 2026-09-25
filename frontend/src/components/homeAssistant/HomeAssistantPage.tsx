@@ -2,11 +2,22 @@ import { Page } from '../Page';
 import { DayFlow } from '../DayFlow';
 import { GuideHero, GuideNext, GuideTroubleshooting } from '../Guide';
 import { Check } from '../icons';
-import { HaSteps } from './HaSteps';
+import { HaSteps, RUN_ENTITY } from './HaSteps';
+import { CopyRow } from './CopyRow';
 import { HaPreview } from './HaPreview';
 import { HaCard } from './HaCard';
 
 const TROUBLES = [
+  {
+    q: 'The card does not show up',
+    a: (
+      <>
+        Refresh the page first. If SpotSteer is still missing from the card search, add a Manual card
+        instead and paste this:
+        <CopyRow text={`type: custom:spotsteer-card\nentity: ${RUN_ENTITY}`} />
+      </>
+    ),
+  },
   {
     q: 'Setup says it cannot reach SpotSteer',
     a: 'Almost always means Home Assistant cannot get online. Check that, then try again.',

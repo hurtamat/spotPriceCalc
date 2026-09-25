@@ -176,8 +176,6 @@ blocks as an on/off step series, which is the shape a stepline chart wants.
   [DESIGN.md](./DESIGN.md). Note the limiter partitions on IP, so every device behind one household NAT
   shares a budget.
 - **Tests.** `requirements_test.txt` pins the HA test harness; there is no `tests/` directory yet.
-- **The production backend URL.** `DEFAULT_BASE_URL` in `const.py` is still a local development
-  address; it needs the deployed host before release.
 - **A config-entry migration.** Entries created before the `zone_code` change store `latitude` /
   `longitude` and must be re-added by hand.
 

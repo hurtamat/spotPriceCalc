@@ -300,7 +300,7 @@
 .sb-ha-copyrow code {
   color: var(--color-accent-800);
   overflow: auto;
-  white-space: nowrap;
+  white-space: pre;
   flex: 1;
 }
 
@@ -409,4 +409,8 @@
   .sb-ha-plus {
     transition: none;
   }
+}
+
+.sb-acc-a .sb-ha-copyrow {
+  margin-top: 12px;
 }

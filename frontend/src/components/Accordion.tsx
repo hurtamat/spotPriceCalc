@@ -24,7 +24,7 @@ export function Accordion({ items, variant }: { items: Item[]; variant: 'faq' | 
             </button>
             <div className="sb-acc-panel" data-open={isOpen}>
               <div>
-                <p className="sb-acc-a">{item.a}</p>
+                <div className="sb-acc-a">{item.a}</div>
               </div>
             </div>
           </div>

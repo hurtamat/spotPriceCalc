@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { Mode } from './form';
 
 // Mirrors ROLES in schedule.shelly.js; keep in sync.
 const RELAY_COMPONENTS = [
@@ -12,9 +11,9 @@ const RELAY_COMPONENTS = [
   { id: 'text:201', name: 'Running tomorrow', desc: 'The same for tomorrow, once prices publish.' },
 ];
 
-export function OnDevicePanel({ mode }: { mode: Mode }) {
+// Relay only: the colour script creates no virtual components.
+export function OnDevicePanel() {
   const [hasPhoneShot, setHasPhoneShot] = useState(true);
-  const isRelay = mode === 'relay';
 
   return (
     <section id="on-device" className="sb-guide-section">
@@ -29,8 +28,8 @@ export function OnDevicePanel({ mode }: { mode: Mode }) {
               <strong>Virtual components → Components</strong>, and everything you answered above is
               there as a control you can drag. No web page, no account, no coming back here.
             </p>
-            <div key={mode} className="sb-sw-swap" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {(isRelay ? RELAY_COMPONENTS : []).map((v) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {RELAY_COMPONENTS.map((v) => (
                 <div key={v.id} className="sb-sw-vc">
                   <code>{v.id}</code>
                   <div style={{ minWidth: 0 }}>
@@ -39,12 +38,6 @@ export function OnDevicePanel({ mode }: { mode: Mode }) {
                   </div>
                 </div>
               ))}
-              {!isRelay && (
-                <p className="sb-sw-device-lede" style={{ marginBottom: 0 }}>
-                  The colour script creates none. It only reads prices and sets the ring, so there is
-                  nothing on the device to adjust.
-                </p>
-              )}
             </div>
           </div>
           {hasPhoneShot && (

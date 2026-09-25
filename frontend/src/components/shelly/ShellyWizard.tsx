@@ -110,7 +110,7 @@ export function ShellyWizard() {
         <WizardQuestions mode={mode} onMode={pickMode} picker={picker} form={form} update={update} />
         <ScriptPanel mode={mode} generated={generated} chips={chips} copied={copied} onCopy={copy} />
         <InstallSteps />
-        <OnDevicePanel mode={mode} />
+        {isRelay && <OnDevicePanel />}
         <DayFlow />
         <GuideTroubleshooting items={TROUBLES} />
         <GuideNext links={NEXT} />
