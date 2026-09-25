@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
-import { SITE, OPERATOR, OPERATOR_ADDRESS_LINES, ROUTES } from '../config/site';
+import { SITE, OPERATOR, HELPER, OPERATOR_ADDRESS_LINES, ROUTES } from '../config/site';
 import { ArrowLeft } from './icons';
 
 export function ContactPage() {
@@ -60,7 +60,7 @@ export function ContactPage() {
         <h2 className="sb-h4 sb-contact-h2">Who runs this site</h2>
         <address className="sb-impressum">
           <span className="sb-impressum-name">{OPERATOR.name}</span>
-          <span className="sb-impressum-name">Ivan Trencansky</span>
+          <span className="sb-impressum-name">{HELPER.name}</span>
           {OPERATOR_ADDRESS_LINES.map((line) => (
             <span key={line}>{line}</span>
           ))}

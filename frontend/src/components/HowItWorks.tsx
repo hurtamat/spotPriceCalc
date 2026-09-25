@@ -1,3 +1,5 @@
+import { TariffComparison } from './TariffComparison';
+
 // A sequence, not a set: the three steps sit on one rail, and the step where
 // something physically happens is the one the mark's amber node lands on.
 const STEPS = [
@@ -22,8 +24,7 @@ export function HowItWorks() {
         <h2 className="sb-h1">What are spot prices</h2>
         <p className="sb-lede-sm">
           On the wholesale market, electricity is priced <strong>every single hour</strong>. That
-          hourly wholesale price is the <em>spot price</em>. Households can benefit from these,
-          and put money back in their own pocket every month.
+          hourly wholesale price is the <em>spot price</em>, and it swings through the day.
         </p>
       </div>
 
@@ -37,23 +38,7 @@ export function HowItWorks() {
         ))}
       </div>
 
-      <div className="sb-tariffs">
-        <div className="sb-tariff sb-tariff-dynamic">
-          <h4 className="sb-h4">Dynamic / spot tariff</h4>
-          <p>
-            You pay the real hourly price. Now moving flexible loads into the cheap hours{' '}
-            <strong>directly cuts your bill</strong>, and that&apos;s exactly what SpotSteer
-            automates.
-          </p>
-        </div>
-        <div className="sb-tariff sb-tariff-fixed">
-          <h4 className="sb-h4">Fixed tariff</h4>
-          <p>
-            You pay the same rate at any hour. Shifting your boiler or EV charging to cheap hours
-            saves you <strong>nothing</strong>, because the meter can&apos;t tell the difference.
-          </p>
-        </div>
-      </div>
+      <TariffComparison />
     </section>
   );
 }

@@ -1,6 +1,3 @@
-// Bento, not a 2x2 of equal squares: Home Assistant leads across two columns, Shelly
-// runs full height beside it, and the two planned integrations share the lower row as
-// small tiles. Four items, four cells, no filler.
 const LIVE = [
   {
     key: 'homeassistant',
@@ -41,7 +38,7 @@ export function Devices() {
   return (
     <section id="devices" className="sb-section">
       <div className="sb-section-head">
-        <h2 className="sb-h1">The smart-home systems SpotSteer controls</h2>
+        <h2 className="sb-h1">Works with what you already own</h2>
         <p className="sb-lede-sm">
           Already run one of these? You&apos;re ready. SpotSteer speaks to your existing hub,
           switches and plugs and runs them on the cheap hours. No new hardware, no rewiring.
