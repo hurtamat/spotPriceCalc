@@ -1,23 +1,13 @@
-/* ═══════════════════════════════════════════════════════════════════
-   Shelly setup wizard (/shelly) — from the "Shelly.dc.html" Claude
-   Design canvas. Two mono-family additions and one accent-900 panel
-   style are the only things it needs that the rest of the site lacked.
-   ═══════════════════════════════════════════════════════════════════ */
-
-/* One column for the whole page. The questions used to sit at 820px inside a 1160px page, which read
-   as two different layouts stacked; 980px is the midpoint and every section now shares it. */
 .sb-sw {
   max-width: 980px;
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
 }
 
-/* ── hero ── */
 .sb-sw-hero {
   padding: clamp(30px, 4.5vw, 52px) 0 clamp(22px, 3vw, 32px);
 }
 
-/* Same reason as the Home Assistant lockup above. */
 .sb-sw-logo {
   filter: brightness(0) invert(1);
   opacity: 0.94;
@@ -36,7 +26,6 @@
   max-width: 52ch;
 }
 
-/* Shared by both setup guides, so /shelly and /home-assistant open alike. */
 .sb-guide-meta {
   display: flex;
   gap: 10px;
@@ -58,9 +47,7 @@
   margin-left: 10px;
 }
 
-/* Content that swaps when the script choice changes. Each carries key={mode}, so React remounts it and
-   the animation replays; without that the new content simply appears. Enter only — animating the outgoing
-   half needs two copies on screen at once, which is more machinery than this earns. */
+/* Remounted via key={mode}, so the enter animation replays on every swap. */
 @keyframes sb-sw-swap-in {
   from {
     opacity: 0;
@@ -82,7 +69,6 @@
   }
 }
 
-/* ── the question cards ── */
 .sb-sw-form {
   display: flex;
   flex-direction: column;
@@ -127,7 +113,6 @@
   max-width: 46ch;
 }
 
-/* ── option rows: the mode picker and the two checkboxes ── */
 .sb-sw-options {
   display: flex;
   flex-direction: column;
@@ -172,7 +157,6 @@
   margin-top: 2px;
 }
 
-/* Radio dot: a thick border collapses the middle to a ring when selected. */
 .sb-sw-radio {
   flex: none;
   width: 17px;
@@ -225,7 +209,6 @@
   color: var(--color-bg-deep);
 }
 
-/* ── fields ── */
 .sb-sw-label {
   display: block;
   font-size: var(--text-xs);
@@ -284,7 +267,6 @@
   min-width: 120px;
 }
 
-/* The plain-English restatement of the four settings above it. */
 .sb-sw-reads {
   margin-top: 16px;
   border-left: 2px solid var(--color-accent-200);
@@ -297,7 +279,6 @@
   color: var(--color-accent-800);
 }
 
-/* ── colour legend (shown instead of the timing card) ── */
 .sb-sw-legend {
   display: flex;
   gap: 10px;
@@ -332,7 +313,6 @@
   color: var(--color-neutral-600);
 }
 
-/* ── the generated script, on a dark slab ── */
 .sb-sw-script {
   background: var(--color-accent-900);
   border-radius: var(--r-lg);
@@ -392,7 +372,6 @@
   background: var(--color-surface-2);
 }
 
-/* One line, scrolled sideways. Nobody reads it; a wrapped wall only looks alarming. */
 .sb-sw-code {
   background: rgba(232, 237, 241, 0.05);
   border: 1px solid var(--color-hairline);
@@ -437,10 +416,9 @@
   font-size: var(--text-sm);
 }
 
-/* ── install steps + the app screenshot ── */
 .sb-sw-section {
   padding: 0 0 clamp(30px, 4vw, 46px);
-  scroll-margin-top: 74px;
+  scroll-margin-top: calc(var(--nav-h) + 20px);
 }
 
 .sb-sw-h2 {
@@ -509,7 +487,6 @@
   min-width: 0;
 }
 
-/* Device-ish frame: near-black bezel so a dark app screenshot reads as a screen. */
 .sb-sw-frame {
   width: 100%;
   max-width: 230px;
@@ -536,7 +513,6 @@
   text-align: center;
 }
 
-/* ── the on-device panel ── */
 .sb-sw-device {
   background: var(--color-accent-900);
   color: var(--color-text);
@@ -630,70 +606,6 @@
   border-radius: var(--r-md);
 }
 
-/* ── day flow + troubleshooting ── */
-
-.sb-sw-faq {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sb-sw-faq-item {
-  overflow: hidden;
-  box-shadow: var(--e-1);
-}
-
-.sb-sw-faq-q {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 17px 22px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: var(--text-md);
-  color: var(--color-text);
-}
-
-.sb-sw-faq-icon {
-  font-family: var(--font-body);
-  font-size: var(--text-3xl);
-  font-weight: 400;
-  color: var(--color-accent);
-  transition: transform 0.2s;
-}
-
-.sb-sw-faq-icon[data-open='true'] {
-  transform: rotate(45deg);
-}
-
-/* Wrapped in .sb-faq-panel, so the slide comes from there; this only fades the text in behind it. */
-.sb-sw-faq-a {
-  margin: 0;
-  padding: 0 22px 20px;
-  color: var(--color-neutral-700);
-  font-size: var(--text-sm);
-  line-height: 1.6;
-  opacity: 0;
-  transition: opacity 0.2s ease 0.05s;
-}
-
-.sb-faq-panel[data-open='true'] .sb-sw-faq-a {
-  opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sb-sw-faq-a {
-    transition: none;
-  }
-}
-
-/* ── closing links ── */
 .sb-sw-close {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -723,7 +635,6 @@
   font-size: var(--text-xl);
 }
 
-/* Arrows set inside a line of text ride the cap height, not the baseline. */
 .sb-sw-close-title svg,
 .sb-faq-link svg {
   vertical-align: -2px;

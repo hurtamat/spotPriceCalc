@@ -26,8 +26,7 @@ const PriceBarChart = lazy(() =>
   import('./PriceBarChart').then((m) => ({ default: m.PriceBarChart })),
 );
 
-// 45 bidding-zone polygons, glob-imported at build time. Only this section draws them,
-// and only the landing page renders this section, so they stay out of every other route.
+// Lazy so the 45 zone polygons stay out of every other route.
 const ZoneMap = lazy(() => import('./ZoneMap').then((m) => ({ default: m.ZoneMap })));
 
 const QUANTILE_TEXT: Record<PriceQuantile, string> = {
@@ -36,10 +35,10 @@ const QUANTILE_TEXT: Record<PriceQuantile, string> = {
   Red: 'var(--color-q-red-text)',
 };
 
-// Default selection until the user picks a zone on the map (Germany-Luxembourg = id 7).
+// Germany-Luxembourg.
 const DEFAULT_ZONE_ID = 7;
 
-// Mobile breakpoint, must match the `@media (max-width: 900px)` rules in spotsteer.css.
+// Must match the 900px media queries in the stylesheets.
 const MOBILE_QUERY = '(max-width: 900px)';
 const isMobileNow = () =>
   typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches;
@@ -53,9 +52,7 @@ export function PriceSection() {
   const [day, setDay] = useState<DayKey>('today');
   // On mobile nothing starts selected; the user is nudged to tap the map first.
   const [zoneId, setZoneId] = useState<number | null>(() => (isMobileNow() ? null : DEFAULT_ZONE_ID));
-  // Mobile only: whether the chart panel has slid over the map.
   const [panelOpen, setPanelOpen] = useState(false);
-  // Cache each (zone, day) fetch so switching back is instant.
   const [cache, setCache] = useState<Record<string, LoadState>>({});
   // Read the cache without making it an effect dependency.
   const cacheRef = useRef(cache);
@@ -71,7 +68,6 @@ export function PriceSection() {
     return () => mql.removeEventListener('change', sync);
   }, []);
 
-  // Picking a zone on mobile slides the track over to the chart after a short beat.
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSelect = (id: number) => {
     setZoneId(id);
@@ -95,11 +91,11 @@ export function PriceSection() {
     const t = e.changedTouches[0];
     const dx = t.clientX - start.x;
     const dy = t.clientY - start.y;
-    if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy)) return; // not a horizontal swipe
+    if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy)) return;
     if (dx > 0) {
-      if (zoneId != null) setPanelOpen(true); // swipe right, only if a zone is picked
+      if (zoneId != null) setPanelOpen(true);
     } else {
-      setPanelOpen(false); // swipe left, back to map
+      setPanelOpen(false);
     }
   };
 
@@ -107,8 +103,8 @@ export function PriceSection() {
   const key = `${zoneId}:${day}`;
 
   useEffect(() => {
-    if (zoneId == null) return; // nothing picked yet (mobile)
-    if (cacheRef.current[key]?.status === 'ready') return; // already fetched
+    if (zoneId == null) return;
+    if (cacheRef.current[key]?.status === 'ready') return;
 
     const controller = new AbortController();
     setCache((c) => ({ ...c, [key]: { status: 'loading' } }));
@@ -137,14 +133,12 @@ export function PriceSection() {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Large map as a background layer, bleeds off the right edge. */}
       <div className="sb-zonemap-bleed">
         <Suspense fallback={null}>
           <ZoneMap selectedZoneId={zoneId} onSelect={handleSelect} />
         </Suspense>
       </div>
 
-      {/* Mobile-only nudge inviting the first tap. Hidden on desktop and once the panel opens. */}
       <div className="sb-map-nudge" aria-hidden="true">
         <span className="sb-map-nudge-tap" />
         Tap your zone to see prices
@@ -250,12 +244,13 @@ function Chart({
             color={quantileText(derived?.maxPt.quantile)}
           />
         </div>
-        <div className="sb-day-tabs">
+        <div className="sb-day-tabs" role="group" aria-label="Day">
           {DAY_ORDER.map((k) => (
             <button
               key={k}
               className="sb-day-tab"
               data-active={day === k}
+              aria-pressed={day === k}
               onClick={() => onPickDay(k)}
             >
               {DAY_LABELS[k]}
@@ -334,8 +329,7 @@ function Stat({
   );
 }
 
-// Built from the YYYY-MM-DD parts, not parsed as a Date: a Date would re-read the day in the
-// viewer's timezone and can land on the one before.
+// Not parsed as a Date, which would re-read the day in the viewer's timezone.
 function formatDayDate(day: DayKey): string {
   const [y, m, d] = dateForDay(day).split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', {

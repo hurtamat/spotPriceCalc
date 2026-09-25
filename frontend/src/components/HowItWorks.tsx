@@ -1,7 +1,6 @@
+import { StepRail } from './StepRail';
 import { TariffComparison } from './TariffComparison';
 
-// A sequence, not a set: the three steps sit on one rail, and the step where
-// something physically happens is the one the mark's amber node lands on.
 const STEPS = [
   {
     title: 'We read the market',
@@ -28,15 +27,7 @@ export function HowItWorks() {
         </p>
       </div>
 
-      <div className="sb-steps">
-        {STEPS.map((s) => (
-          <div key={s.title} className="sb-step">
-            <span className="sb-step-node" aria-hidden="true" />
-            <h3 className="sb-h4">{s.title}</h3>
-            <p>{s.body}</p>
-          </div>
-        ))}
-      </div>
+      <StepRail steps={STEPS} />
 
       <TariffComparison />
     </section>

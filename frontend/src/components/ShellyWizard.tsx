@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
-import { fetchZones, type ZoneOption } from '../api/zones';
-import { useDetectedZone } from '../hooks/useDetectedZone';
+import { useZonePicker } from '../hooks/useZonePicker';
 import {
   generatePriceColorScript,
   generateScheduleScript,
@@ -11,6 +10,8 @@ import {
 import { ArrowLeft, ArrowRight, Check } from './icons';
 import { DayFlow } from './DayFlow';
 import { GuideMeta } from './GuideMeta';
+import { Accordion } from './Accordion';
+import { ZoneSelect } from './ZoneSelect';
 
 type Mode = 'relay' | 'colour';
 
@@ -51,7 +52,7 @@ const INSTALL_STEPS = [
   },
 ];
 
-// Mirrors the components schedule.shelly.js creates in ROLES. Keep the two in step.
+// Mirrors ROLES in schedule.shelly.js; keep in sync.
 const RELAY_COMPONENTS = [
   { id: 'boolean:200', name: 'Continuous block', desc: 'One unbroken run, or the cheapest hours wherever they fall.' },
   { id: 'number:200', name: 'Hours needed', desc: 'How long the appliance needs power. Drag it up before a big load.' },
@@ -139,11 +140,8 @@ function HourSelect({ id, label, value, onChange }: {
 }
 
 export function ShellyWizard() {
-  const { state: zoneState, request: locate } = useDetectedZone();
-  const [zones, setZones] = useState<ZoneOption[]>([]);
-  const [zoneCode, setZoneCode] = useState('');
-  // A ref, not state: flipping this on mousedown must not re-render and close the open dropdown.
-  const touchedZone = useRef(false);
+  const picker = useZonePicker();
+  const { zoneCode, zone } = picker;
 
   const [mode, setMode] = useState<Mode>('relay');
   const [hours, setHours] = useState(3);
@@ -153,26 +151,8 @@ export function ShellyWizard() {
   const [quietFrom, setQuietFrom] = useState(8);
   const [quietTo, setQuietTo] = useState(17);
   const [copied, setCopied] = useState(false);
-  const [openTrouble, setOpenTrouble] = useState(-1);
-  // The Shelly app screenshot is optional artwork; hide its frame rather than show a broken image.
   const [hasPhoneShot, setHasPhoneShot] = useState(true);
 
-  useEffect(() => {
-    const ctl = new AbortController();
-    fetchZones(ctl.signal)
-      .then(setZones)
-      .catch(() => undefined);
-    return () => ctl.abort();
-  }, []);
-
-  // Prefill from the detected zone, but never overwrite a choice — or an open dropdown.
-  useEffect(() => {
-    if (zoneState.status === 'ready' && zoneState.detected && !touchedZone.current) {
-      setZoneCode(zoneState.detected.code);
-    }
-  }, [zoneState]);
-
-  const zone = zones.find((z) => z.code === zoneCode);
   const isRelay = mode === 'relay';
 
   const answers: WizardAnswers = {
@@ -180,7 +160,7 @@ export function ShellyWizard() {
     hours,
     deadline,
     continuous,
-    // Equal values are the script's own "no window" signal, so an unticked box collapses to that.
+    // Equal values mean "no window" to the script.
     unavailFrom: quiet ? quietFrom : 0,
     unavailTo: quiet ? quietTo : 0,
   };
@@ -189,7 +169,6 @@ export function ShellyWizard() {
     if (!zoneCode) return null;
     try {
       return { code: isRelay ? generateScheduleScript(answers) : generatePriceColorScript(answers) };
-      // A template that lost a placeholder is a build problem, not something the user can fix.
     } catch (e) {
       return { error: e instanceof Error ? e.message : 'Could not generate the script.' };
     }
@@ -201,7 +180,7 @@ export function ShellyWizard() {
     try {
       await navigator.clipboard.writeText(generated.code);
     } catch {
-      // Clipboard needs https or localhost; the script is on screen, so selecting it by hand works.
+      // Needs https or localhost; the script is still on screen to select.
       return;
     }
     setCopied(true);
@@ -272,46 +251,16 @@ export function ShellyWizard() {
             title="Where you are"
             sub="Your country decides which market prices the script follows. We ask your browser and preselect it, so change it if it guessed wrong."
           >
-            <div className="sb-sw-zonefield">
-              <label className="sb-sw-label" htmlFor="sb-sw-zone">
-                Price zone
-              </label>
-              <select
-                id="sb-sw-zone"
-                className="sb-sw-input"
-                value={zoneCode}
-                onMouseDown={() => (touchedZone.current = true)}
-                onKeyDown={() => (touchedZone.current = true)}
-                onChange={(e) => {
-                  touchedZone.current = true;
-                  setZoneCode(e.target.value);
-                }}
-              >
-                <option value="">Select your country…</option>
-                {zones.map((z) => (
-                  <option key={z.code} value={z.code}>
-                    {z.name}
-                  </option>
-                ))}
-              </select>
-              <div className="sb-sw-note">
-                {zone ? (
-                  <>
-                    Zone code <code>{zone.code}</code>, times in {zone.time_zone_id}.
-                  </>
-                ) : zoneState.status === 'idle' ? (
-                  <button type="button" className="sb-locate" onClick={locate}>
-                    Use my location
-                  </button>
-                ) : zoneState.status === 'locating' ? (
-                  'Checking your location…'
-                ) : zoneState.status === 'failed' ? (
-                  `${zoneState.reason} Pick your zone above.`
-                ) : (
-                  'No zone covers your location, pick one above.'
-                )}
-              </div>
-            </div>
+            <ZoneSelect
+              id="sb-sw-zone"
+              picker={picker}
+              className="sb-sw-zonefield"
+              describe={(z) => (
+                <>
+                  Zone code <code>{z.code}</code>, times in {z.time_zone_id}.
+                </>
+              )}
+            />
           </Question>
 
           <div key={mode} className="sb-sw-swap">
@@ -555,30 +504,7 @@ export function ShellyWizard() {
           <h2 className="sb-h2 sb-sw-h2" style={{ marginBottom: 18 }}>
             Troubleshooting
           </h2>
-          <div className="sb-sw-faq">
-            {TROUBLES.map((t, i) => (
-              <div key={t.q} className="sb-card sb-sw-faq-item">
-                <button
-                  type="button"
-                  className="sb-sw-faq-q"
-                  onClick={() => setOpenTrouble((o) => (o === i ? -1 : i))}
-                  aria-expanded={openTrouble === i}
-                >
-                  {t.q}
-                  <span className="sb-sw-faq-icon" data-open={openTrouble === i}>
-                    +
-                  </span>
-                </button>
-                {/* Same grid-rows 0fr->1fr slide as the landing page's FAQ, rather than a hard
-                    mount/unmount, see .sb-faq-panel. */}
-                <div className="sb-faq-panel" data-open={openTrouble === i}>
-                  <div>
-                    <p className="sb-sw-faq-a">{t.a}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <Accordion items={TROUBLES} variant="guide" />
         </section>
 
         <section className="sb-sw-section">

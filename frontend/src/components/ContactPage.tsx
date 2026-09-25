@@ -50,7 +50,6 @@ export function ContactPage() {
           </button>
         </div>
 
-        {/* Saves people hunting the notice for a DSAR address that does not exist. */}
         <p className="sb-fine sb-contact-note">
           Data protection requests (access, correction, erasure, objection) go to the same
           address. See the <a href={ROUTES.privacy}>privacy notice</a> for what we hold, which is

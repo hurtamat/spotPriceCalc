@@ -52,9 +52,9 @@ export function Devices() {
               <img
                 src={i.logo}
                 alt={i.name}
+                loading="lazy"
                 style={{ height: i.logoHeight }}
-                // Every partner wordmark ships dark-on-light; on this site they all
-                // need flattening to the page's off-white.
+                // Partner wordmarks ship dark-on-light.
                 className="sb-logo-white"
               />
               <span className="sb-int-badge">
@@ -68,7 +68,6 @@ export function Devices() {
             <div className="sb-int-bullets">
               {i.bullets.map((b) => (
                 <div key={b} className="sb-int-bullet">
-                  {/* Material Symbols, the family the site already loads. */}
                   <span className="material-symbols-outlined sb-int-check" aria-hidden="true">
                     check
                   </span>
@@ -85,7 +84,7 @@ export function Devices() {
 
         {SOON.map((i) => (
           <div key={i.key} className="sb-int-card sb-int-soon" data-soon="true">
-            <img src={i.logo} alt={i.name} style={{ height: i.logoHeight }} />
+            <img src={i.logo} alt={i.name} loading="lazy" style={{ height: i.logoHeight }} />
             <span className="sb-logo-soon">Coming soon</span>
           </div>
         ))}

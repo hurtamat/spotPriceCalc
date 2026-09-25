@@ -4,9 +4,9 @@ import { Footer } from './Footer';
 import { ArrowLeft, ArrowRight, Check } from './icons';
 import { DayFlow } from './DayFlow';
 import { GuideMeta } from './GuideMeta';
+import { Accordion } from './Accordion';
 
-// One-click links into the visitor's own Home Assistant. my.home-assistant.io resolves to
-// whatever instance they have configured, so these work without knowing their address.
+// my.home-assistant.io forwards to the visitor's own instance.
 const REPO_URL = 'https://github.com/hurtamat/spotprice-ha';
 const HACS_URL =
   'https://my.home-assistant.io/redirect/hacs_repository/?owner=hurtamat&repository=spotprice-ha&category=integration';
@@ -19,8 +19,7 @@ const BLUEPRINT_URL =
 
 const RUN_ENTITY = 'binary_sensor.spotsteer_running';
 
-// Matches the drawer's transition in the stylesheet. Swapping drawers waits this
-// long so the open one finishes rolling up before the other rolls down.
+// Matches the drawer transition in guide-ha.css.
 const DRAWER_MS = 280;
 
 const META = ['~5 minutes', 'Home Assistant 2024.11+', 'Installed through HACS'];
@@ -107,8 +106,6 @@ function PlusIcon({ open }: { open: boolean }) {
   );
 }
 
-// The official my.home-assistant.io badges, so the affordance is the one people already
-// know from integration READMEs. Sized here because the remote SVG has no intrinsic box.
 function MyHaBadge({ href, src, alt }: { href: string; src: string; alt: string }) {
   return (
     <a className="sb-ha-badge" href={href} target="_blank" rel="noopener noreferrer">
@@ -151,10 +148,8 @@ function Panel({
 }
 
 export function HomeAssistantPage() {
-  // One drawer open at a time under the two step cards; null means neither.
   const [panel, setPanel] = useState<'manual' | 'more' | null>(null);
   const swapTimer = useRef<number | undefined>(undefined);
-  const [openTrouble, setOpenTrouble] = useState(-1);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => () => window.clearTimeout(swapTimer.current), []);
@@ -173,8 +168,7 @@ export function HomeAssistantPage() {
     try {
       await navigator.clipboard.writeText(RUN_ENTITY);
     } catch {
-      // Clipboard is unavailable over plain http and in some embedded browsers; the entity id
-      // is visible next to the button, so selecting it by hand still works.
+      // Unavailable over plain http; the entity id is on screen to select.
       return;
     }
     setCopied(true);
@@ -408,25 +402,7 @@ export function HomeAssistantPage() {
 
       <section id="troubleshooting" className="sb-section sb-ha-tight">
         <h2 className="sb-h2 sb-ha-h2">Troubleshooting</h2>
-        <div className="sb-ha-troubles">
-          {TROUBLES.map((t, i) => (
-            <div key={t.q} className="sb-card sb-ha-trouble">
-              <button
-                type="button"
-                onClick={() => setOpenTrouble((cur) => (cur === i ? -1 : i))}
-                aria-expanded={openTrouble === i}
-              >
-                {t.q}
-                <PlusIcon open={openTrouble === i} />
-              </button>
-              <div className="sb-ha-panel" data-open={openTrouble === i}>
-                <div>
-                  <p className="sb-ha-trouble-a">{t.a}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <Accordion items={TROUBLES} variant="guide" />
       </section>
 
       <section className="sb-section sb-ha-tight">

@@ -1,7 +1,3 @@
-/* ── Home Assistant setup guide (/home-assistant) ─────────────────────────────
-   Ported from the Claude Design canvas. Sections stack in one narrow column, so
-   the shared .sb-section padding is trimmed rather than repeated per block. */
-/* A guide reads better at a narrower measure than the 1160px marketing shell. */
 .sb-ha-hero,
 .sb-ha-tight {
   max-width: 1000px;
@@ -12,8 +8,6 @@
   padding-top: 0;
 }
 
-/* Copy left, the card that is the whole point on the right. The asset carries the
-   section, so the type scale is planned down around it rather than up. */
 .sb-ha-hero {
   padding-bottom: clamp(34px, 5vw, 56px);
 }
@@ -22,7 +16,6 @@
   margin: 0 0 14px;
 }
 
-/* The screenshots are already dark, so they need rounding and lift, not a bezel. */
 .sb-ha-frame {
   border-radius: var(--r-md);
   overflow: hidden;
@@ -52,7 +45,6 @@
   margin-bottom: 18px;
 }
 
-/* Ships dark-on-light like every other partner wordmark. */
 .sb-ha-title-row img {
   filter: brightness(0) invert(1);
   opacity: 0.94;
@@ -89,9 +81,7 @@
   max-width: 58ch;
 }
 
-/* Steps */
-/* The step cards carry their own bottom margin for the stacked case, which would
-   otherwise land on top of the section's full padding. */
+/* Cards carry their own bottom margin for the stacked case. */
 .sb-ha-steps-sec {
   padding-bottom: clamp(24px, 3.4vw, 44px);
 }
@@ -131,8 +121,7 @@
   color: var(--color-neutral-700);
 }
 
-/* Pins the last element of each card to the bottom, so a short card and a long
-   one still end on the same line. */
+/* Pins the last element down so cards of different length end level. */
 .sb-ha-step-foot {
   margin-top: auto;
   padding-top: 10px;
@@ -143,10 +132,7 @@
   width: 100%;
 }
 
-/* Each drawer is a full-width cell of the step grid, sitting straight after its
-   own card. Above 760px the order below moves both under the pair instead.
-   Same 0fr to 1fr row as the troubleshooting panels, so it measures its own
-   content and everything below is pushed down by the real height. */
+/* A full-width cell after its own card; above 760px both drawers move under the pair. */
 .sb-ha-drawer {
   grid-column: 1 / -1;
   display: grid;
@@ -186,8 +172,7 @@
   }
 }
 
-/* The bottom margin lives inside the clipped box, so it collapses with the
-   drawer instead of leaving a gap behind when it is shut. */
+/* Margin inside the clipped box, so it collapses with the drawer. */
 .sb-ha-drawer-inner {
   border: 1px solid var(--color-divider);
   border-radius: var(--r-md);
@@ -203,8 +188,7 @@
   margin-bottom: 12px;
 }
 
-/* The official my.home-assistant.io badge. It is a remote SVG with no intrinsic
-   box, so the height is set here and the row reserves it. */
+/* The remote SVG has no intrinsic box, so the height is set here. */
 .sb-ha-badge {
   display: inline-flex;
   border-radius: var(--r-sm);
@@ -276,10 +260,6 @@
   font-size: var(--text-xs);
 }
 
-/* The configure field list. Plain rows on purpose: a screenshot of the real
-   dialog belongs here later, and a hand-drawn mock would only go stale. */
-
-/* That's it */
 .sb-ha-done {
   background: var(--color-accent-900);
   color: var(--color-text);
@@ -340,7 +320,6 @@
   margin: 0;
 }
 
-/* Want more control */
 .sb-ha-more-card {
   background: var(--color-bg-deep);
   border: 1px solid var(--color-divider);
@@ -348,7 +327,6 @@
   padding: 18px 20px;
 }
 
-/* ── the dashboard card section ── */
 .sb-ha-cardsec {
   padding: clamp(20px, 3vw, 34px);
 }
@@ -387,8 +365,6 @@
   color: var(--color-neutral-700);
 }
 
-/* Narrower than the card it sits in, and centred: at full width the chart
-   dominates the section it is only illustrating. */
 .sb-ha-cardshot {
   margin: 0 auto;
   max-width: 840px;
@@ -455,20 +431,6 @@
   font-size: var(--text-xs);
 }
 
-/* Disclosures: entity reference and troubleshooting */
-.sb-ha-trouble > button {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--font-heading);
-  font-weight: 600;
-}
-
 .sb-ha-plus {
   font-family: var(--font-body);
   font-size: var(--text-2xl);
@@ -481,9 +443,7 @@
   transform: rotate(45deg);
 }
 
-/* Phone first: heading, then the panel it names, then the detail. The list used
-   to arrive before the picture, which made three long text blocks in a row.
-   From 760px the picture moves beside the list and every other row mirrors. */
+/* Phone first: heading, picture, detail. From 760px the picture moves beside the list. */
 .sb-ha-pair {
   display: grid;
   grid-template-columns: 1fr;
@@ -566,57 +526,6 @@
   margin-top: 3px;
 }
 
-.sb-ha-troubles {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sb-ha-trouble {
-  overflow: hidden;
-}
-
-.sb-ha-trouble > button {
-  padding: 17px 22px;
-  border: none;
-  font-size: var(--text-md);
-  color: var(--color-text);
-}
-
-/* Same open/close animation as the FAQ on the landing page: a 0fr → 1fr grid row
-   so the panel measures its own content, with the text fading in just behind it. */
-.sb-ha-panel {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.28s ease;
-}
-
-.sb-ha-panel[data-open='true'] {
-  grid-template-rows: 1fr;
-}
-
-.sb-ha-panel > div {
-  overflow: hidden;
-}
-
-.sb-ha-panel > div > * {
-  opacity: 0;
-  transition: opacity 0.2s ease 0.05s;
-}
-
-.sb-ha-panel[data-open='true'] > div > * {
-  opacity: 1;
-}
-
-.sb-ha-trouble-a {
-  margin: 0;
-  padding: 0 22px 20px;
-  color: var(--color-neutral-700);
-  font-size: var(--text-sm);
-  line-height: 1.6;
-}
-
-/* Close */
 .sb-ha-close {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -656,8 +565,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sb-ha-panel,
-  .sb-ha-panel > div > *,
   .sb-ha-plus {
     transition: none;
   }

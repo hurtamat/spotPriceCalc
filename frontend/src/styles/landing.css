@@ -1,15 +1,11 @@
-/* ── hero ──────────────────────────────────────────────────────── */
-/* Full-bleed out of the 1160px shell. The photograph is a real <img> rather than a
-   CSS background so it can carry fetchpriority and explicit dimensions: it is the
-   LCP element and it must not shift the page when it lands. */
+/* A real <img>, not a background: it is the LCP element and needs fetchpriority. */
 .sb-hero {
   position: relative;
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-top: calc(-1 * var(--nav-h));
   margin-bottom: clamp(28px, 4vw, 56px);
-  /* Height tracks the photograph's own 2.5:1 rather than the viewport, so cover
-     crops a sliver instead of zooming a 640px-wide original into a tall box. */
+  /* Tracks the photo's 2.5:1 so cover crops a sliver instead of zooming. */
   height: clamp(530px, 38vw, 620px);
   display: flex;
   align-items: flex-end;
@@ -27,16 +23,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* Pushed right and slightly down: the driveway and the charging car carry the
-     right half, the dark house and hedge give the headline something quiet to sit
-     on at the left. */
   object-position: 62% 44%;
   filter: saturate(1.08) contrast(1.04) brightness(1.06);
 }
 
-/* Two scrims, one job each. The horizontal one buys contrast for the headline; the
-   vertical one dissolves the photograph into the page ground so the hero does not
-   end on a hard edge, it just becomes the site. */
+/* Horizontal scrim for headline contrast, vertical one to dissolve into the page. */
 .sb-hero-scrim {
   position: absolute;
   inset: 0;
@@ -72,8 +63,6 @@
   max-width: 780px;
 }
 
-/* Planned against the image rather than set at poster scale: a headline this long
-   at text-7xl is a font-size error, not a copy-length one. */
 .sb-hero h1 {
   margin: 0 0 20px;
 }
@@ -83,8 +72,6 @@
   margin-bottom: 0;
 }
 
-/* Hero entry. One move, on the thing the reader looks at first, so it reads as the
-   page arriving rather than as decoration. */
 @media (prefers-reduced-motion: no-preference) {
   .sb-hero-copy > * {
     animation: sb-hero-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -113,8 +100,6 @@
     max-width: none;
   }
 
-  /* Portrait crops most of the driveway away, so the scrim carries more of the
-     contrast and the image holds the car rather than the house. */
   .sb-hero-media img {
     object-position: 72% 50%;
   }
@@ -131,9 +116,6 @@
   }
 }
 
-/* ── the claim strip, directly under the hero ──────────────────── */
-/* These three used to sit inside the hero. They are trust marks, not the value
-   proposition, so they get their own band and a hairline instead of a card. */
 .sb-claims {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -175,7 +157,6 @@
   color: var(--color-accent-strong);
 }
 
-/* ── price section + chart ─────────────────────────────────────── */
 .sb-price-section {
   position: relative;
   padding: clamp(28px, 5vw, 60px) 0;
@@ -226,8 +207,7 @@
   gap: 18px;
 }
 
-/* Full width so the day tabs always wrap to their own row. Without it the tabs ride up
-   beside the stats whenever those are narrow, and the card relayouts as data arrives. */
+/* Full width so the tabs wrap to their own row and the card does not reflow as data arrives. */
 .sb-chart-stats-group {
   display: flex;
   flex: 1 1 100%;
@@ -255,13 +235,10 @@
   white-space: nowrap;
 }
 
-/* The dash standing in for a missing number. Same box, clearly not a value. */
 .sb-stat-big:not([style]) {
   color: var(--color-text-mute);
 }
 
-/* Narrow screens: three bare figures, kept on one row and packed left like the desktop
-   layout rather than spread edge to edge. */
 @media (max-width: 560px) {
   .sb-chart-stats-group {
     flex-wrap: nowrap;
@@ -339,8 +316,7 @@
   margin-top: -12px;
 }
 
-/* The chart, the loading line and the "not published yet" line all land here, so the card is
-   the same height whichever one is showing. 230px is PriceBarChart's own height. */
+/* Same height for chart and status lines; 230px is PriceBarChart's own height. */
 .sb-chart-plot {
   width: 100%;
   min-height: 230px;
@@ -371,54 +347,47 @@
   font-size: var(--text-xs);
 }
 
-/* interactive bidding-zone map as a full-bleed background layer */
 .sb-price-section {
   position: relative;
-  /* full-bleed: break out of the shell so the map can reach the window edge */
   width: 100vw;
   margin-left: calc(50% - 50vw);
-  overflow: hidden; /* clips the map at the viewport edge, not the shell edge */
-  min-height: 920px; /* room for the taller map so it isn't cropped top/bottom */
+  overflow: hidden;
+  min-height: 920px;
   display: flex;
   align-items: center;
-  justify-content: center; /* re-center the shell-width content inside 100vw */
+  justify-content: center;
 }
 
 .sb-zonemap-bleed {
   position: absolute;
   top: 50%;
-  /* Anchor to the CENTERED content, not the viewport. 50% = content centre; the
-     content's left edge is at (50% - 580px) for the 1160px shell. Starting ~80px
-     further left gives a modest bleed that stays tied to the layout on wide screens. */
+  /* Anchored to the centred 1160px content, not the viewport. */
   left: calc(50% - 660px);
   transform: translateY(-50%);
   width: min(800px, 58vw);
   z-index: 0;
-  pointer-events: none; /* ocean/empty passes through; zones re-enable below */
-  /* aggressive fade on the right edge, out to nothing (into the chart / background) */
+  pointer-events: none; /* Zones re-enable pointer events below. */
   -webkit-mask-image: linear-gradient(to right, #000 68%, transparent 94%);
   mask-image: linear-gradient(to right, #000 68%, transparent 94%);
 }
 
 .sb-price-inner {
   position: relative;
-  z-index: 1; /* chart card floats above the map */
-  flex: 1; /* fill the flex section so justify-content:flex-end keeps the card right */
+  z-index: 1;
+  flex: 1;
   width: 100%;
-  max-width: 1160px; /* match the shell so the chart stays where it was */
-  padding: 0 clamp(16px, 4vw, 40px); /* match shell horizontal padding */
+  max-width: 1160px;
+  padding: 0 clamp(16px, 4vw, 40px);
   box-sizing: border-box;
-  pointer-events: none; /* its empty left half must not block map clicks... */
+  pointer-events: none; /* Its empty left half must not block map clicks. */
 }
 
 .sb-price-col {
-  max-width: 560px; /* chart card on the right; map stays exposed on the left */
-  pointer-events: auto; /* ...but the card itself stays interactive */
+  max-width: 560px;
+  pointer-events: auto;
 }
 
-/* The nudge pill and the slide-away handle are mobile-only affordances (see the
-   max-width: 900px block). On desktop the map + chart are always side by side, so
-   neither is needed. */
+/* Mobile-only, see the 900px block. */
 .sb-map-nudge,
 .sb-chart-handle {
   display: none;
@@ -430,37 +399,26 @@
   display: block;
 }
 
-/* ── mobile: two-panel slider (map ⇄ chart) ────────────────────── */
 @media (max-width: 900px) {
-  /* TWO-PANEL SLIDER. The section is a horizontal track holding two full-width stages
-     side by side: the CHART (left) and the MAP (right). Nothing is preselected, so the
-     track starts parked on the MAP and the user is nudged to tap a zone — that slides the
-     track to the CHART (React sets data-panel-open="true"). The handle / a swipe slides it
-     back to re-pick. Each stage is its own full-screen panel, so exactly one is visible at
-     a time — never a split — and the heading is never stranded behind the map. */
+  /* A 200vw track of two stages, chart left and map right; data-panel-open slides it. */
   .sb-price-section {
     display: flex;
     flex-wrap: nowrap;
     align-items: stretch;
-    justify-content: flex-start; /* CRITICAL: anchor the 200vw track left (desktop rule
-                                    sets center, which would show half of each stage) */
+    justify-content: flex-start; /* The desktop rule centres, which would show half of each stage. */
     padding: 0;
     position: relative;
-    overflow: hidden; /* the off-screen stage is clipped here */
-    /* A floor, not a fixed height: the chart stage sizes to its card, so nothing inside
-       has to scroll and a vertical drag always belongs to the page. */
+    overflow: hidden;
+    /* A floor, not a fixed height, so a vertical drag always belongs to the page. */
     min-height: max(460px, min(80vh, 620px));
-    touch-action: pan-y; /* let vertical scroll through; we handle horizontal swipes */
+    touch-action: pan-y;
   }
 
-  /* Both stages are exactly one viewport wide and slide together as one track.
-     order: chart (price-inner) left, map (zonemap-bleed) right. */
   .sb-zonemap-bleed,
   .sb-price-inner {
     flex: 0 0 100%;
     width: 100%;
-    /* Default = parked on the MAP (the right stage), so the track is shifted one viewport
-       left. Opening the chart brings it back to 0. */
+    /* Parked on the map by default. */
     transform: translateX(var(--sb-slide, -100%));
     transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
   }
@@ -472,17 +430,14 @@
   }
   .sb-price-section[data-panel-open='true'] .sb-zonemap-bleed,
   .sb-price-section[data-panel-open='true'] .sb-price-inner {
-    --sb-slide: 0; /* slide the track right → show the chart (left stage) */
+    --sb-slide: 0;
   }
 
-  /* MAP stage: bright, interactive, ZOOMED to fill its panel; the right edge (Russia/
-     Turkey) fades with the exact same mask as the desktop view. */
   .sb-zonemap-bleed {
     position: relative;
     left: auto;
     top: auto;
-    /* Explicit, so the map stage never stretches the section — the svg is far taller
-       than the stage and would otherwise set the height for both. */
+    /* Explicit, or the far taller svg would set the height for both stages. */
     height: max(460px, min(80vh, 620px));
     margin: 0;
     opacity: 1;
@@ -496,16 +451,14 @@
   }
 
   .sb-zonemap {
-    width: min(120%, 720px); /* zoom: bleed past the panel so zones are big & tappable */
+    width: min(120%, 720px);
     height: auto;
     max-width: none;
     flex: none;
-    /* Shift the map RIGHT so the faded eastern edge (Russia) slides off-screen and more
-       of western/central Europe is centered. Higher = further right / less Russia. */
+    /* Pushes the faded eastern edge off-screen. */
     transform: translateX(9%);
   }
 
-  /* Nudge pill floating over the map stage, inviting the first tap. */
   .sb-map-nudge {
     display: inline-flex;
     align-items: center;
@@ -542,7 +495,6 @@
     opacity: 0;
   }
 
-  /* CHART stage — a fixed-size box that pins the handle; the column scrolls inside it. */
   .sb-price-inner {
     position: relative;
     z-index: 2;
@@ -564,8 +516,7 @@
     flex-direction: column;
     justify-content: center;
     gap: 16px;
-    /* Nothing inside may force the column wider than the stage. A flex child defaults to
-       min-width:auto, so one nowrap stat row was enough to push a sideways scrollbar out. */
+    /* min-width:auto on a flex child let one nowrap row push out a sideways scrollbar. */
     min-width: 0;
     overflow: clip;
     transform: none;
@@ -579,12 +530,10 @@
   }
 
   .sb-price-head {
-    display: none; /* on mobile the map already provides the context; save the space */
+    display: none;
   }
 
-  /* A second card stacked behind the chart card, showing only as a strip down its right
-     side — that strip is the button back to the map (which lives to the right, hence ›).
-     The stack's right margin is what the slab peeks into. */
+  /* A card behind the chart card; its visible right strip is the button back to the map. */
   .sb-chart-stack {
     --sb-handle-w: 30px;
     margin-right: var(--sb-handle-w);
@@ -606,13 +555,11 @@
     box-shadow: var(--e-2);
   }
 
-
   .sb-chart-handle:active {
     background: var(--color-accent);
     border-color: var(--color-accent);
   }
 
-  /* The card covers everything but that right strip. */
   .sb-chart-card {
     position: relative;
     z-index: 1;
@@ -658,23 +605,18 @@
   stroke-linejoin: round;
 }
 
-/* non-selectable context countries (Balkans, Russia, Turkey, …) — greyed background */
 .sb-zone-context {
-  /* Deliberately dim: these are out of play, and lifting them above the selectable
-     zones would invert the hierarchy of the map. */
   fill: #3a454e;
   pointer-events: none;
 }
 
-/* selectable bidding zones */
-/* Clears 3:1 against the page ground so a selectable zone is identifiable as a
-   control, per WCAG 1.4.11, without competing with the amber selection. */
+/* 3:1 against the ground so a zone reads as a control (WCAG 1.4.11). */
 .sb-zone-pick {
   fill: var(--color-map-zone);
   cursor: pointer;
   transition: fill 0.12s ease;
   outline: none;
-  pointer-events: auto; /* re-enable clicks (parent layer is pointer-events:none) */
+  pointer-events: auto;
 }
 
 .sb-zone-pick:hover,
@@ -682,15 +624,10 @@
   fill: var(--color-accent);
 }
 
-/* The selected zone is the one warm thing on the map, which is the same job the
-   marker dot does in the logo. */
 .sb-zone-pick[data-selected='true'] {
   fill: var(--color-warm);
 }
 
-/* ── how it works / spot prices ────────────────────────────────── */
-/* The tariff comparison: two halves of one statement, split by a single rule
-   rather than boxed into two cards. */
 .sb-tariffs {
   margin-top: clamp(48px, 7vw, 88px);
   display: grid;
@@ -727,7 +664,6 @@
   color: var(--color-text-mute);
 }
 
-/* The dynamic half is the one that pays, so it is the one carrying brand colour. */
 .sb-tariff-dynamic {
   background: linear-gradient(
     160deg,
@@ -755,12 +691,7 @@
   }
 }
 
-/* ── devices ───────────────────────────────────────────────────── */
-/* Bento, 4 items and exactly 4 cells, deliberately unequal. Home Assistant is the
-   headline integration so it takes two columns; Shelly runs full height beside it;
-   the two planned integrations share the remaining row as small tiles. The old
-   2x2 of identical squares gave the two shipping products the same weight as the
-   two that do not exist yet. */
+/* Deliberately unequal: shipping integrations outweigh the planned ones. */
 .sb-int-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -794,8 +725,7 @@
   grid-row: 2;
 }
 
-/* Home Assistant leads, so it gets the one filled surface on the page: brand teal
-   deepened until white text clears AA on it, and everything inside it lifts to match. */
+/* Brand teal deepened until white text clears AA. */
 .sb-int-card[data-key='homeassistant'] {
   background:
     radial-gradient(
@@ -814,8 +744,7 @@
   object-fit: contain;
 }
 
-/* Every partner logo ships dark-on-light. On a dark site they all have to be
-   flattened to the page's off-white or they disappear into the card. */
+/* Partner logos ship dark-on-light. */
 .sb-logo-white {
   filter: brightness(0) invert(1);
   opacity: 0.94;
@@ -829,8 +758,6 @@
   flex-wrap: wrap;
 }
 
-/* The dot here is real state, not decoration: it separates what ships today from
-   the two tiles that do not. */
 .sb-int-badge {
   display: inline-flex;
   align-items: center;
@@ -914,8 +841,6 @@
   box-shadow: var(--e-2);
 }
 
-/* Planned integrations: recognisable but plainly inactive. Small tiles, because
-   that is how much of the page they have earned. */
 .sb-int-soon {
   align-items: center;
   justify-content: center;
@@ -972,10 +897,6 @@
   }
 }
 
-/* ── savings teaser (links out to /savings) ────────────────────── */
-/* A full-bleed tinted band. It is the only section on the page that breaks the
-   1160px shell apart from the hero, which is what makes it register as a change of
-   subject rather than another block of the same page. */
 .sb-teaser {
   position: relative;
   width: 100vw;
@@ -1011,8 +932,6 @@
   margin-bottom: 28px;
 }
 
-/* The right column is the appliance set itself, which is the thing being offered.
-   Icons, not a bulleted list of the same six words. */
 .sb-teaser-apps {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1047,103 +966,13 @@
     max-width: none;
   }
 
-  /* Six appliance tiles under the copy is a screenful of preview before the button. */
   .sb-teaser-apps {
     display: none;
   }
-}
-
-/* ── faq ───────────────────────────────────────────────────────── */
-/* Heading above, questions under it. Capped at a comfortable measure so a long
-   question does not run the full 1160px. */
-.sb-faq-list {
-  display: flex;
-  flex-direction: column;
-  max-width: 880px;
-  border-top: 1px solid var(--color-divider);
-}
-
-.sb-faq {
-  overflow: hidden;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--color-divider);
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.sb-faq-q {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 22px 4px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--font-heading);
-  font-weight: 500;
-  font-size: var(--text-lede);
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-  transition: color 0.15s;
-}
-
-.sb-faq-q:hover {
-  color: var(--color-accent-strong);
-}
-
-.sb-faq-icon {
-  flex: none;
-  font-family: var(--font-body);
-  font-size: var(--text-3xl);
-  font-weight: 400;
-  color: var(--color-warm);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Animated open/close: grid-rows 0fr -> 1fr slides the panel to its natural
-   height without hard-coding it; the inner wrapper clips the overflow. */
-.sb-faq-panel {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.28s ease;
-}
-
-.sb-faq-panel[data-open='true'] {
-  grid-template-rows: 1fr;
-}
-
-.sb-faq-panel > div {
-  overflow: hidden;
-}
-
-.sb-faq-a {
-  margin: 0;
-  padding: 0 4px 24px;
-  max-width: 68ch;
-  color: var(--color-text-dim);
-  font-size: var(--text-md);
-  line-height: 1.65;
-  opacity: 0;
-  transition: opacity 0.2s ease 0.05s;
-}
-
-.sb-faq-panel[data-open='true'] .sb-faq-a {
-  opacity: 1;
 }
 
 .sb-faq-link {
   white-space: nowrap;
   font-weight: 500;
   color: var(--color-accent-strong);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sb-faq-panel,
-  .sb-faq-a {
-    transition: none;
-  }
 }
