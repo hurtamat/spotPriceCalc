@@ -1,10 +1,12 @@
-const APPS = [
-  { icon: 'electric_car', label: 'Electric car' },
-  { icon: 'heat_pump', label: 'Pool heating' },
-  { icon: 'water_heater', label: 'Boiler' },
-  { icon: 'local_laundry_service', label: 'Dryer' },
-  { icon: 'dishwasher', label: 'Dishwasher' },
-  { icon: 'cool_to_dry', label: 'Air conditioning' },
+import { ApplianceIcon, type Appliance } from './icons';
+
+const APPS: { kind: Appliance; label: string }[] = [
+  { kind: 'ev', label: 'Electric car' },
+  { kind: 'pool', label: 'Pool heating' },
+  { kind: 'boiler', label: 'Boiler' },
+  { kind: 'dryer', label: 'Dryer' },
+  { kind: 'dishwasher', label: 'Dishwasher' },
+  { kind: 'ac', label: 'Air conditioning' },
 ];
 
 export function SavingsTeaser() {
@@ -24,10 +26,8 @@ export function SavingsTeaser() {
 
         <div className="sb-teaser-apps">
           {APPS.map((a) => (
-            <div key={a.icon} className="sb-teaser-app">
-              <span className="material-symbols-outlined" aria-hidden="true">
-                {a.icon}
-              </span>
+            <div key={a.kind} className="sb-teaser-app">
+              <ApplianceIcon kind={a.kind} />
               {a.label}
             </div>
           ))}

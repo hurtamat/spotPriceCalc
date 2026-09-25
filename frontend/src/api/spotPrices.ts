@@ -1,8 +1,9 @@
 // Client for the .NET spot-price API (GET /api/spotprices).
 // `date` is the zone's local delivery day; the backend resolves it to a UTC window.
 
-/** Where a slot sits in its zone's trailing-7-day price distribution.
- *  `null` means never classified, render as unknown rather than guessing a colour. */
+import { API_BASE, getJson } from './client';
+import { pad2 } from '../lib/format';
+
 export type PriceQuantile = 'Green' | 'Yellow' | 'Red';
 
 export interface PricePoint {
@@ -20,9 +21,6 @@ export interface ZoneSpotPrices {
   points: PricePoint[];
 }
 
-// Override at build/dev time with VITE_API_BASE_URL (see .env.example).
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5262';
-
 export type DayKey = 'yesterday' | 'today' | 'tomorrow';
 
 export const DAY_LABELS: Record<DayKey, string> = {
@@ -38,10 +36,7 @@ export const DAY_ORDER: DayKey[] = ['yesterday', 'today', 'tomorrow'];
 export function dateForDay(day: DayKey): string {
   const d = new Date();
   d.setDate(d.getDate() + (day === 'yesterday' ? -1 : day === 'tomorrow' ? 1 : 0));
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${dd}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
 declare global {
@@ -55,20 +50,15 @@ export async function fetchSpotPrices(
   date: string,
   signal?: AbortSignal,
 ): Promise<ZoneSpotPrices> {
-  const url = `${API_BASE}/api/spotprices?biddingZoneId=${biddingZoneId}&date=${date}`;
+  const path = `/api/spotprices?biddingZoneId=${biddingZoneId}&date=${date}`;
 
   // Adopted once: a second caller must not re-read a response from hours ago.
   const warm = window.__warmPrices;
-  if (warm?.url === url) {
+  if (warm?.url === `${API_BASE}${path}`) {
     window.__warmPrices = undefined;
     const warmed = await warm.promise;
     if (warmed) return warmed;
   }
 
-  const res = await fetch(url, { signal });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`API ${res.status}${body ? `: ${body}` : ''}`);
-  }
-  return (await res.json()) as ZoneSpotPrices;
+  return getJson<ZoneSpotPrices>(path, signal);
 }

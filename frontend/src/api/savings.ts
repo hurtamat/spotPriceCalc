@@ -1,6 +1,8 @@
 // Client for GET /api/savings/appliances. The estimator's own numbers never come from the API — see
 // SavingsCalculator.
 
+import { getJson } from './client';
+
 export interface AppliancePlan {
   key: string;
   name: string;
@@ -19,14 +21,12 @@ export interface ApplianceSavings {
   appliances: AppliancePlan[];
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5262';
-
-export async function fetchApplianceSavings(
+export function fetchApplianceSavings(
   zoneCode: string,
   signal?: AbortSignal,
 ): Promise<ApplianceSavings> {
-  const url = `${API_BASE}/api/savings/appliances?zoneCode=${encodeURIComponent(zoneCode)}`;
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`GET /api/savings/appliances failed: ${res.status}`);
-  return (await res.json()) as ApplianceSavings;
+  return getJson<ApplianceSavings>(
+    `/api/savings/appliances?zoneCode=${encodeURIComponent(zoneCode)}`,
+    signal,
+  );
 }

@@ -1,3 +1,5 @@
+import { Check } from './icons';
+
 const LIVE = [
   {
     key: 'homeassistant',
@@ -68,9 +70,7 @@ export function Devices() {
             <div className="sb-int-bullets">
               {i.bullets.map((b) => (
                 <div key={b} className="sb-int-bullet">
-                  <span className="material-symbols-outlined sb-int-check" aria-hidden="true">
-                    check
-                  </span>
+                  <Check className="sb-int-check" />
                   {b}
                 </div>
               ))}

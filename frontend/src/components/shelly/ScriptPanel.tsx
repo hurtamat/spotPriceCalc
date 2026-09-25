@@ -1,3 +1,4 @@
+import { Copy } from '../icons';
 import type { Mode } from './form';
 
 export type Generated = { code: string } | { error: string } | null;
@@ -35,10 +36,7 @@ export function ScriptPanel({ mode, generated, chips, copied, onCopy }: Props) {
           onClick={onCopy}
           disabled={!generated || 'error' in generated}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="9" y="9" width="12" height="12" rx="2" />
-            <path d="M5 15V5a2 2 0 0 1 2-2h10" />
-          </svg>
+          <Copy strokeWidth={2} />
           {copied ? 'Copied' : 'Copy script'}
         </button>
       </div>

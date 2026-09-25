@@ -815,8 +815,8 @@
 
 .sb-int-check {
   flex: none;
-  font-size: var(--text-lg);
-  line-height: 1;
+  width: var(--text-lg);
+  height: var(--text-lg);
   margin-top: 2px;
   color: var(--color-accent);
 }
@@ -952,8 +952,7 @@
   line-height: 1.3;
 }
 
-.sb-teaser-app .material-symbols-outlined {
-  font-size: var(--text-3xl);
+.sb-teaser-app .sb-appliance-icon {
   color: var(--color-accent);
 }
 

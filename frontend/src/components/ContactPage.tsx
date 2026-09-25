@@ -1,6 +1,6 @@
 import { Page } from './Page';
 import { SITE, OPERATOR, HELPER, OPERATOR_ADDRESS_LINES, ROUTES } from '../config/site';
-import { ArrowLeft } from './icons';
+import { ArrowLeft, Check, Copy } from './icons';
 import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 
 export function ContactPage() {
@@ -30,9 +30,7 @@ export function ContactPage() {
             onClick={() => copy(SITE.contactEmail)}
             aria-label="Copy email address"
           >
-            <span className="material-symbols-outlined" aria-hidden="true">
-              {copied ? 'check' : 'content_copy'}
-            </span>
+            {copied ? <Check /> : <Copy />}
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>

@@ -14,8 +14,8 @@ not a variant of a light one. Every route reads the same tokens, so nothing can 
   does not clear WCAG AA on the dark ground.
 - **Type is Space Grotesk**, taken from the logotype, plus JetBrains Mono for numerals. Both are
   self-hosted variable fonts in `public/fonts/` (one file per subset covers every weight), so the
-  first paint owes nothing to fonts.googleapis.com. Only the Material Symbols icon font is still
-  loaded from Google, trimmed to the eight glyphs actually used.
+  first paint owes nothing to fonts.googleapis.com. Icons are inline SVG in `components/icons.tsx`:
+  stroke icons for UI, Material Symbols paths for the appliances. There is no icon font.
 - **Two scales, no free values.** Radii are `--r-xs/sm/md/lg/pill`; elevation is `--e-1/2/3`,
   tinted to the ground rather than pure black.
 - **The mark is a system, not just a logo.** A dial with one point marked: hollow teal nodes on the
@@ -81,9 +81,6 @@ production too.
 - The estimator on `/savings` reads no curve — it is a fixed year-long ballpark in
   `SavingsCalculator.tsx`. The appliance cards beside it do use the zone's real prices.
 - The fixed tariff the appliance cards compare against is one hard-coded number for all 45 zones.
-- The Material Symbols subset is eight glyphs and has no air-conditioning icon, so that card borrows
-  `cool_to_dry`. A proper one (`mode_fan`, `ac_unit`) needs `public/fonts/material-symbols-subset.woff2`
-  regenerated.
 - `public/assets/backdrop.png` is 640x256 and upscales about 2.25x in the hero. A wider re-export as
   WebP or AVIF would sharpen it and cut the 327KB.
 - The legal documents in `public/legal/` still carry the pre-rebrand `SpotPriceBuddy` name. They are

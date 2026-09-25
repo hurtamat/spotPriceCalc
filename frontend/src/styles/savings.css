@@ -257,26 +257,6 @@
   place-items: center;
 }
 
-/* A ligature font: the glyph name is the element's text, so it must not wrap, break or get
-   letter-spaced. Our subset is static at wght 400, so font-variation-settings is inert; it
-   stays in case the variable face comes back. */
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  font-size: var(--text-3xl);
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
-
 .sb-indiv-title {
   flex: 1;
   min-width: 0;

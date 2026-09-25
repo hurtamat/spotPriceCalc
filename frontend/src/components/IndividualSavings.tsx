@@ -3,16 +3,7 @@ import { fetchApplianceSavings, type ApplianceSavings } from '../api/savings';
 import { useZonePicker } from '../hooks/useZonePicker';
 import { ZoneSelect } from './ZoneSelect';
 import { fixed } from '../lib/format';
-
-// The icon font is an 8-glyph subset; a new key means regenerating it.
-const ICONS: Record<string, string> = {
-  boiler: 'water_heater',
-  ev: 'electric_car',
-  pool: 'heat_pump',
-  ac: 'cool_to_dry',
-  dishwasher: 'dishwasher',
-  dryer: 'local_laundry_service',
-};
+import { ApplianceIcon, isAppliance } from './icons';
 
 const eur = (v: number) => `€${fixed(v, 2)}`;
 const ct = (v: number) => `${fixed(v, 1)} c/kWh`;
@@ -68,9 +59,7 @@ export function IndividualSavings() {
           >
             <div className="sb-indiv-top">
               <span className="sb-indiv-icon">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  {ICONS[a.key]}
-                </span>
+                {isAppliance(a.key) && <ApplianceIcon kind={a.key} />}
               </span>
               <div className="sb-indiv-title">
                 <div className="sb-indiv-name">{a.name}</div>

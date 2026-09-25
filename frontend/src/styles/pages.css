@@ -109,8 +109,9 @@
   padding: 6px 10px;
 }
 
-.sb-contact-copy .material-symbols-outlined {
-  font-size: var(--text-lg);
+.sb-contact-copy svg {
+  width: var(--text-lg);
+  height: var(--text-lg);
 }
 
 .sb-contact-note {

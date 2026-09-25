@@ -1,6 +1,8 @@
 // Bidding-zone catalog: maps the GeoJSON `zoneName` to our backend bidding-zone ids.
 // Some keys share an id: DE + LU are one zone (7), FR + FR-COR are one zone (11).
 
+import { ApiError, getJson } from './client';
+
 export interface Zone {
   id: number;
   name: string;
@@ -75,8 +77,6 @@ export const ZONE_BY_ID: Record<number, Zone> = Object.values(ZONE_BY_MAPKEY).re
 // while devices name their zone by code and never see an id. The wizard needs codes, so it asks the
 // backend rather than shipping a second copy of the list.
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5262';
-
 /** A zone as the backend describes it. `code` is the ENTSO-E area code baked into device scripts. */
 export interface ZoneOption {
   code: string;
@@ -85,10 +85,8 @@ export interface ZoneOption {
   time_zone_id: string;
 }
 
-export async function fetchZones(signal?: AbortSignal): Promise<ZoneOption[]> {
-  const res = await fetch(`${API_BASE}/api/zones`, { signal });
-  if (!res.ok) throw new Error(`GET /api/zones failed: ${res.status}`);
-  return res.json();
+export function fetchZones(signal?: AbortSignal): Promise<ZoneOption[]> {
+  return getJson<ZoneOption[]>('/api/zones', signal);
 }
 
 /** The zone covering a location, for preselecting the dropdown. Null when the backend has no match. */
@@ -97,8 +95,10 @@ export async function resolveZone(
   lon: number,
   signal?: AbortSignal,
 ): Promise<ZoneOption | null> {
-  const res = await fetch(`${API_BASE}/api/zones/resolve?lat=${lat}&lon=${lon}`, { signal });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`GET /api/zones/resolve failed: ${res.status}`);
-  return res.json();
+  try {
+    return await getJson<ZoneOption>(`/api/zones/resolve?lat=${lat}&lon=${lon}`, signal);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
 }

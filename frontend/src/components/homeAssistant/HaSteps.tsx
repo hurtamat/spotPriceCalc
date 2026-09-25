@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCopyToClipboard } from '../../hooks/useCopyToClipboard';
+import { prefersReducedMotion } from '../../lib/media';
 
 // my.home-assistant.io forwards to the visitor's own instance.
 const REPO_URL = 'https://github.com/hurtamat/spotprice-ha';
@@ -48,8 +49,7 @@ export function HaSteps() {
     if (panel === null) return setPanel(which);
     // Both would otherwise animate at once and the section would jump.
     setPanel(null);
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    swapTimer.current = window.setTimeout(() => setPanel(which), reduced ? 0 : DRAWER_MS);
+    swapTimer.current = window.setTimeout(() => setPanel(which), prefersReducedMotion() ? 0 : DRAWER_MS);
   };
 
   return (

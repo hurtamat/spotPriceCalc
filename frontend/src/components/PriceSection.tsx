@@ -19,6 +19,7 @@ import {
 import { ZONE_BY_ID } from '../api/zones';
 import { buildDaySlots, utcOffsetLabel } from '../lib/daySlots';
 import { fixed } from '../lib/format';
+import { MOBILE_QUERY } from '../lib/media';
 import { ChevronRight } from './icons';
 
 const PriceBarChart = lazy(() =>
@@ -37,8 +38,6 @@ const QUANTILE_TEXT: Record<PriceQuantile, string> = {
 // Germany-Luxembourg.
 const DEFAULT_ZONE_ID = 7;
 
-// Must match the 900px media queries in the stylesheets.
-const MOBILE_QUERY = '(max-width: 900px)';
 const isMobileNow = () =>
   typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches;
 

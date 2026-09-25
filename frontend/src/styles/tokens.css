@@ -38,16 +38,6 @@
     U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Material Symbols, subsetted to our eight glyphs (2.7KB), self-hosted.
-   Apache-2.0; see fonts/LICENSE-APACHE.txt. */
-@font-face {
-  font-family: 'Material Symbols Outlined';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/material-symbols-subset.woff2') format('woff2');
-}
-
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;

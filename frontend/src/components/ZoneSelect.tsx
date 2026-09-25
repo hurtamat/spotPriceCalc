@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function ZoneSelect({ id, picker, className, describe }: Props) {
-  const { zones, zoneCode, zone, detection, locate, touch, choose } = picker;
+  const { zones, zonesStatus, retryZones, zoneCode, zone, detection, locate, touch, choose } = picker;
 
   return (
     <div className={className}>
@@ -33,7 +33,16 @@ export function ZoneSelect({ id, picker, className, describe }: Props) {
         ))}
       </select>
       <div className="sb-field-note">
-        {zone ? (
+        {zonesStatus === 'error' ? (
+          <>
+            Couldn&apos;t load the zone list.{' '}
+            <button type="button" className="sb-locate" onClick={retryZones}>
+              Try again
+            </button>
+          </>
+        ) : zonesStatus === 'loading' ? (
+          'Loading zones…'
+        ) : zone ? (
           describe(zone)
         ) : detection.status === 'idle' ? (
           <button type="button" className="sb-locate" onClick={locate}>
