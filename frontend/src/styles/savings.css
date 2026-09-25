@@ -211,7 +211,7 @@
 }
 
 /* Sized to the country name, so the arrow sits beside it rather than at the end of a wide field. */
-.sb-indiv-zone .sb-sw-input {
+.sb-indiv-zone .sb-field-input {
   width: auto;
   max-width: 100%;
 }

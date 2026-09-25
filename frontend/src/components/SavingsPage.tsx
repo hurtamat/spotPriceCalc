@@ -1,13 +1,10 @@
-import { Nav } from './Nav';
-import { Footer } from './Footer';
+import { Page } from './Page';
 import { SavingsCalculator } from './SavingsCalculator';
 import { IndividualSavings } from './IndividualSavings';
 
 export function SavingsPage() {
   return (
-    <div className="sb-shell">
-      <Nav />
-
+    <Page>
       <div className="sb-savings-top">
         <SavingsCalculator />
         <header className="sb-savings-intro">
@@ -25,8 +22,6 @@ export function SavingsPage() {
       <a className="sb-back" href="/">
         Back to SpotSteer
       </a>
-
-      <Footer />
-    </div>
+    </Page>
   );
 }

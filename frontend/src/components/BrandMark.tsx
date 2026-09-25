@@ -27,16 +27,16 @@ export function BrandMark({ size = 34 }: { size?: number }) {
   );
 }
 
-// The full lockup, rebuilt in HTML so the wordmark renders in the real Space
-// Grotesk webfont. The 700/400 weight split is the logo's own.
-export function BrandWord({ size = 21 }: { size?: number }) {
+// The full lockup, rebuilt in HTML so the wordmark renders in the real Space Grotesk webfont.
+// The caller supplies the wrapper; the 700/400 weight split is the logo's own.
+export function BrandWord({ markSize }: { markSize: number }) {
   return (
-    <span className="sb-brand" style={{ fontSize: size }}>
-      <BrandMark size={size * 1.6} />
+    <>
+      <BrandMark size={markSize} />
       <span>
         <span className="sb-brand-word-a">Spot</span>
         <span className="sb-brand-word-b">Steer</span>
       </span>
-    </span>
+    </>
   );
 }

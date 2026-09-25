@@ -1,4 +1,4 @@
-import { BrandMark } from './BrandMark';
+import { BrandWord } from './BrandMark';
 
 // Root-relative, not bare fragments: the nav also renders on /home-assistant and /shelly,
 // where a bare "#prices" only rewrites the hash and lands on nothing.
@@ -16,11 +16,7 @@ export function Nav() {
           the same 1160px grid as the rest of the page. */}
       <div className="sb-nav-inner">
         <a className="sb-brand" href="/">
-          <BrandMark size={34} />
-          <span>
-            <span className="sb-brand-word-a">Spot</span>
-            <span className="sb-brand-word-b">Steer</span>
-          </span>
+          <BrandWord markSize={34} />
         </a>
         <div className="sb-nav-links">
           {LINKS.map((l) => (

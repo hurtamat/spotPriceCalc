@@ -1,19 +1,18 @@
-import { Nav } from './components/Nav';
 import { Hero, Claims } from './components/Hero';
 import { PriceSection } from './components/PriceSection';
 import { SavingsTeaser } from './components/SavingsTeaser';
 import { HowItWorks } from './components/HowItWorks';
 import { Devices } from './components/Devices';
 import { Faq } from './components/Faq';
-import { Footer } from './components/Footer';
+import { Page } from './components/Page';
 import { SavingsPage } from './components/SavingsPage';
-import { ShellyWizard } from './components/ShellyWizard';
+import { ShellyWizard } from './components/shelly/ShellyWizard';
 import { LegalPage } from './components/LegalPage';
 import { ContactPage } from './components/ContactPage';
 import { ROUTES } from './config/site';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { usePageMeta } from './hooks/usePageMeta';
-import { HomeAssistantPage } from './components/HomeAssistantPage';
+import { HomeAssistantPage } from './components/homeAssistant/HomeAssistantPage';
 
 // Path routing without a router dependency, a handful of static pages is not worth react-router.
 
@@ -35,8 +34,7 @@ export default function App() {
   if (path === ROUTES.contact) return <ContactPage />;
 
   return (
-    <div className="sb-shell">
-      <Nav />
+    <Page>
       <Hero />
       <Claims />
       <PriceSection />
@@ -44,7 +42,6 @@ export default function App() {
       <HowItWorks />
       <Devices />
       <Faq />
-      <Footer />
-    </div>
+    </Page>
   );
 }

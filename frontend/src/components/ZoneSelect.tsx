@@ -14,12 +14,12 @@ export function ZoneSelect({ id, picker, className, describe }: Props) {
 
   return (
     <div className={className}>
-      <label className="sb-sw-label" htmlFor={id}>
+      <label className="sb-field-label" htmlFor={id}>
         Price zone
       </label>
       <select
         id={id}
-        className="sb-sw-input"
+        className="sb-field-input"
         value={zoneCode}
         onMouseDown={touch}
         onKeyDown={touch}
@@ -32,7 +32,7 @@ export function ZoneSelect({ id, picker, className, describe }: Props) {
           </option>
         ))}
       </select>
-      <div className="sb-sw-note">
+      <div className="sb-field-note">
         {zone ? (
           describe(zone)
         ) : detection.status === 'idle' ? (

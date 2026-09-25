@@ -1,5 +1,4 @@
-import { Nav } from './Nav';
-import { Footer } from './Footer';
+import { Page } from './Page';
 import { SITE, OPERATOR, HELPER, OPERATOR_ADDRESS_LINES, ROUTES } from '../config/site';
 import { ArrowLeft } from './icons';
 import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
@@ -8,11 +7,9 @@ export function ContactPage() {
   const [copied, copy] = useCopyToClipboard();
 
   return (
-    <div className="sb-shell">
-      <Nav />
-
+    <Page>
       <section className="sb-section sb-contact-page">
-        <a className="sb-ha-back" href={ROUTES.home}>
+        <a className="sb-backlink" href={ROUTES.home}>
           <ArrowLeft size={14} />
           Back to {SITE.name}
         </a>
@@ -68,8 +65,6 @@ export function ContactPage() {
           Back to {SITE.name}
         </a>
       </section>
-
-      <Footer />
-    </div>
+    </Page>
   );
 }

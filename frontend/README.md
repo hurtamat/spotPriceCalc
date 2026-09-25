@@ -139,5 +139,9 @@ src/
 ├─ styles/spotsteer.css     design tokens + all component styles
 ├─ styles/muiTheme.ts       MUI palette mirroring the tokens (MUI cannot read CSS variables)
 ├─ components/              one file per section (Nav, Hero, PriceSection, ZoneMap, …)
+├─ components/shelly/       the /shelly wizard, one file per section
+├─ components/homeAssistant/ the /home-assistant guide, one file per section
+├─ components/Guide.tsx     hero, troubleshooting and next-step blocks both guides share
+├─ components/Page.tsx      the shell every route renders in: Nav, <main>, Footer
 └─ App.tsx                  routing + page composition
 ```

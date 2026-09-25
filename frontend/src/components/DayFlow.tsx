@@ -6,11 +6,9 @@ const BEATS = [
   { title: 'Your device follows them', body: 'The hours never move under you during the day.' },
 ];
 
-type Props = { sectionClassName: string };
-
-export function DayFlow({ sectionClassName }: Props) {
+export function DayFlow() {
   return (
-    <section className={`sb-dayflow ${sectionClassName}`}>
+    <section className="sb-guide-section sb-dayflow">
       <h2 className="sb-h2">What happens each day</h2>
       <StepRail steps={BEATS} />
     </section>
