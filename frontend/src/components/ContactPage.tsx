@@ -1,21 +1,11 @@
-import { useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
 import { SITE, OPERATOR, HELPER, OPERATOR_ADDRESS_LINES, ROUTES } from '../config/site';
 import { ArrowLeft } from './icons';
+import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 
 export function ContactPage() {
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(SITE.contactEmail);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch {
-      // Clipboard blocked; the mailto link still works.
-    }
-  };
+  const [copied, copy] = useCopyToClipboard();
 
   return (
     <div className="sb-shell">
@@ -40,7 +30,7 @@ export function ContactPage() {
           <button
             type="button"
             className="sb-btn sb-contact-copy"
-            onClick={copy}
+            onClick={() => copy(SITE.contactEmail)}
             aria-label="Copy email address"
           >
             <span className="material-symbols-outlined" aria-hidden="true">

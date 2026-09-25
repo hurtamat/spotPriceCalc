@@ -134,7 +134,6 @@ src/
 ├─ api/savings.ts           per-appliance savings for a zone, from today's prices
 ├─ hooks/useDetectedZone.ts browser location to a bidding zone; shared by /shelly and /savings
 ├─ shelly/generate.ts       fills the wizard's answers into the minified device scripts
-├─ state/selectionStore.ts  one-way broadcast of the picked zone and day
 ├─ hooks/useScrollReveal.ts scroll-in effect, mounted once in App
 ├─ map/zones/*.geojson      one shape per zone (glob-imported into ZoneMap)
 ├─ styles/spotsteer.css     design tokens + all component styles

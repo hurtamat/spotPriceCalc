@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Nav } from './Nav';
 import { Footer } from './Footer';
 import { useZonePicker } from '../hooks/useZonePicker';
+import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 import {
   generatePriceColorScript,
   generateScheduleScript,
@@ -150,7 +151,7 @@ export function ShellyWizard() {
   const [quiet, setQuiet] = useState(false);
   const [quietFrom, setQuietFrom] = useState(8);
   const [quietTo, setQuietTo] = useState(17);
-  const [copied, setCopied] = useState(false);
+  const [copied, copyText, resetCopied] = useCopyToClipboard();
   const [hasPhoneShot, setHasPhoneShot] = useState(true);
 
   const isRelay = mode === 'relay';
@@ -165,7 +166,7 @@ export function ShellyWizard() {
     unavailTo: quiet ? quietTo : 0,
   };
 
-  const generated = useMemo(() => {
+  const generated = useMemo<{ code: string } | { error: string } | null>(() => {
     if (!zoneCode) return null;
     try {
       return { code: isRelay ? generateScheduleScript(answers) : generatePriceColorScript(answers) };
@@ -175,21 +176,13 @@ export function ShellyWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRelay, zoneCode, hours, deadline, continuous, quiet, quietFrom, quietTo]);
 
-  const copy = async () => {
-    if (!generated || 'error' in generated) return;
-    try {
-      await navigator.clipboard.writeText(generated.code);
-    } catch {
-      // Needs https or localhost; the script is still on screen to select.
-      return;
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+  const copy = () => {
+    if (generated && 'code' in generated) copyText(generated.code);
   };
 
   const pickMode = (key: Mode) => {
     setMode(key);
-    setCopied(false);
+    resetCopied();
   };
 
   const summary =

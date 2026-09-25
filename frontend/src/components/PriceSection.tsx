@@ -18,7 +18,6 @@ import {
 } from '../api/spotPrices';
 import { ZONE_BY_ID } from '../api/zones';
 import { buildDaySlots, utcOffsetLabel } from '../lib/daySlots';
-import { publishSelection } from '../state/selectionStore';
 import { fixed } from '../lib/format';
 import { ChevronRight } from './icons';
 
@@ -119,11 +118,6 @@ export function PriceSection() {
   }, [key, zoneId, day]);
 
   const state = zoneId != null ? cache[key] : undefined;
-
-  // Let the Individual-savings section follow this selection and reuse the curve.
-  useEffect(() => {
-    publishSelection({ zoneId, day, data: state?.status === 'ready' ? state.data : null });
-  }, [zoneId, day, state]);
 
   return (
     <section

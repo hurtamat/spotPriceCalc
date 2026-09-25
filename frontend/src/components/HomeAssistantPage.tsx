@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Check } from './icons';
 import { DayFlow } from './DayFlow';
 import { GuideMeta } from './GuideMeta';
 import { Accordion } from './Accordion';
+import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 
 // my.home-assistant.io forwards to the visitor's own instance.
 const REPO_URL = 'https://github.com/hurtamat/spotprice-ha';
@@ -150,7 +151,7 @@ function Panel({
 export function HomeAssistantPage() {
   const [panel, setPanel] = useState<'manual' | 'more' | null>(null);
   const swapTimer = useRef<number | undefined>(undefined);
-  const [copied, setCopied] = useState(false);
+  const [copied, copy] = useCopyToClipboard();
 
   useEffect(() => () => window.clearTimeout(swapTimer.current), []);
 
@@ -164,16 +165,6 @@ export function HomeAssistantPage() {
     swapTimer.current = window.setTimeout(() => setPanel(which), reduced ? 0 : DRAWER_MS);
   };
 
-  const copyEntity = async () => {
-    try {
-      await navigator.clipboard.writeText(RUN_ENTITY);
-    } catch {
-      // Unavailable over plain http; the entity id is on screen to select.
-      return;
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  };
 
   return (
     <div className="sb-shell">
@@ -304,7 +295,7 @@ export function HomeAssistantPage() {
                       <button
                         type="button"
                         className="sb-btn sb-primary sb-ha-copybtn"
-                        onClick={copyEntity}
+                        onClick={() => copy(RUN_ENTITY)}
                       >
                         {copied ? 'Copied' : 'Copy'}
                       </button>
