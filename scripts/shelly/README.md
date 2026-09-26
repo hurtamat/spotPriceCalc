@@ -1,8 +1,7 @@
 # Shelly clients
 
-The **layer-3 control** scripts that live on a Shelly device. They talk to our backend and let the device
-act on spot prices with all the optimization done server-side — thin clients, as described in
-[`../../smartHomeIntegration.md`](../../smartHomeIntegration.md).
+The scripts that live on a Shelly device. They talk to our backend and let the device act on spot
+prices with all the optimisation done server-side: the device is a thin client.
 
 Two independent scripts (run either or both):
 
