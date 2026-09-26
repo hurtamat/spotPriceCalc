@@ -1,0 +1,349 @@
+.sb-shell {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--nav-h) clamp(16px, 4vw, 40px) 0;
+  position: relative;
+}
+
+.sb-link {
+  cursor: pointer;
+  color: var(--color-text);
+  font-weight: 500;
+  font-size: var(--text-sm);
+}
+
+.sb-link:hover {
+  color: var(--color-accent);
+}
+
+/* Also used on <a>, hence the explicit display and text-decoration. */
+.sb-btn {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--r-pill);
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  transition:
+    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.18s,
+    box-shadow 0.18s;
+}
+
+.sb-btn:active {
+  transform: scale(0.98);
+}
+
+/* Dark text on amber clears AA; white would not. */
+.sb-btn {
+  padding: 13px 26px;
+  font-size: var(--text-md);
+}
+
+.sb-primary {
+  background: var(--color-warm);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-2);
+}
+
+.sb-primary:hover {
+  background: var(--color-warm-strong);
+  color: var(--color-bg-deep);
+  box-shadow: var(--e-3);
+}
+
+.sb-card {
+  background: var(--color-surface);
+  border-radius: var(--r-md);
+  border: 1px solid var(--color-divider);
+}
+
+.sb-section {
+  padding: clamp(48px, 8vw, 104px) 0;
+  scroll-margin-top: calc(var(--nav-h) + 20px);
+}
+
+.sb-section-head {
+  max-width: 62ch;
+  margin: 0 0 clamp(28px, 4vw, 48px);
+}
+
+.sb-section-head p {
+  margin-top: 16px;
+}
+
+.sb-locate {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Unequal columns so it reads as a progression, not a set. */
+.sb-steps {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1.1fr;
+  gap: clamp(20px, 3vw, 44px);
+  position: relative;
+}
+
+.sb-step {
+  position: relative;
+  padding-top: 34px;
+}
+
+.sb-step::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 0;
+  right: calc(-1 * clamp(20px, 3vw, 44px));
+  height: 1px;
+  background: var(--color-divider);
+}
+
+.sb-step:last-child::before {
+  right: auto;
+  width: 18px;
+}
+
+.sb-step-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--color-accent);
+  background: var(--color-bg);
+}
+
+.sb-step:last-child .sb-step-node {
+  border-color: var(--color-warm);
+  background: var(--color-warm);
+  box-shadow: 0 0 0 5px var(--color-warm-tint);
+}
+
+.sb-step h3 {
+  margin-bottom: 10px;
+}
+
+.sb-step p {
+  color: var(--color-text-dim);
+  font-size: var(--text-md);
+  max-width: 34ch;
+}
+
+@media (max-width: 800px) {
+  .sb-steps {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .sb-step {
+    padding-top: 0;
+    padding-left: 34px;
+  }
+
+  .sb-step::before {
+    top: 9px;
+    bottom: -28px;
+    left: 8px;
+    right: auto;
+    width: 1px;
+    height: auto;
+  }
+
+  .sb-step:last-child::before {
+    display: none;
+  }
+
+  .sb-step p {
+    max-width: none;
+  }
+}
+
+/* Guide section headings carry no bottom margin of their own. */
+.sb-dayflow h2 {
+  margin-bottom: clamp(22px, 3vw, 34px);
+}
+
+/* 0fr -> 1fr slides to the natural height without hard-coding it. */
+.sb-acc {
+  display: flex;
+  flex-direction: column;
+}
+
+.sb-acc-item {
+  overflow: hidden;
+}
+
+.sb-acc-q {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-heading);
+  color: var(--color-text);
+}
+
+.sb-acc-icon {
+  flex: none;
+  font-family: var(--font-body);
+  font-size: var(--text-3xl);
+  font-weight: 400;
+  color: var(--color-accent);
+  transition: transform 0.2s;
+}
+
+.sb-acc-icon[data-open='true'] {
+  transform: rotate(45deg);
+}
+
+.sb-acc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.sb-acc-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.sb-acc-panel > div {
+  overflow: hidden;
+}
+
+.sb-acc-a {
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+}
+
+.sb-acc-panel[data-open='true'] .sb-acc-a {
+  opacity: 1;
+}
+
+.sb-acc-faq {
+  max-width: 880px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.sb-acc-faq .sb-acc-item {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-divider);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.sb-acc-faq .sb-acc-q {
+  padding: 22px 4px;
+  font-weight: 500;
+  font-size: var(--text-lede);
+  letter-spacing: -0.02em;
+  transition: color 0.15s;
+}
+
+.sb-acc-faq .sb-acc-q:hover {
+  color: var(--color-accent-strong);
+}
+
+.sb-acc-faq .sb-acc-icon {
+  color: var(--color-warm);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sb-acc-faq .sb-acc-a {
+  padding: 0 4px 24px;
+  max-width: 68ch;
+  color: var(--color-text-dim);
+  font-size: var(--text-md);
+  line-height: 1.65;
+}
+
+.sb-acc-guide {
+  gap: 12px;
+}
+
+.sb-acc-guide .sb-acc-item {
+  box-shadow: var(--e-1);
+}
+
+.sb-acc-guide .sb-acc-q {
+  padding: 17px 22px;
+  font-weight: 600;
+  font-size: var(--text-md);
+}
+
+.sb-acc-guide .sb-acc-a {
+  padding: 0 22px 20px;
+  color: var(--color-neutral-700);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-acc-panel,
+  .sb-acc-a,
+  .sb-acc-icon {
+    transition: none;
+  }
+}
+
+.sb-backlink {
+  font-size: var(--text-sm);
+  color: var(--color-neutral-600);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 20px;
+}
+
+.sb-field-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-neutral-700);
+  margin-bottom: 6px;
+}
+
+.sb-field-input {
+  width: 100%;
+  border: 1.5px solid var(--color-divider);
+  border-radius: var(--r-sm);
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: var(--text-md);
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  outline: none;
+}
+
+.sb-field-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-100);
+}
+
+.sb-field-note {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+  margin-top: 8px;
+}
+
+.sb-appliance-icon {
+  flex: none;
+  display: block;
+  width: var(--text-3xl);
+  height: var(--text-3xl);
+}

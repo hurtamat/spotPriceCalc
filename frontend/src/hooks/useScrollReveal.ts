@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { prefersReducedMotion } from '../lib/media';
 
 /**
  * Fades and lifts each `<section>` into place as it scrolls into view.
@@ -10,8 +11,7 @@ import { useEffect } from 'react';
  */
 export function useScrollReveal() {
   useEffect(() => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced || typeof IntersectionObserver === 'undefined') return;
+    if (prefersReducedMotion() || typeof IntersectionObserver === 'undefined') return;
 
     // The hero runs its own entry animation on mount (see .sb-hero-copy in the
     // stylesheet); revealing it a second time would double the fade.

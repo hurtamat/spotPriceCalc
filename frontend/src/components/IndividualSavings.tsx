@@ -1,53 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchApplianceSavings, type ApplianceSavings } from '../api/savings';
-import { fetchZones, type ZoneOption } from '../api/zones';
-import { useDetectedZone } from '../hooks/useDetectedZone';
+import { useZonePicker } from '../hooks/useZonePicker';
+import { ZoneSelect } from './ZoneSelect';
 import { fixed } from '../lib/format';
-
-// The icon font is an eight-glyph subset, so a new key needs it regenerated — which is why air
-// conditioning borrows the dryer's snowflake.
-const ICONS: Record<string, string> = {
-  boiler: 'water_heater',
-  ev: 'electric_car',
-  pool: 'heat_pump',
-  ac: 'cool_to_dry',
-  dishwasher: 'dishwasher',
-  dryer: 'local_laundry_service',
-};
+import { ApplianceIcon, isAppliance } from './icons';
 
 const eur = (v: number) => `€${fixed(v, 2)}`;
 const ct = (v: number) => `${fixed(v, 1)} c/kWh`;
 
-/** Owns the zone picker: the zone changes only these cards, never the estimator beside them. */
 export function IndividualSavings() {
-  const { state: zoneState, request: locate } = useDetectedZone();
-  const [zones, setZones] = useState<ZoneOption[]>([]);
-  const [zoneCode, setZoneCode] = useState('');
-  // A ref, not state: flipping this on mousedown must not re-render and close the open dropdown.
-  const touchedZone = useRef(false);
+  const picker = useZonePicker();
+  const { zoneCode } = picker;
   const [data, setData] = useState<ApplianceSavings | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const ctl = new AbortController();
-    fetchZones(ctl.signal)
-      .then(setZones)
-      .catch(() => undefined);
-    return () => ctl.abort();
-  }, []);
-
-  // Prefill from the detected zone, but never overwrite a choice — or an open dropdown.
-  useEffect(() => {
-    if (zoneState.status === 'ready' && zoneState.detected && !touchedZone.current) {
-      setZoneCode(zoneState.detected.code);
-    }
-  }, [zoneState]);
-
-  useEffect(() => {
     if (!zoneCode) return;
     const ctl = new AbortController();
-    // The old cards stay up while the new zone loads: emptying the grid collapses the page
-    // and the browser clamps you back to the top.
+    // Keep the old cards up while loading: an empty grid collapses the page and jumps to the top.
     setLoading(true);
     fetchApplianceSavings(zoneCode, ctl.signal)
       .then((d) => {
@@ -60,13 +30,11 @@ export function IndividualSavings() {
     return () => ctl.abort();
   }, [zoneCode]);
 
-  const zone = zones.find((z) => z.code === zoneCode);
-
   return (
     <section className="sb-indiv" id="individual-savings">
       <div className="sb-indiv-head">
         <div className="sb-indiv-headings">
-          <h3>Individual savings</h3>
+          <h3 className="sb-h3">Individual savings</h3>
           <span>
             {data
               ? "What one cycle saves, run in today's cheapest window instead of at an average European tariff. The best hour is the whole day's, so it may already have passed."
@@ -74,44 +42,12 @@ export function IndividualSavings() {
           </span>
         </div>
 
-        <div className="sb-indiv-zone">
-          <label className="sb-sw-label" htmlFor="sb-indiv-zone">
-            Price zone
-          </label>
-          <select
-            id="sb-indiv-zone"
-            className="sb-sw-input"
-            value={zoneCode}
-            onMouseDown={() => (touchedZone.current = true)}
-            onKeyDown={() => (touchedZone.current = true)}
-            onChange={(e) => {
-              touchedZone.current = true;
-              setZoneCode(e.target.value);
-            }}
-          >
-            <option value="">Select your country…</option>
-            {zones.map((z) => (
-              <option key={z.code} value={z.code}>
-                {z.name}
-              </option>
-            ))}
-          </select>
-          <div className="sb-sw-note">
-            {zone ? (
-              <>Times in {zone.time_zone_id}.</>
-            ) : zoneState.status === 'idle' ? (
-              <button type="button" className="sb-locate" onClick={locate}>
-                Use my location
-              </button>
-            ) : zoneState.status === 'locating' ? (
-              'Checking your location…'
-            ) : zoneState.status === 'failed' ? (
-              `${zoneState.reason} Pick your zone above.`
-            ) : (
-              'No zone covers your location, pick one above.'
-            )}
-          </div>
-        </div>
+        <ZoneSelect
+          id="sb-indiv-zone"
+          picker={picker}
+          className="sb-indiv-zone"
+          describe={(z) => <>Times in {z.time_zone_id}.</>}
+        />
       </div>
 
       <div className="sb-indiv-grid" data-loading={loading || undefined}>
@@ -123,9 +59,7 @@ export function IndividualSavings() {
           >
             <div className="sb-indiv-top">
               <span className="sb-indiv-icon">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  {ICONS[a.key]}
-                </span>
+                {isAppliance(a.key) && <ApplianceIcon kind={a.key} />}
               </span>
               <div className="sb-indiv-title">
                 <div className="sb-indiv-name">{a.name}</div>
@@ -141,7 +75,6 @@ export function IndividualSavings() {
               )}
             </div>
 
-            {/* One pending line: three blank value slots would read as a loading failure. */}
             {a.savingEur == null || a.greenPriceCtPerKwh == null || data == null ? (
               <div className="sb-indiv-pending">
                 No {a.cycleHours} h window in today&apos;s prices.

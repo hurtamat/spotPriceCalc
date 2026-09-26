@@ -8,7 +8,11 @@ export const OPERATOR = {
   country: 'Czechia',
 } as const;
 
-/** One line, for prose and meta tags. */
+/** Named on /contact only; not an operator, so not in the legal responsibility line. */
+export const HELPER = {
+  name: 'Ivan Trencansky',
+} as const;
+
 export const OPERATOR_ADDRESS_LINE = `${OPERATOR.street}, ${OPERATOR.postalCode} ${OPERATOR.city}, ${OPERATOR.country}`;
 
 /** The postal lines alone, for the block on /contact, which prints the name itself. */

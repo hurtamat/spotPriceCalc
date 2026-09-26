@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Nav } from './Nav';
-import { Footer } from './Footer';
+import { Page } from './Page';
 import { loadLegalDocument, LEGAL_URLS, type LegalKind } from '../api/legal';
+import { ArrowLeft } from './icons';
 
 export type { LegalKind };
 
@@ -33,14 +33,13 @@ export function LegalPage({ kind }: { kind: LegalKind }) {
   }, [kind]);
 
   return (
-    <div className="sb-shell">
-      <Nav />
-
+    <Page>
       <section className="sb-section sb-legal-page">
-        <a className="sb-ha-back" href="/">
-          ← Back to SpotSteer
+        <a className="sb-backlink" href="/">
+          <ArrowLeft size={14} />
+          Back to SpotSteer
         </a>
-        <h1 className="sb-legal-title">{TITLES[kind]}</h1>
+        <h1 className="sb-h1 sb-legal-title">{TITLES[kind]}</h1>
 
         {failed ? (
           <p className="sb-legal-state">
@@ -57,8 +56,6 @@ export function LegalPage({ kind }: { kind: LegalKind }) {
           <div className="sb-legal" dangerouslySetInnerHTML={{ __html: html }} />
         )}
       </section>
-
-      <Footer />
-    </div>
+    </Page>
   );
 }

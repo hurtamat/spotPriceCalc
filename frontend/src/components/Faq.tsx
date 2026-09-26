@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Accordion } from './Accordion';
+import { ArrowRight } from './icons';
 
 const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = [
   {
@@ -25,51 +26,27 @@ const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = 
 ];
 
 export function Faq() {
-  const [open, setOpen] = useState(-1);
+  const items = FAQ.map((f) => ({
+    q: f.q,
+    a: f.link ? (
+      <>
+        {f.a}{' '}
+        <a className="sb-faq-link" href={f.link.href}>
+          {f.link.label} <ArrowRight size={14} />
+        </a>
+      </>
+    ) : (
+      f.a
+    ),
+  }));
 
   return (
     <section id="faq" className="sb-section">
       <div className="sb-section-head">
-        <h2>Frequently asked</h2>
+        <h2 className="sb-h1">Frequently asked</h2>
       </div>
 
-      <div className="sb-faq-list">
-        {FAQ.map((f, i) => {
-          const isOpen = open === i;
-          return (
-            <div key={f.q} className="sb-card sb-faq">
-              <button
-                className="sb-faq-q"
-                aria-expanded={isOpen}
-                onClick={() => setOpen(isOpen ? -1 : i)}
-              >
-                {f.q}
-                <span
-                  className="sb-faq-icon"
-                  style={{ transform: `rotate(${isOpen ? 45 : 0}deg)` }}
-                >
-                  +
-                </span>
-              </button>
-              <div className="sb-faq-panel" data-open={isOpen}>
-                <div>
-                  <p className="sb-faq-a">
-                    {f.a}
-                    {f.link && (
-                      <>
-                        {' '}
-                        <a className="sb-faq-link" href={f.link.href}>
-                          {f.link.label} →
-                        </a>
-                      </>
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <Accordion items={items} variant="faq" />
     </section>
   );
 }

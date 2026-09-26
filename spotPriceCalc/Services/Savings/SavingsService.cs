@@ -26,11 +26,11 @@ public class SavingsService : ISavingsService
 
     private static readonly Appliance[] Appliances =
     [
-        new("boiler", "Electric boiler", 7.5m, 3m, true),
-        new("ev", "Electric car", 8.5m, 4m, false),
-        new("pool", "Pool heating", 6.2m, 6m, true),
-        new("ac", "Air conditioning", 2.0m, 6m, true),
-        new("dishwasher", "Dishwasher", 1.2m, 2m, true),
+        new("boiler", "Electric boiler", 2m, 2m, true),
+        new("ev", "Electric car", 7.2m, 4m, false),
+        new("pool", "Heat pump", 3.2m, 3m, true),
+        new("ac", "Air conditioning", 2.0m, 1m, true),
+        new("dishwasher", "Dishwasher", 1.8m, 2m, true),
         new("dryer", "Dryer", 2.5m, 2m, true),
     ];
 

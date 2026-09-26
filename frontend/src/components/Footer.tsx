@@ -1,4 +1,4 @@
-import { BrandMark } from './BrandMark';
+import { BrandWord } from './BrandMark';
 import { SITE, ROUTES } from '../config/site';
 
 export function Footer() {
@@ -6,11 +6,7 @@ export function Footer() {
     <footer className="sb-footer">
       <div className="sb-footer-bottom">
         <span className="sb-footer-brand">
-          <BrandMark size={26} />
-          <span>
-            <span className="sb-brand-word-a">Spot</span>
-            <span className="sb-brand-word-b">Steer</span>
-          </span>
+          <BrandWord markSize={26} />
         </span>
         <span>© 2026 {SITE.name}</span>
         <span style={{ display: 'flex', gap: 18 }}>

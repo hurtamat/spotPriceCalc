@@ -1,0 +1,213 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Smooth-slide to sections when clicking the nav anchors. */
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  /* Three sections break the shell with `width: 100vw` (hero, price map, savings
+     teaser). On a platform with classic scrollbars 100vw is wider than the viewport,
+     which would hand the page a horizontal scrollbar. `clip` removes it without
+     creating a scroll container, so the sticky nav keeps working; `hidden` would not. */
+  overflow-x: clip;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prices, hours and offsets are numbers people compare down a column, so they
+   get tabular figures wherever they appear. */
+.sb-stat-big,
+.sb-indiv-time,
+.sb-indiv-saving,
+.sb-calc-result-euros,
+.sb-calc-result-pct {
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+  /* Space Grotesk carries wide sidebearings; display sizes need more negative
+     tracking than the old stack did, body-scale headings need less. */
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+h3,
+h4 {
+  letter-spacing: -0.015em;
+}
+
+/* ── heading system ───────────────────────────────────────────────
+   Every route sizes a heading through these six classes and no other
+   way. Size and tracking live here; margin belongs to the layout that
+   owns the heading, never to the heading itself. */
+.sb-display {
+  font-size: var(--text-display);
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.sb-h1 {
+  font-size: var(--text-h1);
+  letter-spacing: -0.035em;
+}
+
+.sb-h2 {
+  font-size: var(--text-h2);
+}
+
+.sb-h3 {
+  font-size: var(--text-h3);
+}
+
+.sb-h4 {
+  font-size: var(--text-h4);
+}
+
+/* The paragraph under a heading: two sizes, both dimmed against it. */
+.sb-lede {
+  font-size: var(--text-lede);
+  color: var(--color-text-dim);
+}
+
+.sb-lede-sm {
+  font-size: var(--text-lede-sm);
+  color: var(--color-text-dim);
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+input {
+  font-family: inherit;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+/* Scroll reveal. The class is applied by useScrollReveal, never in markup, so content is visible
+   whenever the effect has not run. Opacity and transform only — both compositor-cheap. */
+.sb-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.sb-reveal.is-in {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+a:hover {
+  color: var(--color-accent-strong);
+}
+
+/* Stagger inside a revealed section. Sequence carries meaning in both places this
+   applies: the steps rail is a narrative order, and the devices bento leads with the
+   integration we want read first. Pure CSS cascade, no animation dependency. */
+@media (prefers-reduced-motion: no-preference) {
+  .sb-reveal .sb-steps > *,
+  .sb-reveal .sb-ha-rail > .sb-ha-step,
+  .sb-reveal .sb-int-grid > *,
+  .sb-reveal .sb-claims > *,
+  .sb-reveal .sb-teaser-apps > * {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  .sb-reveal.is-in .sb-steps > *,
+  .sb-reveal.is-in .sb-ha-rail > .sb-ha-step,
+  .sb-reveal.is-in .sb-int-grid > *,
+  .sb-reveal.is-in .sb-claims > *,
+  .sb-reveal.is-in .sb-teaser-apps > * {
+    animation: sb-hero-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(2) {
+    animation-delay: 80ms;
+  }
+
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(3) {
+    animation-delay: 160ms;
+  }
+
+  .sb-reveal.is-in :is(.sb-steps, .sb-ha-rail, .sb-int-grid, .sb-claims, .sb-teaser-apps) > *:nth-child(4) {
+    animation-delay: 240ms;
+  }
+
+  .sb-reveal.is-in :is(.sb-teaser-apps) > *:nth-child(5) {
+    animation-delay: 320ms;
+  }
+
+  .sb-reveal.is-in :is(.sb-teaser-apps) > *:nth-child(6) {
+    animation-delay: 400ms;
+  }
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 24%, transparent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-400);
+  border-radius: var(--r-sm);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-deep);
+}
+
+/* One visible focus treatment for the whole site, in the brand accent, so
+   keyboard users get the same affordance on every route. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}

@@ -1,5 +1,6 @@
 // No MUI here on purpose: PriceSection needs these eagerly, the chart is lazy-loaded.
 import type { PricePoint, PriceQuantile } from '../api/spotPrices';
+import { pad2 } from './format';
 
 /** A `type`, not an `interface`, so it satisfies MUI X's `DatasetType` index signature. */
 export type PriceSlot = {
@@ -10,8 +11,6 @@ export type PriceSlot = {
   fromUtc: string;
   toUtc: string;
 };
-
-const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /** Local calendar date + wall-clock of an instant, read in a specific IANA timezone. */
 function zonedParts(fmt: Intl.DateTimeFormat, at: Date) {

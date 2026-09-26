@@ -1,6 +1,5 @@
-// Bento, not a 2x2 of equal squares: Home Assistant leads across two columns, Shelly
-// runs full height beside it, and the two planned integrations share the lower row as
-// small tiles. Four items, four cells, no filler.
+import { Check } from './icons';
+
 const LIVE = [
   {
     key: 'homeassistant',
@@ -9,7 +8,6 @@ const LIVE = [
     logoHeight: 34,
     href: '/home-assistant',
     cta: 'Configure in Home Assistant',
-    dark: true,
     bullets: [
       'One integration, whole-home orchestration',
       'Everything HA controls becomes price-aware: climate, EV chargers, plugs, relays',
@@ -24,7 +22,6 @@ const LIVE = [
     logoHeight: 28,
     href: '/shelly',
     cta: 'Configure your Shelly',
-    dark: false,
     bullets: [
       'Five minute setup with one paste-in script',
       'Set and forget, it runs itself from then on',
@@ -39,26 +36,12 @@ const SOON = [
   { key: 'alexa', name: 'Amazon Alexa', logo: '/assets/logo-alexa.png', logoHeight: 38 },
 ];
 
-// Material Symbols, the icon family the site already loads (see index.html), rather
-// than a hand-drawn path.
-function Check({ dark }: { dark: boolean }) {
-  return (
-    <span
-      className="material-symbols-outlined sb-int-check"
-      style={{ color: dark ? 'var(--color-text)' : 'var(--color-accent)' }}
-      aria-hidden="true"
-    >
-      check
-    </span>
-  );
-}
-
 export function Devices() {
   return (
     <section id="devices" className="sb-section">
       <div className="sb-section-head">
-        <h2>The smart-home systems SpotSteer controls</h2>
-        <p>
+        <h2 className="sb-h1">Works with what you already own</h2>
+        <p className="sb-lede-sm">
           Already run one of these? You&apos;re ready. SpotSteer speaks to your existing hub,
           switches and plugs and runs them on the cheap hours. No new hardware, no rewiring.
         </p>
@@ -66,19 +49,14 @@ export function Devices() {
 
       <div className="sb-int-grid">
         {LIVE.map((i) => (
-          <div
-            key={i.key}
-            className="sb-int-card"
-            data-key={i.key}
-            data-dark={i.dark || undefined}
-          >
+          <div key={i.key} className="sb-int-card" data-key={i.key}>
             <div className="sb-int-head">
               <img
                 src={i.logo}
                 alt={i.name}
+                loading="lazy"
                 style={{ height: i.logoHeight }}
-                // Every partner wordmark ships dark-on-light; on this site they all
-                // need flattening to the page's off-white.
+                // Partner wordmarks ship dark-on-light.
                 className="sb-logo-white"
               />
               <span className="sb-int-badge">
@@ -92,7 +70,7 @@ export function Devices() {
             <div className="sb-int-bullets">
               {i.bullets.map((b) => (
                 <div key={b} className="sb-int-bullet">
-                  <Check dark={i.dark} />
+                  <Check className="sb-int-check" />
                   {b}
                 </div>
               ))}
@@ -106,7 +84,7 @@ export function Devices() {
 
         {SOON.map((i) => (
           <div key={i.key} className="sb-int-card sb-int-soon" data-soon="true">
-            <img src={i.logo} alt={i.name} style={{ height: i.logoHeight }} />
+            <img src={i.logo} alt={i.name} loading="lazy" style={{ height: i.logoHeight }} />
             <span className="sb-logo-soon">Coming soon</span>
           </div>
         ))}

@@ -1,0 +1,350 @@
+/* ── calculator ────────────────────────────────────────────────── */
+.sb-calc {
+  padding: clamp(22px, 2.5vw, 30px);
+  box-shadow: var(--e-2);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: calc(var(--nav-h) + 24px);
+}
+
+@media (max-width: 900px) {
+  .sb-calc {
+    position: static;
+  }
+}
+
+/* Label above the input, always, and at full body contrast: a form on a dark
+   surface loses its labels first if they are dimmed. */
+.sb-field-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 9px;
+}
+
+.sb-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: var(--text-md);
+  color: var(--color-text);
+  background: var(--color-bg-deep);
+  border: 1.5px solid var(--color-divider);
+  border-radius: var(--r-sm);
+  outline: none;
+}
+
+/* Placeholders have to clear AA against the input's own ground, not the page's. */
+.sb-input::placeholder {
+  color: var(--color-text-mute);
+}
+
+.sb-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-tint);
+}
+
+/* Two even columns, so the six categories read as one block of equal choices
+   rather than a ragged wrap that sizes each pill by how long its word is. */
+.sb-chips {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sb-chip {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--color-divider);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.sb-chip[data-on='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg-deep);
+}
+
+.sb-calc-result {
+  background: var(--color-bg-deep);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 26%, transparent);
+  color: var(--color-text);
+  border-radius: var(--r-sm);
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+
+.sb-calc-result-cap {
+  font-size: var(--text-xs);
+  color: var(--color-text-mute);
+}
+
+.sb-calc-result-split {
+  border-left: 1px solid var(--color-divider);
+  padding-left: 26px;
+}
+
+.sb-calc-result-euros {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-figure);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+/* The "/yr" riding beside the figure. */
+.sb-calc-result-per {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.sb-calc-result-pct {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-4xl);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--color-accent-strong);
+}
+
+.sb-fine {
+  font-size: var(--text-xs);
+  margin: 0;
+  color: var(--color-text-mute);
+}
+
+/* A link inside fine print stays fine print: underlined so it reads as a link, but not the
+   accent blue, which would pull more attention than the caveat deserves. */
+.sb-fine-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--color-divider);
+}
+
+.sb-fine-link:hover {
+  color: var(--color-text-dim);
+  text-decoration-color: currentColor;
+}
+
+/* ── /savings page shell ───────────────────────────────────────── */
+.sb-savings-intro {
+  max-width: 46ch;
+}
+
+.sb-savings-intro h1 {
+  margin-bottom: 16px;
+}
+
+.sb-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--color-text-dim);
+  margin-top: clamp(28px, 4vw, 44px);
+}
+
+.sb-back:hover {
+  color: var(--color-accent-strong);
+}
+
+/* Estimator beside the paragraph that frames it; the cards get the full width below. */
+.sb-savings-top {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  padding-top: clamp(32px, 5vw, 64px);
+  margin-bottom: clamp(40px, 6vw, 72px);
+}
+
+/* Stacked, the heading has to come first; on desktop it is the right-hand column. */
+@media (max-width: 900px) {
+  .sb-savings-top {
+    grid-template-columns: 1fr;
+  }
+
+  .sb-savings-intro {
+    order: -1;
+  }
+}
+
+/* ── individual savings (per-appliance cards) ──────────────────── */
+.sb-indiv {
+  scroll-margin-top: calc(var(--nav-h) + 20px);
+  min-width: 0;
+}
+
+.sb-indiv-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin-bottom: 18px;
+}
+
+.sb-indiv-headings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb-indiv-zone {
+  flex: none;
+  max-width: 280px;
+}
+
+/* Sized to the country name, so the arrow sits beside it rather than at the end of a wide field. */
+.sb-indiv-zone .sb-field-input {
+  width: auto;
+  max-width: 100%;
+}
+
+@media (max-width: 560px) {
+  .sb-indiv-zone {
+    max-width: none;
+  }
+}
+
+.sb-indiv-head span {
+  font-size: var(--text-sm);
+  color: var(--color-text-mute);
+  max-width: 40ch;
+}
+
+.sb-indiv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.sb-indiv-card {
+  overflow: hidden;
+  box-shadow: var(--e-1);
+}
+
+.sb-indiv-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.sb-indiv-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-sm);
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+  display: grid;
+  place-items: center;
+}
+
+.sb-indiv-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-indiv-name {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-lg);
+}
+
+.sb-indiv-spec {
+  font-size: var(--text-xs);
+  color: var(--color-text-mute);
+}
+
+.sb-indiv-when {
+  text-align: right;
+  flex: none;
+}
+
+.sb-indiv-cap {
+  font-size: var(--text-xs);
+  color: var(--color-text-mute);
+}
+
+.sb-indiv-time {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-3xl);
+  letter-spacing: -0.03em;
+  color: var(--color-accent-strong);
+  line-height: 1.1;
+}
+
+/* The pending line for an appliance the scheduler cannot time yet. */
+.sb-indiv-pending {
+  padding: 12px 18px;
+  border-top: 1px solid var(--color-divider);
+  font-size: var(--text-xs);
+  color: var(--color-text-mute);
+}
+
+.sb-indiv-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  background: var(--color-accent-tint);
+}
+
+
+.sb-indiv-mid {
+  font-size: var(--text-xs);
+  color: var(--color-text-mute);
+}
+
+.sb-indiv-mid strong {
+  color: var(--color-text);
+}
+
+.sb-indiv-saving-box {
+  text-align: right;
+}
+
+.sb-indiv-saving-box .sb-indiv-cap {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.sb-indiv-saving {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  letter-spacing: -0.03em;
+  color: var(--color-accent-strong);
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .sb-indiv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards from the previous zone, held in place while the new ones load. */
+.sb-indiv-grid[data-loading] {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}

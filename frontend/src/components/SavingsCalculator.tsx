@@ -1,19 +1,22 @@
 import { useState } from 'react';
 import { ROUTES } from '../config/site';
 
-// Deliberately local: a year-long ballpark at typical EU figures, not a reading of any zone's curve.
-const BASE_ANNUAL_KWH = 2500;
+// Deliberately local: a ballpark at typical EU figures, not a reading of any zone's curve.
+// Every consumption figure here is half a year, which is the window the reference numbers
+// were measured over; the result is doubled once for the yearly total.
+const BASE_HALF_YEAR_KWH = 1250;
 const MAX_ANNUAL_KWH = 1_000_000;
-const FIXED_CT_PER_KWH = 20.529;
-const GREEN_CT_PER_KWH = 4.419;
-// Assumes every kWh moves into a green hour, so the whole gap is the saving.
-const RATE_CT_PER_KWH = FIXED_CT_PER_KWH - GREEN_CT_PER_KWH;
+const FIXED_PRICE_EUR = 205.29;
+const GREEN_PRICE_EUR = 44.19;
+const RATE_EUR_PER_KWH = (FIXED_PRICE_EUR - GREEN_PRICE_EUR) / BASE_HALF_YEAR_KWH;
 
 const CATEGORIES = [
-  { key: 'water_heating', label: 'Water heating', annualKwh: 2750 }, // electric, whole home, 2-4 people
-  { key: 'ev', label: 'Electric car', annualKwh: 2250 }, // 12 000 km x ~0.19 kWh/km
-  { key: 'pool', label: 'Pool heating', annualKwh: 2250 }, // heat pump, average outdoor pool
-  { key: 'ac', label: 'Air conditioning', annualKwh: 720 },
+  { key: 'water_heating', label: 'Water heating', halfYearKwh: 200 },
+  { key: 'ev', label: 'Electric car', halfYearKwh: 2100 },
+  { key: 'ac', label: 'Air conditioning', halfYearKwh: 260 },
+  { key: 'heat_pump', label: 'Heat pump', halfYearKwh: 170 },
+  { key: 'sauna', label: 'Sauna', halfYearKwh: 234 },
+  { key: 'hot_tub', label: 'Hot tub', halfYearKwh: 468 },
 ];
 
 export function SavingsCalculator() {
@@ -22,14 +25,15 @@ export function SavingsCalculator() {
 
   const toggle = (key: string) => setOn((s) => ({ ...s, [key]: !s[key] }));
 
-  const baseKwh = parseFloat(kwh) || BASE_ANNUAL_KWH;
-  const extraKwh = CATEGORIES.reduce((sum, c) => (on[c.key] ? sum + c.annualKwh : sum), 0);
-  const totalKwh = Math.round(baseKwh + extraKwh);
-  const savedEur = Math.round((totalKwh * RATE_CT_PER_KWH) / 100);
+  // The field asks for a year, the model works in halves.
+  const baseKwh = parseFloat(kwh) ? parseFloat(kwh) / 2 : BASE_HALF_YEAR_KWH;
+  const extraKwh = CATEGORIES.reduce((sum, c) => (on[c.key] ? sum + c.halfYearKwh : sum), 0);
+  const halfYearKwh = baseKwh + extraKwh;
+  const savedEur = Math.round(halfYearKwh * RATE_EUR_PER_KWH * 2);
 
   return (
     <div className="sb-card sb-calc">
-      <h3 className="sb-calc-title">Estimate it</h3>
+      <h3 className="sb-h3 sb-calc-title">Estimate it</h3>
 
       <div>
         <label className="sb-field-label" htmlFor="sb-calc-kwh">
@@ -39,7 +43,7 @@ export function SavingsCalculator() {
           id="sb-calc-kwh"
           className="sb-input"
           inputMode="numeric"
-          placeholder={`e.g. ${BASE_ANNUAL_KWH.toLocaleString('en-US')}`}
+          placeholder={`e.g. ${(BASE_HALF_YEAR_KWH * 2).toLocaleString('en-US')}`}
           value={kwh}
           onChange={(e) => {
             const digits = e.target.value.replace(/[^0-9]/g, '');
@@ -70,19 +74,19 @@ export function SavingsCalculator() {
           <div className="sb-calc-result-cap">Estimated saving</div>
           <div className="sb-calc-result-euros">
             ≈ {savedEur.toLocaleString('en-US')} €
-            <span style={{ fontSize: 18, opacity: 0.7, fontWeight: 600 }}> /yr</span>
+            <span className="sb-calc-result-per"> /yr</span>
           </div>
         </div>
         <div className="sb-calc-result-split">
-          <div className="sb-calc-result-pct">{RATE_CT_PER_KWH.toFixed(1)}</div>
+          <div className="sb-calc-result-pct">{(RATE_EUR_PER_KWH * 100).toFixed(1)}</div>
           <div className="sb-calc-result-cap">cents saved per kWh</div>
         </div>
       </div>
 
       <p className="sb-fine">
-        Rough estimate against an average European fixed tariff. Learn more in{' '}
+        Rough estimate against an average European fixed tariff. Learn more in our{' '}
         <a className="sb-fine-link" href={ROUTES.terms}>
-          Risks and assumptions
+          terms and conditions
         </a>
         .
       </p>

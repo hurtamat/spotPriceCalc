@@ -20,11 +20,9 @@ dist/
 
 # IDE
 .idea/
+*.user
 .claude/
 CLAUDE.md
-
-# Agent skills (taste-skill), reinstallable from skills-lock.json
-.agents/
 
 # Terraform
 .terraform/
@@ -33,3 +31,9 @@ CLAUDE.md
 *.tfvars
 !*.tfvars.example
 crash.log
+
+# Local secrets (ENTSO-E token)
+spotPriceCalc/appsettings.Development.json
+
+# Local secrets for docker-compose
+.env

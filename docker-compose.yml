@@ -6,7 +6,8 @@ services:
     environment:
       POSTGRES_DB: spotprice
       POSTGRES_USER: spotprice
-      POSTGRES_PASSWORD: spotprice123!
+      # From .env if set, otherwise the local default. Only applied when the volume is first created.
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-spotprice123!}"
     ports:
       # Host 5433 -> container 5432, so a local/native Postgres can keep 5432 without colliding.
       - "5433:5432"
@@ -33,11 +34,13 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       # Overrides ConnectionStrings:Postgres from appsettings — talks to the db container over the
       # compose network (service name "postgres", internal port 5432), NOT the host mapping.
-      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=spotprice;Username=spotprice;Password=spotprice123!"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=spotprice;Username=spotprice;Password=${POSTGRES_PASSWORD:-spotprice123!}"
       # Allow the compose frontend origin (host port 3000 below) to call the API.
       Cors__AllowedOrigins__0: "http://localhost:3000"
       # Reaches the Python service over the compose network, not the host mapping appsettings uses.
       CalcService__BaseUrl: "http://calc-service:8000/"
+      # From .env next to this file (see .env.example); same variable name the Azure Container App uses.
+      Entsoe__SecurityToken: "${ENTSOE_TOKEN:?set ENTSOE_TOKEN in .env}"
     ports:
       - "8080:8080"
 

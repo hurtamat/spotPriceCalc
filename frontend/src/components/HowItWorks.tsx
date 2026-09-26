@@ -1,5 +1,6 @@
-// A sequence, not a set: the three steps sit on one rail, and the step where
-// something physically happens is the one the mark's amber node lands on.
+import { StepRail } from './StepRail';
+import { TariffComparison } from './TariffComparison';
+
 const STEPS = [
   {
     title: 'We read the market',
@@ -19,41 +20,16 @@ export function HowItWorks() {
   return (
     <section id="how" className="sb-section">
       <div className="sb-section-head">
-        <h2>What are spot prices</h2>
-        <p>
+        <h2 className="sb-h1">What are spot prices</h2>
+        <p className="sb-lede-sm">
           On the wholesale market, electricity is priced <strong>every single hour</strong>. That
-          hourly wholesale price is the <em>spot price</em>. Households can benefit from these,
-          and put money back in their own pocket every month.
+          hourly wholesale price is the <em>spot price</em>, and it swings through the day.
         </p>
       </div>
 
-      <div className="sb-steps">
-        {STEPS.map((s) => (
-          <div key={s.title} className="sb-step">
-            <span className="sb-step-node" aria-hidden="true" />
-            <h3>{s.title}</h3>
-            <p>{s.body}</p>
-          </div>
-        ))}
-      </div>
+      <StepRail steps={STEPS} />
 
-      <div className="sb-tariffs">
-        <div className="sb-tariff sb-tariff-dynamic">
-          <h4>Dynamic / spot tariff</h4>
-          <p>
-            You pay the real hourly price. Now moving flexible loads into the cheap hours{' '}
-            <strong>directly cuts your bill</strong>, and that&apos;s exactly what SpotSteer
-            automates.
-          </p>
-        </div>
-        <div className="sb-tariff sb-tariff-fixed">
-          <h4>Fixed tariff</h4>
-          <p>
-            You pay the same rate at any hour. Shifting your boiler or EV charging to cheap hours
-            saves you <strong>nothing</strong>, because the meter can&apos;t tell the difference.
-          </p>
-        </div>
-      </div>
+      <TariffComparison />
     </section>
   );
 }

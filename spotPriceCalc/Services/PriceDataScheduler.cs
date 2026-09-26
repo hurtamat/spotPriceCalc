@@ -9,8 +9,8 @@ public class PriceDataScheduler : BackgroundService
 
     private const int QuantileWindowDays = 7;
 
-    // Daily run at 13:21 CET, chosen to avoid a round time other people might use
-    private static readonly TimeOnly DailyRunTime = new(13, 21);
+    // Daily run at 14:05 CET (12:05 UTC in summer): at 13:21 half the zones were not yet uploaded to ENTSO-E.
+    private static readonly TimeOnly DailyRunTime = new(14, 5);
     private static readonly TimeZoneInfo CentralEurope = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
 
     // TimeProvider also fakes the daily Task.Delay, so a test advances a day instead of sleeping it.

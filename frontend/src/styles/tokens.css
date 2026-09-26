@@ -1,0 +1,176 @@
+/* ────────────────────────────────────────────────────────────────
+   SpotSteer design tokens + base + shared styles
+
+   Dark-first. The dark values are authored on :root, not inside a
+   prefers-color-scheme block, because dark IS the product's theme; the
+   light block below is the override, not the other way round. Every
+   surface on every route reads from these names, so the whole site
+   turns over together and no page can flip theme mid-scroll.
+
+   Both brand colours are taken verbatim from public/spotsteer-mark.svg:
+   the dial ring #1B7EA6 and the marker dot #E8952B. They are never
+   redefined; --color-accent is a lifted tint of the ring used for text
+   and small UI, because #1B7EA6 alone does not clear WCAG AA on the
+   dark ground.
+   ──────────────────────────────────────────────────────────────── */
+
+/* Self-hosted so the first paint owes nothing to fonts.googleapis.com.
+   Both families ship as variable fonts, so one file per subset covers
+   every weight we use. */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/spacegrotesk-var-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/spacegrotesk-var-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('/fonts/jetbrainsmono-var-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('/fonts/jetbrainsmono-var-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* ── ground and surfaces ──────────────────────────────────────
+     A cool near-black built off the logotype ink #1E2229, never #000.
+     Three steps only: page, card, raised. */
+  --color-bg: #0f1418;
+  --color-bg-deep: #0a0e11;
+  --color-surface: #161d23;
+  --color-surface-2: #1d262d;
+  --color-divider: #26313a;
+  --color-hairline: rgba(232, 237, 241, 0.09);
+
+  /* ── text ─────────────────────────────────────────────────────
+     Off-white, never #fff. -dim carries body copy at AA, -mute is for
+     captions and never carries anything a reader must not miss. */
+  --color-text: #e8edf1;
+  --color-text-dim: #a7b4bf;
+  --color-text-mute: #7f8d99;
+
+  /* ── brand ────────────────────────────────────────────────────
+     --color-brand and --color-warm are the mark's own two colours,
+     untouched. --color-accent is the on-dark reading of the ring. */
+  --color-brand: #1b7ea6;
+  --color-accent: #3fa8d1;
+  --color-accent-strong: #63bcdd;
+  --color-accent-deep: #12586f;
+  --color-accent-tint: rgba(63, 168, 209, 0.13);
+  --color-accent-tint-2: rgba(63, 168, 209, 0.22);
+  --color-warm: #e8952b;
+  --color-warm-strong: #f2ab52;
+  --color-warm-tint: rgba(232, 149, 43, 0.14);
+
+  /* ── price semantics ──────────────────────────────────────────
+     Names follow the API's PriceQuantile. The map's own three colours:
+     blue is a live zone, amber is the picked one, grey is out of play.
+     The chart reuses them so the two halves of the page speak once. */
+  /* The map's selectable-zone fill; also the chart card's slide-back slab. */
+  --color-map-zone: #2d7590;
+
+  --color-q-green: #3fa8d1;
+  --color-q-yellow: #7f8d99;
+  --color-q-red: #e8952b;
+  /* Lifted for text: the fills are tuned as bars. */
+  --color-q-green-text: #63bcdd;
+  --color-q-yellow-text: #a7b4bf;
+  --color-q-red-text: #f2ab52;
+
+  /* ── radius scale ─────────────────────────────────────────────
+     Four steps and a pill. Nothing on the site may invent a fifth. */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+
+  /* ── type scale ───────────────────────────────────────────────
+     Eight fixed steps at 2px gaps, because a size a reader cannot tell
+     apart from its neighbour is not a level. --text-md is the body root.
+     Nothing on the site may invent a ninth. */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 22px;
+  --text-3xl: 25px;
+  --text-4xl: 30px;
+
+  /* Headings are fluid, so they get their own ladder rather than a step.
+     The two ledes are paragraph sizes, not headings, and -figure is the one
+     display numeral (the euro readout), which tracks neither. */
+  --text-display: clamp(34px, 4.7vw, 54px);
+  --text-h1: clamp(30px, 4.3vw, 46px);
+  --text-h2: clamp(24px, 3.2vw, 34px);
+  --text-h3: clamp(22px, 2.6vw, 28px);
+  --text-h4: clamp(18px, 1.9vw, 22px);
+  --text-lede: clamp(16px, 1.7vw, 19px);
+  --text-lede-sm: clamp(15px, 1.5vw, 18px);
+  --text-figure: clamp(34px, 4vw, 44px);
+
+  /* ── elevation scale ──────────────────────────────────────────
+     Tinted to the ground, never pure black, and only three steps. */
+  --e-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --e-2: 0 8px 24px -6px rgba(0, 0, 0, 0.55);
+  --e-3: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
+
+  /* The nav is fixed and full-bleed, so it takes no space in the flow. Every page
+     reserves this much at the top; the hero cancels it so the photograph starts at
+     y=0 with the nav floating over it. */
+  --nav-h: 60px;
+
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Legacy aliases. The old palette had a 6-stop accent ramp and two
+     neutral stops that the sub-page stylesheets still reference by
+     name; they resolve into the new system so nothing is left pointing
+     at a colour that no longer exists. */
+  --color-accent-100: var(--color-accent-tint);
+  --color-accent-200: var(--color-accent-tint-2);
+  --color-accent-300: var(--color-accent-strong);
+  --color-accent-700: var(--color-accent-strong);
+  /* The old ramp's -800 was only ever used as a text colour on a light tint. On the
+     dark ground that has to read up, not down, so it resolves to the lifted tint. */
+  --color-accent-800: var(--color-accent-strong);
+  --color-accent-900: var(--color-bg-deep);
+  --color-neutral-400: #4a5862;
+  --color-neutral-600: var(--color-text-mute);
+  --color-neutral-700: var(--color-text-dim);
+  --color-pop: var(--color-warm);
+  --color-pop-100: var(--color-warm-tint);
+  --color-pop-700: var(--color-warm-strong);
+}
