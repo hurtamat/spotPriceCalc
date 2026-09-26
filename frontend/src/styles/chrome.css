@@ -151,3 +151,16 @@
   font-size: var(--text-sm);
   color: var(--color-text-mute);
 }
+
+.sb-footer-links {
+  display: flex;
+  gap: 18px;
+}
+
+/* Phones: brand and links share the top row, the copyright drops beneath the brand. */
+@media (max-width: 640px) {
+  .sb-footer-copy {
+    order: 1;
+    flex-basis: 100%;
+  }
+}
