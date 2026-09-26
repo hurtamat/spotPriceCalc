@@ -1,6 +1,7 @@
 ### Direct ENTSO-E upstream call — Slovakia, today (delivery day 2026-07-18, CEST window)
 @entsoeHost = https://web-api.tp.entsoe.eu/api
-@token = 8b728f83-6aad-4943-b6a8-460fe4e692b8
+# Paste your ENTSO-E security token here locally; never commit it filled in.
+@token = 
 @domain = 10YSK-SEPS-----K
 @documentType = A25
 @businessType = B10
