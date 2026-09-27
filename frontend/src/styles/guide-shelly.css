@@ -28,20 +28,16 @@
 }
 
 .sb-sw-q {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
   padding: clamp(18px, 2.4vw, 26px);
   box-shadow: var(--e-1);
 }
 
-.sb-sw-qbody {
-  flex: 1;
-  min-width: 0;
-}
-
-.sb-sw-qbody h3 {
-  margin-bottom: 5px;
+/* Number and title on one line, as in the Home Assistant steps. */
+.sb-sw-q-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 8px;
 }
 
 .sb-sw-qsub {

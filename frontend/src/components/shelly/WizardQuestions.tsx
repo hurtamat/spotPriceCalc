@@ -34,12 +34,12 @@ function Question({ n, title, sub, children }: {
 }) {
   return (
     <div className="sb-card sb-sw-q">
-      <span className="sb-guide-n">{n}</span>
-      <div className="sb-sw-qbody">
+      <div className="sb-sw-q-head">
+        <span className="sb-guide-n">{n}</span>
         <h3 className="sb-h4">{title}</h3>
-        <p className="sb-sw-qsub">{sub}</p>
-        {children}
       </div>
+      <p className="sb-sw-qsub">{sub}</p>
+      {children}
     </div>
   );
 }
@@ -141,7 +141,7 @@ export function WizardQuestions({ mode, onMode, picker, form, update }: Props) {
             <div className="sb-sw-fields">
               <div>
                 <label className="sb-field-label" htmlFor="sb-sw-hours">
-                  Hours of power needed
+                  Hours needed
                 </label>
                 <input
                   id="sb-sw-hours"
