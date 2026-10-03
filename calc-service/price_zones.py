@@ -25,10 +25,19 @@ def price_zones(prices: list[PricePoint]) -> PriceZonesResponse:
 
     ordered = sorted(prices, key=lambda p: p.from_utc)
 
-    pandas_list = pd.Series([p.eur_per_mwh for p in ordered])
-    ma = pandas_list.rolling(MA_WINDOW, min_periods=1).mean()
+    times = [p.from_utc for p in ordered]                                      # new
+    prices_list = [p.eur_per_mwh for p in ordered]                             # new
 
-    residuals = pandas_list - ma
+    time_series = pd.Series(data=prices_list, index=times)                     # new
+
+    # '7D' means 7 Days. Pandas will calculate the average of all rows
+    # that fall within exactly 7 days of the current row's timestamp.
+    ma = time_series.rolling('7D', min_periods=1).mean()                       # new
+    
+    # pandas_list = pd.Series([p.eur_per_mwh for p in ordered])                # old
+    # ma = pandas_list.rolling(MA_WINDOW, min_periods=1).mean()                # old
+
+    residuals = time_series - ma
 
     lower_quantile = np.quantile(residuals, ALPHA)
     upper_quantile = np.quantile(residuals, 1 - ALPHA)
