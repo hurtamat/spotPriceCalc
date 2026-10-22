@@ -28,3 +28,6 @@ README.md
 # minified device scripts the bundle imports, and they must reach the build context.
 frontend/dist
 frontend/.vite
+
+# Local-only settings with the ENTSO-E token; the container gets it from compose instead.
+**/appsettings.Development.json

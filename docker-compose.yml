@@ -37,6 +37,8 @@ services:
       ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=spotprice;Username=spotprice;Password=${POSTGRES_PASSWORD:-spotprice123!}"
       # Allow the compose frontend origin (host port 3000 below) to call the API.
       Cors__AllowedOrigins__0: "http://localhost:3000"
+      # A local `npm run dev` beside the stack.
+      Cors__AllowedOrigins__1: "http://localhost:5173"
       # Reaches the Python service over the compose network, not the host mapping appsettings uses.
       CalcService__BaseUrl: "http://calc-service:8000/"
       # From .env next to this file (see .env.example); same variable name the Azure Container App uses.

@@ -1,10 +1,21 @@
+import type { ReactNode } from 'react';
 import { Accordion } from './Accordion';
 import { ArrowRight } from './icons';
+import { METHODOLOGY_PDF } from '../config/site';
 
-const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = [
+const FAQ: { q: string; a: ReactNode; link?: { href: string; label: string } }[] = [
   {
     q: 'How do you decide whether a spot price is cheap or expensive?',
-    a: 'Every hour is scored against the historic price of that location using the moving average residuals method to account for current trends.',
+    a: (
+      <>
+        Every hour is scored against the historic price of that location using the moving average
+        residuals method to account for current trends. Our{' '}
+        <a className="sb-text-link" href={METHODOLOGY_PDF} target="_blank" rel="noopener noreferrer">
+          methodology
+        </a>{' '}
+        walks through it step by step.
+      </>
+    ),
     //link: { href: '#how', label: 'More about how it works' },
   },
     {

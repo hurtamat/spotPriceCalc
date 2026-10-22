@@ -47,6 +47,9 @@ export const ROUTES = {
   contact: '/contact',
 } as const;
 
+/** Opened in its own tab from the savings page and the FAQ, so it is only fetched on click. */
+export const METHODOLOGY_PDF = '/assets/SpotSteer_methodology.pdf';
+
 export type RouteKey = keyof typeof ROUTES;
 
 /** Absolute URL for a route: canonical tags, sitemap, legal documents. */

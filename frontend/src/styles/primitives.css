@@ -16,6 +16,16 @@
   color: var(--color-accent);
 }
 
+/* A link inside running text: accent blue like any <a>, underlined on hover. */
+.sb-text-link {
+  font-weight: 500;
+  text-underline-offset: 2px;
+}
+
+.sb-text-link:hover {
+  text-decoration: underline;
+}
+
 /* Also used on <a>, hence the explicit display and text-decoration. */
 .sb-btn {
   cursor: pointer;
