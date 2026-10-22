@@ -17,6 +17,7 @@ import {
   type ZoneSpotPrices,
 } from '../api/spotPrices';
 import { ZONE_BY_ID } from '../api/zones';
+import { METHODOLOGY_PDF } from '../config/site';
 import { buildDaySlots, utcOffsetLabel } from '../lib/daySlots';
 import { fixed } from '../lib/format';
 import { MOBILE_QUERY } from '../lib/media';
@@ -288,7 +289,10 @@ function Chart({
       {/* The x axis is the zone's own wall clock, not the viewer's and not UTC. */}
       <div className="sb-chart-tz">
         Local time in {zoneName}
-        {offset ? ` (${offset})` : ''}
+        {offset ? ` (${offset})` : ''} ·{' '}
+        <a className="sb-fine-link" href={METHODOLOGY_PDF} target="_blank" rel="noopener noreferrer">
+          methodology
+        </a>
       </div>
     </>
   );

@@ -6,7 +6,8 @@ from wire import PricePoint, WireModel
 
 router = APIRouter(tags=["price-zones"])
 
-MA_WINDOW = 7 * 24 * 4
+# By time, not row count, so hourly and 15-minute zones both average a week.
+MA_WINDOW = "7D"
 
 # cutoff
 ALPHA = 0.3
@@ -25,10 +26,13 @@ def price_zones(prices: list[PricePoint]) -> PriceZonesResponse:
 
     ordered = sorted(prices, key=lambda p: p.from_utc)
 
-    pandas_list = pd.Series([p.eur_per_mwh for p in ordered])
-    ma = pandas_list.rolling(MA_WINDOW, min_periods=1).mean()
+    time_series = pd.Series(
+        data=[p.eur_per_mwh for p in ordered],
+        index=[p.from_utc for p in ordered],
+    )
+    ma = time_series.rolling(MA_WINDOW, min_periods=1).mean()
 
-    residuals = pandas_list - ma
+    residuals = time_series - ma
 
     lower_quantile = np.quantile(residuals, ALPHA)
     upper_quantile = np.quantile(residuals, 1 - ALPHA)

@@ -1,6 +1,8 @@
+using spotPriceCalc.Domain;
+
 namespace spotPriceCalc.Services;
 
-// On startup populate yesterday/today/tomorrow then daily populate job.
+// Populates yesterday/today/tomorrow on startup, then the latest day every two hours.
 public class PriceDataScheduler : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -9,11 +11,11 @@ public class PriceDataScheduler : BackgroundService
 
     private const int QuantileWindowDays = 7;
 
-    // Daily run at 14:05 CET (12:05 UTC in summer): at 13:21 half the zones were not yet uploaded to ENTSO-E.
-    private static readonly TimeOnly DailyRunTime = new(14, 5);
+    // Half an hour after ENTSO-E's 13:00 Prague deadline, the same in summer and winter.
+    private static readonly TimeOnly PublishedBy = new(13, 30);
+    private static readonly TimeSpan RunInterval = TimeSpan.FromHours(2);
     private static readonly TimeZoneInfo CentralEurope = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
-
-    // TimeProvider also fakes the daily Task.Delay, so a test advances a day instead of sleeping it.
+    
     public PriceDataScheduler(
         IServiceScopeFactory scopeFactory, TimeProvider clock, ILogger<PriceDataScheduler> logger)
     {
@@ -32,14 +34,13 @@ public class PriceDataScheduler : BackgroundService
             {
                 var nextRunUtc = NextRunUtc(_clock.GetUtcNow());
                 var delay = nextRunUtc - _clock.GetUtcNow();
-                _logger.LogInformation(
-                    "Next daily populate (tomorrow) scheduled for {NextRunUtc:o} ({RunTime} CET, in {Delay})",
-                    nextRunUtc, DailyRunTime, delay);
+                _logger.LogInformation("Next populate scheduled for {NextRunUtc:o} (in {Delay})", nextRunUtc, delay);
 
                 await Task.Delay(delay, _clock, stoppingToken);
 
-                var tomorrow = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime).AddDays(1);
-                await PopulateAsync(tomorrow, $"daily {DailyRunTime} CET", stoppingToken);
+                // Stored zones are skipped, so only missing ones hit ENTSO-E.
+                var date = LatestMarketDay(_clock.GetUtcNow());
+                await PopulateAsync(date, $"every {RunInterval.TotalHours:0} h", stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -51,25 +52,31 @@ public class PriceDataScheduler : BackgroundService
     // History first, then the three real days oldest first so yesterday has its full trailing window.
     private async Task RunStartupPopulateAsync(CancellationToken ct)
     {
-        var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
+        var today = MarketDay.ContainingDay(_clock.GetUtcNow().UtcDateTime);
 
         // Ends the day before yesterday; yesterday itself arrives classified in the populate below.
         await BackfillHistoryAsync(today.AddDays(-QuantileWindowDays), today.AddDays(-2), ct);
 
         await PopulateAsync(today.AddDays(-1), "startup: yesterday", ct);
         await PopulateAsync(today, "startup: today", ct);
-        
+
         if (DayAheadPublished(_clock.GetUtcNow()))
             await PopulateAsync(today.AddDays(1), "startup: tomorrow", ct);
         else
             _logger.LogInformation(
-                "Startup: skipping tomorrow, before {RunTime} CET the day-ahead prices are not published",
-                DailyRunTime);
+                "Startup: skipping tomorrow, before {PublishedBy} CET the day-ahead prices are not published",
+                PublishedBy);
     }
 
-    // Whether tomorrow's prices should exist yet, in the same CET wall clock the daily run uses.
     private static bool DayAheadPublished(DateTimeOffset nowUtc) =>
-        TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(nowUtc, CentralEurope).DateTime) >= DailyRunTime;
+        TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(nowUtc, CentralEurope).DateTime) >= PublishedBy;
+
+    // Before publication, today: catches zones that came in late.
+    public static DateOnly LatestMarketDay(DateTimeOffset nowUtc)
+    {
+        var today = MarketDay.ContainingDay(nowUtc.UtcDateTime);
+        return DayAheadPublished(nowUtc) ? today.AddDays(1) : today;
+    }
 
     private async Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct)
     {
@@ -111,14 +118,17 @@ public class PriceDataScheduler : BackgroundService
         }
     }
 
-    private static DateTimeOffset NextRunUtc(DateTimeOffset fromUtc)
+    // 13:30, 15:30, … 11:30 Prague; odd hours never fall in the 02:00–03:00 DST gap.
+    public static DateTimeOffset NextRunUtc(DateTimeOffset fromUtc)
     {
-        var localNow = TimeZoneInfo.ConvertTime(fromUtc, CentralEurope);
-        // Build the target wall-clock time (Unspecified kind) so ConvertTimeToUtc applies the zone's DST rules.
-        var targetLocal = localNow.Date.Add(DailyRunTime.ToTimeSpan());
-        if (targetLocal <= localNow.DateTime)
-            targetLocal = targetLocal.AddDays(1);
+        var localNow = TimeZoneInfo.ConvertTime(fromUtc, CentralEurope).DateTime;
+        var firstOfDay = TimeSpan.FromTicks(PublishedBy.ToTimeSpan().Ticks % RunInterval.Ticks);
 
+        var targetLocal = localNow.Date.Add(firstOfDay);
+        while (targetLocal <= localNow)
+            targetLocal = targetLocal.Add(RunInterval);
+
+        // Unspecified kind, so ConvertTimeToUtc applies the zone's DST rules.
         var targetUtc = TimeZoneInfo.ConvertTimeToUtc(
             DateTime.SpecifyKind(targetLocal, DateTimeKind.Unspecified), CentralEurope);
         return new DateTimeOffset(targetUtc, TimeSpan.Zero);
