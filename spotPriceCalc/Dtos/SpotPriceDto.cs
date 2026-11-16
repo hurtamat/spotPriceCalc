@@ -4,10 +4,21 @@ using spotPriceCalc.Domain;
 namespace spotPriceCalc.Dtos;
 
 // Wire aggregate: zone id + IANA timezone once, then the UTC price curve.
-public record ZoneSpotPricesDto(int BiddingZoneId, string TimeZoneId, IReadOnlyList<PricePointDto> Points)
+// DayRange spans every zone that day, so the chart axis holds still when the user switches zones.
+public record ZoneSpotPricesDto(
+    int BiddingZoneId,
+    string TimeZoneId,
+    IReadOnlyList<PricePointDto> Points,
+    PriceRangeDto? DayRange)
 {
-    public static ZoneSpotPricesDto From(ZoneSpotPrices z, string timeZoneId) =>
-        new(z.BiddingZoneId, timeZoneId, z.Points.Select(PricePointDto.From).ToList());
+    public static ZoneSpotPricesDto From(ZoneSpotPrices z, string timeZoneId, PriceRange? dayRange) =>
+        new(z.BiddingZoneId, timeZoneId, z.Points.Select(PricePointDto.From).ToList(),
+            dayRange is null ? null : PriceRangeDto.From(dayRange));
+}
+
+public record PriceRangeDto(decimal MinCtPerKwh, decimal MaxCtPerKwh)
+{
+    public static PriceRangeDto From(PriceRange r) => new(r.Min / 10m, r.Max / 10m);
 }
 
 public record PricePointDto(

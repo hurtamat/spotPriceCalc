@@ -21,6 +21,14 @@ public class SpotPriceRepository : ISpotPriceRepository
         return new ZoneSpotPrices { BiddingZoneId = biddingZoneId, Points = points };
     }
 
+    // One aggregate row; grouping on a constant lets MIN and MAX share a single scan.
+    public Task<PriceRange?> GetRangeAsync(DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct) =>
+        _db.SpotPrices
+            .Where(p => p.From >= fromUtc && p.From < toUtcExclusive)
+            .GroupBy(_ => 1)
+            .Select(g => new PriceRange(g.Min(p => p.Price), g.Max(p => p.Price)))
+            .SingleOrDefaultAsync(ct);
+
     // Minimum stored slots for a day to count as populated more than where CET is +2 with 15min slots so 8. It's a rough assumption.
     private const int MinSlotsForDay = 12;
 

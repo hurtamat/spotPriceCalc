@@ -29,6 +29,7 @@ public class SpotPricesController : ControllerBase
             return NotFound($"Unknown bidding zone id {biddingZoneId}.");
 
         var prices = await _service.GetPricesAsync(biddingZoneId, date, date, ct);
-        return Ok(ZoneSpotPricesDto.From(prices, zone.TimeZoneId));
+        var dayRange = await _service.GetDayRangeAsync(date, ct);
+        return Ok(ZoneSpotPricesDto.From(prices, zone.TimeZoneId, dayRange));
     }
 }

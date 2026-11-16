@@ -14,6 +14,7 @@ import {
   fetchSpotPrices,
   type DayKey,
   type PriceQuantile,
+  type PriceRange,
   type ZoneSpotPrices,
 } from '../api/spotPrices';
 import { ZONE_BY_ID } from '../api/zones';
@@ -101,23 +102,52 @@ export function PriceSection() {
   const zoneName = zoneId != null ? (ZONE_BY_ID[zoneId]?.name ?? 'this zone') : 'this zone';
   const key = `${zoneId}:${day}`;
 
+  // All three days load together: the axis spans all of them, and switching days is instant.
   useEffect(() => {
     if (zoneId == null) return;
-    if (cacheRef.current[key]?.status === 'ready') return;
 
     const controller = new AbortController();
-    setCache((c) => ({ ...c, [key]: { status: 'loading' } }));
-    fetchSpotPrices(zoneId, dateForDay(day), controller.signal)
-      .then((data) => setCache((c) => ({ ...c, [key]: { status: 'ready', data } })))
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        const message = err instanceof Error ? err.message : 'Request failed';
-        setCache((c) => ({ ...c, [key]: { status: 'error', message } }));
-      });
-    return () => controller.abort();
-  }, [key, zoneId, day]);
+    for (const d of DAY_ORDER) {
+      const k = `${zoneId}:${d}`;
+      if (cacheRef.current[k]?.status === 'ready') continue;
 
-  const state = zoneId != null ? cache[key] : undefined;
+      setCache((c) => ({ ...c, [k]: { status: 'loading' } }));
+      fetchSpotPrices(zoneId, dateForDay(d), controller.signal)
+        .then((data) => setCache((c) => ({ ...c, [k]: { status: 'ready', data } })))
+        .catch((err: unknown) => {
+          if (controller.signal.aborted) return;
+          const message = err instanceof Error ? err.message : 'Request failed';
+          setCache((c) => ({ ...c, [k]: { status: 'error', message } }));
+        });
+    }
+    return () => controller.abort();
+  }, [zoneId]);
+
+  // dayRange spans every zone, so any zone's answer for a day will do. The cache only ever
+  // holds the three displayed days, so the union over it is the three-day range.
+  const axisRange = useMemo<PriceRange | null>(() => {
+    let min = Infinity;
+    let max = -Infinity;
+    for (const s of Object.values(cache)) {
+      if (s.status !== 'ready' || !s.data.dayRange) continue;
+      min = Math.min(min, s.data.dayRange.minCtPerKwh);
+      max = Math.max(max, s.data.dayRange.maxCtPerKwh);
+    }
+    return Number.isFinite(min) ? { minCtPerKwh: min, maxCtPerKwh: max } : null;
+  }, [cache]);
+
+  // Hold the chart until every day's range is in, or the axis jumps when a late one lands.
+  // A day is settled once this zone's request for it is done (a failure counts, so one bad
+  // day can't block the chart), or any other zone already brought back that day's range.
+  const rangeSettled = DAY_ORDER.every((d) => {
+    const own = cache[`${zoneId}:${d}`];
+    if (own && own.status !== 'loading') return true;
+    return Object.entries(cache).some(([k, s]) => k.endsWith(`:${d}`) && s.status === 'ready');
+  });
+
+  const raw = zoneId != null ? cache[key] : undefined;
+  const state: LoadState | undefined =
+    raw?.status === 'ready' && !rangeSettled ? { status: 'loading' } : raw;
 
   return (
     <section
@@ -159,7 +189,14 @@ export function PriceSection() {
             </button>
 
             <div className="sb-card sb-chart-card">
-              <Chart state={state} day={day} onPickDay={setDay} zoneName={zoneName} />
+              <Chart
+                state={state}
+                day={day}
+                onPickDay={setDay}
+                zoneName={zoneName}
+                axisRange={axisRange}
+                revealKey={key}
+              />
             </div>
           </div>
         </div>
@@ -173,11 +210,15 @@ function Chart({
   day,
   onPickDay,
   zoneName,
+  axisRange,
+  revealKey,
 }: {
   state: LoadState | undefined;
   day: DayKey;
   onPickDay: (d: DayKey) => void;
   zoneName: string;
+  axisRange: PriceRange | null;
+  revealKey: string;
 }) {
   const derived = useMemo(() => {
     if (state?.status !== 'ready' || state.data.points.length === 0) return null;
@@ -255,11 +296,20 @@ function Chart({
 
       <div className="sb-chart-plot">
         {derived ? (
-          <Suspense fallback={<div className="sb-chart-state">Drawing the curve…</div>}>
-            <PriceBarChart slots={derived.slots} />
+          <Suspense
+            fallback={
+              <div className="sb-chart-state" data-loading>
+                Drawing the curve…
+              </div>
+            }
+          >
+            {/* Keyed per zone and day, so each new curve replays the reveal. */}
+            <div className="sb-chart-reveal" key={revealKey}>
+              <PriceBarChart slots={derived.slots} axisRange={axisRange} />
+            </div>
           </Suspense>
         ) : state?.status === 'loading' ? (
-          <div className="sb-chart-state">
+          <div className="sb-chart-state" data-loading>
             Loading {DAY_LABELS[day].toLowerCase()}&apos;s prices…
           </div>
         ) : state?.status === 'error' ? (

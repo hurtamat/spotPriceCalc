@@ -51,6 +51,7 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddControllers();
 
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddMemoryCache();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));

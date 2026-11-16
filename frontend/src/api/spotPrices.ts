@@ -14,11 +14,19 @@ export interface PricePoint {
   quantile: PriceQuantile | null;
 }
 
+/** Cheapest and dearest slot across every zone that day, so all zones share one chart axis. */
+export interface PriceRange {
+  minCtPerKwh: number;
+  maxCtPerKwh: number;
+}
+
 export interface ZoneSpotPrices {
   biddingZoneId: number;
   /** IANA timezone of the bidding zone (e.g. "Europe/Berlin"); points stay UTC. */
   timeZoneId: string;
   points: PricePoint[];
+  /** Null until any zone has prices for the day. */
+  dayRange: PriceRange | null;
 }
 
 export type DayKey = 'yesterday' | 'today' | 'tomorrow';

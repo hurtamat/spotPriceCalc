@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using spotPriceCalc.Domain;
 using spotPriceCalc.Dtos;
 using spotPriceCalc.Dtos.PriceZones;
@@ -14,6 +15,7 @@ public class SpotPriceService : ISpotPriceService
     private readonly IPriceZoneProvider _priceZoneProvider;
     private readonly ISpotPriceRepository _repository;
     private readonly IBiddingZoneCatalog _zones;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<SpotPriceService> _logger;
 
     // Throttle the sequential ENTSO-E calls so we don't trip their rate limits / gateway timeouts.
@@ -27,12 +29,14 @@ public class SpotPriceService : ISpotPriceService
         IPriceZoneProvider priceZoneProvider,
         ISpotPriceRepository repository,
         IBiddingZoneCatalog zones,
+        IMemoryCache cache,
         ILogger<SpotPriceService> logger)
     {
         _provider = provider;
         _priceZoneProvider = priceZoneProvider;
         _repository = repository;
         _zones = zones;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -52,6 +56,23 @@ public class SpotPriceService : ISpotPriceService
         var day = MarketDay.ContainingDay(instant);
         return GetPricesAsync(biddingZoneId, day, day, ct);
     }
+
+    // Prices only change on populate, which evicts the day, so a cached range never goes stale.
+    // An empty day isn't cached, so it picks up the first zone that lands.
+    public async Task<PriceRange?> GetDayRangeAsync(DateOnly date, CancellationToken ct)
+    {
+        if (_cache.TryGetValue(RangeCacheKey(date), out PriceRange? cached))
+            return cached;
+
+        var (fromUtc, toUtc) = MarketDay.WindowUtc(date);
+        var range = await _repository.GetRangeAsync(fromUtc, toUtc, ct);
+        if (range is not null)
+            _cache.Set(RangeCacheKey(date), range);
+
+        return range;
+    }
+
+    private static string RangeCacheKey(DateOnly date) => $"price-range:{date:yyyy-MM-dd}";
 
     #endregion
 
@@ -86,6 +107,9 @@ public class SpotPriceService : ISpotPriceService
 
             await Task.Delay(RequestDelay, ct);
         }
+
+        if (pointsSaved > 0)
+            _cache.Remove(RangeCacheKey(date));
 
         _logger.Log(failures.Count == 0 ? LogLevel.Information : LogLevel.Error,
             "Populate {Date}: {Succeeded} fetched, {Skipped} skipped, {Declined} no-data, {Failed} failed, {Points} points",

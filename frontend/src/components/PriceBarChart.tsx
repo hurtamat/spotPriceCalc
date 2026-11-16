@@ -3,7 +3,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine';
 import { theme } from '../styles/muiTheme';
-import type { PriceQuantile } from '../api/spotPrices';
+import type { PriceQuantile, PriceRange } from '../api/spotPrices';
 import type { PriceSlot } from '../lib/daySlots';
 import { fixed } from '../lib/format';
 
@@ -14,7 +14,24 @@ const QUANTILE_COLOR: Record<PriceQuantile, string> = {
 };
 const UNCLASSIFIED_COLOR = 'var(--color-neutral-400)';
 
-export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; height?: number }) {
+// Rounds an extent outward to a 1/2/5 step, so the top and bottom land on a gridline.
+function niceExtent(min: number, max: number) {
+  const raw = (max - min) / 5 || 1;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 5, 10].map((m) => m * magnitude).find((s) => s >= raw) ?? raw;
+  return { min: Math.floor(min / step) * step, max: Math.ceil(max / step) * step };
+}
+
+export function PriceBarChart({
+  slots,
+  axisRange,
+  height = 230,
+}: {
+  slots: PriceSlot[];
+  /** Min and max across every zone over yesterday, today and tomorrow. */
+  axisRange: PriceRange | null;
+  height?: number;
+}) {
   // 15-minute zones get pencil bars, hourly zones get chunky bars.
   const dense = slots.length > 48;
 
@@ -62,6 +79,13 @@ export function PriceBarChart({ slots, height = 230 }: { slots: PriceSlot[]; hei
         yAxis={[
           {
             width: 44,
+            // Pinned to the three-day range across all zones, so switching zone or day doesn't
+            // rescale the axis. The zone's own data and 0 stay in, in case the range lags a populate.
+            domainLimit: (min, max) =>
+              niceExtent(
+                Math.min(0, Number(min), axisRange?.minCtPerKwh ?? Infinity),
+                Math.max(Number(max), axisRange?.maxCtPerKwh ?? -Infinity),
+              ),
             disableTicks: true,
             disableLine: true,
             valueFormatter: (v: number) => fixed(v, 0),
