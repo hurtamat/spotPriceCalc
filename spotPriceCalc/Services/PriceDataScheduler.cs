@@ -15,7 +15,7 @@ public class PriceDataScheduler : BackgroundService
     private static readonly TimeOnly PublishedBy = new(13, 30);
     private static readonly TimeSpan RunInterval = TimeSpan.FromHours(2);
     private static readonly TimeZoneInfo CentralEurope = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
-    
+
     public PriceDataScheduler(
         IServiceScopeFactory scopeFactory, TimeProvider clock, ILogger<PriceDataScheduler> logger)
     {

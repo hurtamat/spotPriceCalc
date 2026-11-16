@@ -37,3 +37,5 @@ spotPriceCalc/appsettings.Development.json
 
 # Local secrets for docker-compose
 .env
+.pytest_cache/
+.ruff_cache/

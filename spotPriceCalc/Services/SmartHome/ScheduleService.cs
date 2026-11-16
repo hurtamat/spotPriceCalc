@@ -20,7 +20,7 @@ public class ScheduleService : IScheduleService
         _clock = clock;
         _logger = logger;
     }
-    
+
     private record Slot(DateTime Start, DateTime End, decimal Price)
     {
         public TimeSpan Length => End - Start;
@@ -93,7 +93,7 @@ public class ScheduleService : IScheduleService
             chosen.Add(s);
             covered += s.Length;
         }
-        
+
         if (covered < needed)
             return new List<Slot>();
 

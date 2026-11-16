@@ -31,14 +31,14 @@ public class ScheduleServiceTests
         DateTime? readyBy = null,
         bool continuous = false,
         UnavailableWindow? unavailable = null) => new()
-    {
-        DeviceId = "test-device",
-        ZoneCode = Zone.Code,
-        DurationHours = hours,
-        ReadyByUtc = readyBy,
-        ContinuousBlock = continuous,
-        Unavailable = unavailable,
-    };
+        {
+            DeviceId = "test-device",
+            ZoneCode = Zone.Code,
+            DurationHours = hours,
+            ReadyByUtc = readyBy,
+            ContinuousBlock = continuous,
+            Unavailable = unavailable,
+        };
 
     private static UnavailableWindow Between(TimeOnly from, TimeOnly to) => new() { From = from, To = to };
 

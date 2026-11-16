@@ -34,7 +34,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.ForwardLimit = 1;
-    options.KnownNetworks.Clear();
+    options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
 
@@ -66,11 +66,13 @@ static void Resilience(HttpStandardResilienceOptions o)
 }
 
 builder.Services.AddHttpClient<ISpotPriceProvider, EntsoeSpotPriceClient>(c =>
-        c.BaseAddress = new Uri(builder.Configuration["Entsoe:BaseUrl"]))
+        c.BaseAddress = new Uri(builder.Configuration["Entsoe:BaseUrl"]
+                                ?? throw new InvalidOperationException("Entsoe:BaseUrl is not configured.")))
     .AddStandardResilienceHandler(Resilience);
 
 builder.Services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherClient>(c =>
-        c.BaseAddress = new Uri(builder.Configuration["OpenMeteo:BaseUrl"]))
+        c.BaseAddress = new Uri(builder.Configuration["OpenMeteo:BaseUrl"]
+                                ?? throw new InvalidOperationException("OpenMeteo:BaseUrl is not configured.")))
     .AddStandardResilienceHandler(Resilience);
 
 // Trailing slash on the base URL matters, without it "price-zones" replaces the last path segment.

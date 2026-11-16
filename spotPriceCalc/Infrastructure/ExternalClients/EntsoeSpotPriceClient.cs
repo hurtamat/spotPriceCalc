@@ -4,7 +4,8 @@ using spotPriceCalc.Infrastructure.ExternalClients.Entsoe;
 
 namespace spotPriceCalc.Infrastructure.ExternalClients;
 
-public class EntsoeSpotPriceClient : ISpotPriceProvider {
+public class EntsoeSpotPriceClient : ISpotPriceProvider
+{
 
     private readonly HttpClient _httpClient;
     private readonly string _securityToken;
@@ -31,7 +32,7 @@ public class EntsoeSpotPriceClient : ISpotPriceProvider {
             ["periodStart"] = fromUtc.ToString("yyyyMMddHHmm"),
             ["periodEnd"] = toUtc.ToString("yyyyMMddHHmm"),
         };
-        
+
         var url = QueryHelpers.AddQueryString("", query);
         using var response = await _httpClient.GetAsync(url, ct);
         var xml = await response.Content.ReadAsStringAsync(ct);

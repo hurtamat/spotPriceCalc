@@ -3,7 +3,8 @@ import { fetchApplianceSavings, type ApplianceSavings } from '../api/savings';
 import { useZonePicker } from '../hooks/useZonePicker';
 import { ZoneSelect } from './ZoneSelect';
 import { fixed } from '../lib/format';
-import { ApplianceIcon, isAppliance } from './icons';
+import { isAppliance } from './appliances';
+import { ApplianceIcon } from './icons';
 
 const eur = (v: number) => `€${fixed(v, 2)}`;
 const ct = (v: number) => `${fixed(v, 1)} c/kWh`;

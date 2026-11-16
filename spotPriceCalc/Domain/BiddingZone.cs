@@ -7,7 +7,7 @@ public class BiddingZone
 
     // ENTSO-E EIC domain code. Sent as in_Domain/out_Domain.
     public required string Code { get; set; }
-    
+
     public required string TimeZoneId { get; set; }
 
     // Approximate zone centre, for the weather query.

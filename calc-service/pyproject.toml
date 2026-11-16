@@ -1,0 +1,22 @@
+# Tooling config only; the service itself installs from requirements.txt.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "E", "W",  # pycodestyle
+  "F",       # pyflakes: unused imports, undefined names
+  "I",       # import order
+  "B",       # bugbear: likely bugs
+  "UP",      # modern syntax for the target version
+  "SIM",     # needless complexity
+  "NPY",     # numpy deprecations
+  "RUF",     # ruff's own checks
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"

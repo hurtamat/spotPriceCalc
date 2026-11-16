@@ -23,7 +23,7 @@ public record HomeAssistantScheduleResponse
 
     [JsonPropertyName("blocks")]
     public required IReadOnlyList<ScheduledBlock> Blocks { get; init; }
-    
+
     // HA displays the whole curve
     [JsonPropertyName("curve")]
     public IReadOnlyList<PriceCurvePoint>? Curve { get; init; }
