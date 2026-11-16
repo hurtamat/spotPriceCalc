@@ -7,6 +7,8 @@
 html {
   /* Smooth-slide to sections when clicking the nav anchors. */
   scroll-behavior: smooth;
+  /* Mobile browsers flash a blue box on every tap; :focus-visible below covers keyboard users. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -8,8 +8,8 @@ export function Footer() {
         <span className="sb-footer-brand">
           <BrandWord markSize={26} />
         </span>
-        <span>© 2026 {SITE.name}</span>
-        <span style={{ display: 'flex', gap: 18 }}>
+        <span className="sb-footer-copy">© 2026 {SITE.name}</span>
+        <span className="sb-footer-links">
           <a className="sb-footer-link" href={ROUTES.privacy}>
             Privacy
           </a>

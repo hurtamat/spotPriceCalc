@@ -69,7 +69,7 @@ export function HaSteps() {
           <div className="sb-ha-actions">
             <MyHaBadge
               href={HACS_URL}
-              src="https://my.home-assistant.io/badges/hacs_repository.svg"
+              src="/assets/ha-badge-hacs_repository.svg"
               alt="Open SpotSteer in the Home Assistant Community Store"
             />
           </div>
@@ -117,7 +117,7 @@ export function HaSteps() {
           <div className="sb-ha-actions">
             <MyHaBadge
               href={CONFIG_URL}
-              src="https://my.home-assistant.io/badges/config_flow_start.svg"
+              src="/assets/ha-badge-config_flow_start.svg"
               alt="Start setting up the SpotSteer integration"
             />
           </div>
