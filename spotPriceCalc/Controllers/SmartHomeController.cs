@@ -21,7 +21,7 @@ public abstract class SmartHomeController : ControllerBase
     }
 
     protected DateTime UtcNow => _clock.GetUtcNow().UtcDateTime;
-    
+
     protected IActionResult? Validate(string zoneCode, double? durationHours, out BiddingZone zone)
     {
         zone = null!;

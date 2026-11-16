@@ -1,4 +1,5 @@
-import { ApplianceIcon, type Appliance } from './icons';
+import type { Appliance } from './appliances';
+import { ApplianceIcon } from './icons';
 
 const APPS: { kind: Appliance; label: string }[] = [
   { kind: 'ev', label: 'Electric car' },

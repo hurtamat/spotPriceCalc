@@ -1,6 +1,6 @@
 name: CI
 
-# Verify the services build and the backend tests pass.
+# Verify every service builds, is formatted, lints clean and passes its tests.
 on:
   pull_request:
   push:
@@ -15,6 +15,9 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - run: dotnet restore
+      # Formatting is checked before the build so a whitespace slip fails fast.
+      - run: dotnet format spotPriceCalc.sln --verify-no-changes --no-restore
+      # Directory.Build.props turns warnings into errors, so a warning fails this step.
       - run: dotnet build --no-restore -c Release
       - run: dotnet test --no-build -c Release --logger "trx;LogFileName=results.trx"
       - uses: actions/upload-artifact@v4
@@ -37,7 +40,9 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      # oxlint --deny-warnings: a warning fails CI too.
       - run: npm run lint
+      # tsc -b (type check) then vite build.
       - run: npm run build
 
   calc-service:
@@ -50,8 +55,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - run: python -c "import main; assert main.app"
+          cache: pip
+          cache-dependency-path: calc-service/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check --output-format=github .
+      - run: ruff format --check .
+      - run: pytest
 
   terraform:
     runs-on: ubuntu-latest

@@ -1,0 +1,12 @@
+<Project>
+  <!-- Applies to every project in the solution. -->
+  <PropertyGroup>
+    <!-- A warning fails the build, locally and in CI, so new code can't add any. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- The SDK's default rule set, tracking the newest analyzers as the SDK updates. -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Known-vulnerable packages stay warnings: a newly published advisory shouldn't break
+         every build overnight. They still show up in the build output and in Rider. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+  </PropertyGroup>
+</Project>

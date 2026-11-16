@@ -36,6 +36,10 @@ internal sealed class FakeSpotPriceService : ISpotPriceService
         return GetPricesAsync(biddingZoneId, day, day, ct);
     }
 
+    // The scheduler plans one zone's curve and never asks for the cross-zone range.
+    public Task<PriceRange?> GetDayRangeAsync(DateOnly date, CancellationToken ct) =>
+        throw new NotSupportedException("ScheduleService must not read the day range.");
+
     // The scheduler reads, never populates.
     public Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct) =>
         throw new NotSupportedException("ScheduleService must not populate.");

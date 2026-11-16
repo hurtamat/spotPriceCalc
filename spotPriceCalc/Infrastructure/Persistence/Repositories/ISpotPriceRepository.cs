@@ -7,6 +7,9 @@ public interface ISpotPriceRepository
 {
     Task<ZoneSpotPrices> GetAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
 
+    // Min and max price over every zone in the window. Null when nothing is stored yet.
+    Task<PriceRange?> GetRangeAsync(DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
+
     // True if the window holds at least MinSlotsForDay slots.
     Task<bool> HasDayAsync(int biddingZoneId, DateTime fromUtc, DateTime toUtcExclusive, CancellationToken ct);
 

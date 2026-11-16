@@ -10,6 +10,9 @@ public interface ISpotPriceService
     // Query by instant, resolves to the day containing it.
     Task<ZoneSpotPrices> GetPricesAsync(int biddingZoneId, DateTime instant, CancellationToken ct);
 
+    // Min and max across every zone for the market day, so charts of different zones share one axis.
+    Task<PriceRange?> GetDayRangeAsync(DateOnly date, CancellationToken ct);
+
     // Stores a date range, one request per zone, without classifying it. Best-effort: never throws.
     Task BackfillHistoryAsync(DateOnly from, DateOnly to, CancellationToken ct);
 

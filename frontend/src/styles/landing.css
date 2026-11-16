@@ -335,6 +335,36 @@
   padding: 20px;
 }
 
+/* Quick loads never show the loading text: it only fades in after a short wait. */
+.sb-chart-state[data-loading] {
+  animation: sb-chart-fade 200ms ease 300ms both;
+}
+
+/* Each new curve wipes in left to right, the way the day reads. */
+.sb-chart-reveal {
+  animation: sb-chart-reveal 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes sb-chart-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sb-chart-reveal {
+  from {
+    opacity: 0.3;
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
 .sb-chart-state-detail {
   font-size: var(--text-xs);
 }
@@ -590,7 +620,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sb-map-nudge,
-  .sb-map-nudge-tap {
+  .sb-map-nudge-tap,
+  .sb-chart-reveal,
+  .sb-chart-state[data-loading] {
     animation: none;
   }
   .sb-zonemap-bleed,
